@@ -52,7 +52,7 @@ app.use("/*", async (c, next) => {
 
 	const rpcResult = await rpcHandler.handle(c.req.raw, {
 		prefix: "/rpc",
-		context: context,
+		context,
 	});
 
 	if (rpcResult.matched) {
@@ -61,7 +61,7 @@ app.use("/*", async (c, next) => {
 
 	const apiResult = await apiHandler.handle(c.req.raw, {
 		prefix: "/api",
-		context: context,
+		context,
 	});
 
 	if (apiResult.matched) {

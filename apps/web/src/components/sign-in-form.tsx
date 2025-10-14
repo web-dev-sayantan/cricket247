@@ -1,139 +1,300 @@
-import { authClient } from "@/lib/auth-client";
+/** biome-ignore-all lint/performance/noImgElement: this is not a nextjs project */
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { toast } from "sonner";
 import z from "zod";
+import { authClient } from "@/lib/auth-client";
+import { OTP_LENGTH } from "@/lib/constants";
 import Loader from "./loader";
 import { Button } from "./ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+} from "./ui/card";
+import FacebookButton from "./ui/facebook-button";
+import { Field, FieldError, FieldGroup, FieldLabel } from "./ui/field";
+import GoogleButton from "./ui/google-button";
 import { Input } from "./ui/input";
-import { Label } from "./ui/label";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSeparator,
+  InputOTPSlot,
+} from "./ui/input-otp";
+import { Separator } from "./ui/separator";
+
+const signinSchema = z.object({
+  email: z.email(),
+  otp: z
+    .string()
+    .length(OTP_LENGTH, { message: `OTP must be ${OTP_LENGTH} digits` })
+    .optional(),
+});
 
 export default function SignInForm({
-	onSwitchToSignUp,
+  onSwitchToSignUp,
 }: {
-	onSwitchToSignUp: () => void;
+  onSwitchToSignUp: () => void;
 }) {
-	const navigate = useNavigate({
-		from: "/",
-	});
-	const { isPending } = authClient.useSession();
+  const navigate = useNavigate({
+    from: "/",
+  });
+  const [otpSent, setOtpSent] = useState(0);
+  const [signinError, setSigninError] = useState("");
+  const { isPending } = authClient.useSession();
 
-	const form = useForm({
-		defaultValues: {
-			email: "",
-			password: "",
-		},
-		onSubmit: async ({ value }) => {
-			await authClient.signIn.email(
-				{
-					email: value.email,
-					password: value.password,
-				},
-				{
-					onSuccess: () => {
-						navigate({
-							to: "/dashboard",
-						});
-						toast.success("Sign in successful");
-					},
-					onError: (error) => {
-						toast.error(error.error.message || error.error.statusText);
-					},
-				},
-			);
-		},
-		validators: {
-			onSubmit: z.object({
-				email: z.email("Invalid email address"),
-				password: z.string().min(8, "Password must be at least 8 characters"),
-			}),
-		},
-	});
+  const form = useForm({
+    defaultValues: {
+      email: "",
+      otp: "",
+    },
+    onSubmit: async ({ value }) => {
+      await authClient.signIn.email(
+        {
+          email: value.email,
+          password: value.otp,
+        },
+        {
+          onSuccess: () => {
+            navigate({
+              to: "/dashboard",
+            });
+            toast.success("Sign in successful");
+          },
+          onError: (error) => {
+            toast.error(error.error.message || error.error.statusText);
+          },
+        }
+      );
+    },
+    validators: {
+      onSubmit: z.object({
+        email: z.email("Invalid email address"),
+        otp: z.string().min(OTP_LENGTH, `OTP must be ${OTP_LENGTH} digits`),
+      }),
+    },
+  });
 
-	if (isPending) {
-		return <Loader />;
-	}
+  async function signInWithSocial(provider: "facebook" | "google") {
+    const { data, error } = await authClient.signIn.social({ provider });
+    if (data?.redirect) {
+      // navigate("/play/matches");
+    } else {
+      setSigninError("Login Failed. Try Again");
+    }
+  }
 
-	return (
-		<div className="mx-auto w-full mt-10 max-w-md p-6">
-			<h1 className="mb-6 text-center text-3xl font-bold">Welcome Back</h1>
+  async function sendOTP(email: string) {
+    if (!email) {
+      return;
+    }
+    const { data, error } = await authClient.emailOtp.sendVerificationOtp({
+      email,
+      type: "sign-in",
+    });
+    if (data?.success) {
+      setOtpSent(otpSent + 1);
+    }
+  }
 
-			<form
-				onSubmit={(e) => {
-					e.preventDefault();
-					e.stopPropagation();
-					form.handleSubmit();
-				}}
-				className="space-y-4"
-			>
-				<div>
-					<form.Field name="email">
-						{(field) => (
-							<div className="space-y-2">
-								<Label htmlFor={field.name}>Email</Label>
-								<Input
-									id={field.name}
-									name={field.name}
-									type="email"
-									value={field.state.value}
-									onBlur={field.handleBlur}
-									onChange={(e) => field.handleChange(e.target.value)}
-								/>
-								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
-									</p>
-								))}
-							</div>
-						)}
-					</form.Field>
-				</div>
+  async function verifyOTP(formValues: z.infer<typeof signinSchema>) {
+    const { data, error } = await authClient.signIn.emailOtp({
+      email: formValues.email,
+      otp: formValues.otp!,
+    });
+    if (data?.user) {
+      // navigate("/dashboard");
+    } else {
+      setSigninError("Invalid Code");
+    }
+  }
+  if (isPending) {
+    return <Loader />;
+  }
 
-				<div>
-					<form.Field name="password">
-						{(field) => (
-							<div className="space-y-2">
-								<Label htmlFor={field.name}>Password</Label>
-								<Input
-									id={field.name}
-									name={field.name}
-									type="password"
-									value={field.state.value}
-									onBlur={field.handleBlur}
-									onChange={(e) => field.handleChange(e.target.value)}
-								/>
-								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
-									</p>
-								))}
-							</div>
-						)}
-					</form.Field>
-				</div>
-
-				<form.Subscribe>
-					{(state) => (
-						<Button
-							type="submit"
-							className="w-full"
-							disabled={!state.canSubmit || state.isSubmitting}
-						>
-							{state.isSubmitting ? "Submitting..." : "Sign In"}
-						</Button>
-					)}
-				</form.Subscribe>
-			</form>
-
-			<div className="mt-4 text-center">
-				<Button
-					variant="link"
-					onClick={onSwitchToSignUp}
-					className="text-indigo-600 hover:text-indigo-800"
-				>
-					Need an account? Sign Up
-				</Button>
-			</div>
-		</div>
-	);
+  return (
+    <div className="mx-auto mt-10 w-full max-w-md p-6">
+      <Card className="min-w-[400px]">
+        <CardHeader className="flex flex-col items-center justify-center">
+          <img
+            alt="logo"
+            className="rounded-full"
+            height="80"
+            src="/cricket-24-7.svg"
+            width="80"
+          />
+          <h1 className="pt-2 text-center font-bold text-xl">Cricket 24/7</h1>
+          <CardDescription className="text-center">
+            {otpSent
+              ? "Check your email for the verification code"
+              : "Sign in to your account with"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!otpSent && (
+            <>
+              <div className="flex w-full items-center gap-4 pb-4">
+                <FacebookButton
+                  className="w-full flex-1"
+                  onClick={() => signInWithSocial("facebook")}
+                />
+                <GoogleButton
+                  className="w-full flex-1"
+                  onClick={() => signInWithSocial("google")}
+                />
+              </div>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <Separator className="w-full" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              form.handleSubmit(verifyOTP);
+            }}
+          >
+            {otpSent ? (
+              <FieldGroup>
+                <form.Field name="otp">
+                  {(field) => {
+                    const isInvalid =
+                      field.state.meta.isTouched && field.state.meta.isValid;
+                    return (
+                      <Field className="space-y-2" data-invalid={isInvalid}>
+                        <FieldLabel htmlFor={field.name}>
+                          Verification Code
+                        </FieldLabel>
+                        <InputOTP
+                          aria-invalid={isInvalid}
+                          id={field.name}
+                          maxLength={6}
+                          name={field.name}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => field.handleChange(e)}
+                          value={field.state.value}
+                        >
+                          <InputOTPGroup>
+                            <InputOTPSlot index={0} />
+                            <InputOTPSlot index={1} />
+                          </InputOTPGroup>
+                          <InputOTPSeparator />
+                          <InputOTPGroup>
+                            <InputOTPSlot index={2} />
+                            <InputOTPSlot index={3} />
+                          </InputOTPGroup>
+                          <InputOTPSeparator />
+                          <InputOTPGroup>
+                            <InputOTPSlot index={4} />
+                            <InputOTPSlot index={5} />
+                          </InputOTPGroup>
+                        </InputOTP>
+                        {isInvalid && (
+                          <FieldError errors={field.state.meta.errors} />
+                        )}
+                      </Field>
+                    );
+                  }}
+                </form.Field>
+              </FieldGroup>
+            ) : (
+              <FieldGroup>
+                <form.Field name="email">
+                  {(field) => {
+                    const isInvalid =
+                      field.state.meta.isTouched && !field.state.meta.isValid;
+                    return (
+                      <Field className="space-y-2" data-invalid={isInvalid}>
+                        <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+                        <Input
+                          aria-invalid={isInvalid}
+                          id={field.name}
+                          name={field.name}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          type="email"
+                          value={field.state.value}
+                        />
+                        {isInvalid && (
+                          <FieldError errors={field.state.meta.errors} />
+                        )}
+                      </Field>
+                    );
+                  }}
+                </form.Field>
+              </FieldGroup>
+            )}
+            <form.Subscribe>
+              {(state) => (
+                <div className="flex flex-col items-center justify-center gap-1">
+                  {otpSent ? (
+                    <>
+                      <Button
+                        className="w-full font-bold"
+                        disabled={!state.canSubmit || state.isSubmitting}
+                        type="submit"
+                      >
+                        Verify
+                      </Button>
+                      <div className="flex items-center justify-center">
+                        <Button
+                          className="ml-2"
+                          onClick={() => sendOTP(form.getFieldValue("email"))}
+                          variant={"link"}
+                        >
+                          {state.isSubmitting
+                            ? "Sending Code..."
+                            : "Resend Code"}
+                        </Button>
+                        <Button
+                          className="ml-2"
+                          onClick={() => setOtpSent(0)}
+                          variant={"link"}
+                        >
+                          Change Email
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <Button
+                      className="w-full font-bold"
+                      disabled={!state.canSubmit || state.isSubmitting}
+                      onClick={() => sendOTP(form.getFieldValue("email"))}
+                      type="button"
+                    >
+                      {state.isSubmitting ? "Sending Code..." : "Send Code"}
+                    </Button>
+                  )}
+                </div>
+              )}
+            </form.Subscribe>
+          </form>
+        </CardContent>
+        <CardFooter className="flex items-center justify-center">
+          <div className="mt-4 text-center">
+            <Button
+              className="text-indigo-600 hover:text-indigo-800"
+              onClick={onSwitchToSignUp}
+              variant="link"
+            >
+              Need an account? Sign Up
+            </Button>
+          </div>
+        </CardFooter>
+      </Card>
+    </div>
+  );
 }

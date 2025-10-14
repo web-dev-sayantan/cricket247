@@ -1,11 +1,12 @@
 {
   "name": "cricket247",
+  "devDependencies": {
+    "@biomejs/biome": "2.2.5",
+    "turbo": "^2.5.8",
+    "ultracite": "5.6.1"
+  },
+  "packageManager": "bun@1.2.23",
   "private": true,
-  "type": "module",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
   "scripts": {
     "check": "biome check --write .",
     "dev": "turbo dev",
@@ -19,11 +20,9 @@
     "db:generate": "turbo -F server db:generate",
     "db:migrate": "turbo -F server db:migrate"
   },
-  "dependencies": {},
-  "devDependencies": {
-    "turbo": "^2.5.4",
-    "@biomejs/biome": "2.2.4",
-    "ultracite": "5.4.5"
-  },
-  "packageManager": "bun@1.2.23"
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
 }
