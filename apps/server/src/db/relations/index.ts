@@ -1,16 +1,16 @@
 import { relations } from "drizzle-orm";
 import {
-  tournaments,
-  teams,
-  players,
-  matches,
-  innings,
   balls,
-  tournamentTeams,
-  teamPlayers,
-  playerMatchPerformance,
-  playerTournamentStats,
+  innings,
+  matches,
   playerCareerStats,
+  playerMatchPerformance,
+  players,
+  playerTournamentStats,
+  teamPlayers,
+  teams,
+  tournaments,
+  tournamentTeams,
 } from "../schema";
 
 // Tournament relations
@@ -126,7 +126,7 @@ export const tournamentTeamRelations = relations(
       fields: [tournamentTeams.teamId],
       references: [teams.id],
     }),
-  }),
+  })
 );
 
 // TeamPlayer relations
@@ -161,7 +161,7 @@ export const playerMatchPerformanceRelations = relations(
       fields: [playerMatchPerformance.dismissedBy],
       references: [players.id],
     }),
-  }),
+  })
 );
 
 // PlayerTournamentStats relations
@@ -180,7 +180,7 @@ export const playerTournamentStatsRelations = relations(
       fields: [playerTournamentStats.teamId],
       references: [teams.id],
     }),
-  }),
+  })
 );
 
 // PlayerCareerStats relations
@@ -191,5 +191,5 @@ export const playerCareerStatsRelations = relations(
       fields: [playerCareerStats.playerId],
       references: [players.id],
     }),
-  }),
+  })
 );

@@ -1,26 +1,26 @@
-import { betterAuth, type BetterAuthOptions } from "better-auth";
+import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { db } from "../db";
-import { passkey } from "better-auth/plugins/passkey";
 import { emailOTP } from "better-auth/plugins";
+import { passkey } from "better-auth/plugins/passkey";
 import { sendEmailOtp } from "@/services/email.service";
+import { db } from "../db";
 
 export const auth = betterAuth<BetterAuthOptions>({
-	database: drizzleAdapter(db, {
-		provider: "sqlite"
-	}),
-	trustedOrigins: [process.env.CORS_ORIGIN || ""],
-	emailAndPassword: {
-		enabled: true,
-	},
-	advanced: {
-		defaultCookieAttributes: {
-			sameSite: "none",
-			secure: true,
-			httpOnly: true,
-		},
-		database: { generateId: false }
-	},
+  database: drizzleAdapter(db, {
+    provider: "sqlite",
+  }),
+  trustedOrigins: [process.env.CORS_ORIGIN || ""],
+  emailAndPassword: {
+    enabled: true,
+  },
+  advanced: {
+    defaultCookieAttributes: {
+      sameSite: "none",
+      secure: true,
+      httpOnly: true,
+    },
+    database: { generateId: false },
+  },
   user: {
     additionalFields: {
       role: {

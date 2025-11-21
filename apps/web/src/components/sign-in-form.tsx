@@ -118,7 +118,7 @@ export default function SignInForm({
 
   return (
     <div className="mx-auto mt-10 w-full max-w-md p-6">
-      <Card className="min-w-[400px]">
+      <Card className="min-w-[300px]">
         <CardHeader className="flex flex-col items-center justify-center">
           <img
             alt="logo"
@@ -137,7 +137,7 @@ export default function SignInForm({
         <CardContent>
           {!otpSent && (
             <>
-              <div className="flex w-full items-center gap-4 pb-4">
+              <div className="flex w-full items-center gap-4">
                 <FacebookButton
                   className="w-full flex-1"
                   onClick={() => signInWithSocial("facebook")}
@@ -147,7 +147,7 @@ export default function SignInForm({
                   onClick={() => signInWithSocial("google")}
                 />
               </div>
-              <div className="relative">
+              <div className="relative my-4">
                 <div className="absolute inset-0 flex items-center">
                   <Separator className="w-full" />
                 </div>
@@ -217,8 +217,10 @@ export default function SignInForm({
                     const isInvalid =
                       field.state.meta.isTouched && !field.state.meta.isValid;
                     return (
-                      <Field className="space-y-2" data-invalid={isInvalid}>
-                        <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+                      <Field data-invalid={isInvalid}>
+                        <FieldLabel className="m-0" htmlFor={field.name}>
+                          Email
+                        </FieldLabel>
                         <Input
                           aria-invalid={isInvalid}
                           id={field.name}

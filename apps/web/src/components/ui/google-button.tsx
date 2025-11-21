@@ -7,9 +7,9 @@ type ButtonPropsType = {
 export default function GoogleButton({ className, ...props }: ButtonPropsType) {
   return (
     <Button
+      className={cn(className, "w-full")}
       type="button"
       variant="outline"
-      className={cn(className, "w-full")}
       {...props}
     >
       <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
