@@ -22,7 +22,5 @@
       "!**/.source"
     ]
   },
-  "extends": [
-    "ultracite"
-  ]
+  "extends": ["node_modules/ultracite/config/core/biome.jsonc"]
 }

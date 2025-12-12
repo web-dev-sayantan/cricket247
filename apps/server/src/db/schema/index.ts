@@ -165,6 +165,7 @@ export const matches = sqliteTable(
     team2Id: integer("team2_id")
       .notNull()
       .references(() => teams.id),
+    inningsPerSide: integer("innings_per_side").notNull().default(1),
     oversPerSide: integer("overs_per_side").notNull().default(20),
     maxOverPerBowler: integer("max_over_per_bowler").notNull().default(4),
     result: text("result"),
@@ -186,6 +187,7 @@ export const matches = sqliteTable(
     ),
     hasSuperOver: integer("has_super_over", { mode: "boolean" }).default(false),
     venueId: integer("venue_id").references(() => venues.id),
+    format: text("format").notNull().default("T20"), // "T5", "T6", "T7", "T8", "T10", "T12", "T20", "ODI", "Test", "Custom"
     notes: text("notes"),
   },
   (t) => [index("rank_idx").on(t.winnerId)]
@@ -204,6 +206,7 @@ export const innings = sqliteTable(
     bowlingTeamId: integer("bowling_team_id")
       .notNull()
       .references(() => teams.id),
+    inningsNumber: integer("innings_number").notNull().default(1),
     totalScore: integer("total_runs").notNull().default(0),
     wickets: integer("wickets").notNull().default(0),
     ballsBowled: integer("balls_bowled").notNull().default(0),

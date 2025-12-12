@@ -1,5 +1,9 @@
 {
   "compilerOptions": {
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "paths": {
+      "@cricket247/types": ["./packages/types/src/index.ts"],
+      "@cricket247/types/*": ["./packages/types/src/*"]
+    }
   }
 }
