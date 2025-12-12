@@ -1,7 +1,7 @@
+import { passkey } from "@better-auth/passkey";
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { emailOTP } from "better-auth/plugins";
-import { passkey } from "better-auth/plugins/passkey";
 import { sendEmailOtp } from "@/services/email.service";
 import { db } from "../db";
 

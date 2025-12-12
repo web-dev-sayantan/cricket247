@@ -329,3 +329,20 @@ try {
   console.log(e);
 }
 ```
+ 
+### Frameworks & Libraries (Repository-specific guidance)
+- **General patterns**: Follow existing project conventions: use `import type` for types, avoid default exports, prefer arrow functions, use `@/` for internal aliases, and keep components in `src/components/` and route modules in `src/routes/`.
+- **React 19**: Use functional components and hooks only. Keep hooks at the top level of components. Provide keyboard handlers alongside `onClick`. Avoid class components, non-null assertions `!`, and `any` types. Use strict TypeScript and prefer controlled form components.
+- **TanStack Router**: Implement route modules inside `src/routes/` following existing patterns. Use route-level loaders and actions where appropriate. Keep route generation (`routeTree.gen.ts`) in sync by following the route file conventions.
+- **TanStack Query**: Use for client caching/fetching. Put queries in `src/lib/` or `src/services/`. Use stable query keys, handle errors explicitly, and avoid side effects during render.
+- **Tailwind CSS**: Use utility classes for styling and keep inline style usage minimal. Ensure accessible color contrast and responsive utilities. Prefer semantic elements with Tailwind classes rather than role-based fallbacks.
+- **Vite / Bun**: Development and build tasks use `bun` scripts as defined in `package.json` and `AGENTS.md` (`bun run dev`, `bun run build`, `bun run check`). Generated code should respect Vite hot-module patterns and Bun runtime quirks.
+- **Hono (server)**: Server code lives in `apps/server/src/`. Write small, testable route handlers that validate input (use Zod) and return typed JSON responses. Use the project's `Context` helpers (`lib/context.ts`), avoid console statements, and prefer `Response` helper methods when available.
+- **Drizzle ORM & Turso**: Keep schema and relations in `apps/server/src/db/schema` and `relations`. Use typed queries from Drizzle, keep migrations generated with `bun run db:generate`, and run `bun run db:migrate` as part of deploy workflows. Put DB access in `src/db/` modules and avoid raw SQL string concatenation.
+- **Better Auth / Authentication**: Use existing helpers in `apps/server/src/lib/auth.ts`. Do not hardcode secrets; rely on environment variables and the project's auth abstractions. Maintain role-based checks in services.
+- **Cloudflare Workers / Wrangler**: For edge deployments, follow `wrangler.jsonc` constraints: keep bundles small, avoid Node-only APIs, and ensure compatibility with Workers runtime (no heavy native modules). Use environment bindings for secrets.
+- **Drizzle/Server patterns**: Keep data access, business logic, and route glue separated — `db/*` → `services/*` → `routers/*`. Export minimal surface area from each module.
+- **Biome / Ultracite**: Formatting and linting are enforced via Biome/Ultracite. Run `bun run check` or `npx ultracite fix` before committing. Follow the style rules in this file strictly.
+- **Accessibility (a11y)**: Reinforce a11y rules when using frameworks — always add keyboard handlers, `title` on SVGs, meaningful `alt` text, and correct `lang` on `html`.
+
+When generating code for any of the frameworks or libraries above, preserve existing directory structures, follow naming conventions in `AGENTS.md`, avoid introducing new top-level architectural patterns, and prefer small, incremental changes that match current idioms.

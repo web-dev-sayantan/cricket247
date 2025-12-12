@@ -12,13 +12,18 @@
     "rootDirs": ["."],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@cricket247/types": ["../../packages/types/src/index.ts"],
+      "@cricket247/types/*": ["../../packages/types/src/*"]
     },
     "strictNullChecks": true
   },
   "references": [
     {
       "path": "../server"
+    },
+    {
+      "path": "../../packages/types"
     }
   ]
 }

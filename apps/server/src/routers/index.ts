@@ -1,5 +1,5 @@
 import type { RouterClient } from "@orpc/server";
-import { getLiveMatches } from "@/services/match.serivce";
+import { getLiveMatches } from "@/services/match.service";
 import { protectedProcedure, publicProcedure } from "../lib/orpc";
 
 export const appRouter = {

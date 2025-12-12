@@ -7,25 +7,34 @@ import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { corsConfig } from "./config/cors";
 import { auth } from "./lib/auth";
 import { createContext } from "./lib/context";
+import { errorHandler } from "./middleware";
 import { appRouter } from "./routers/index";
+import routes from "./routes";
 
 const app = new Hono();
 
+// Global middleware
 app.use(logger());
-app.use(
-  "/*",
-  cors({
-    origin: process.env.CORS_ORIGIN || "",
-    allowMethods: ["GET", "POST", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
+app.use("/*", cors(corsConfig));
+app.use("*", errorHandler);
+
+// Health check endpoint
+app.get("/", (c) =>
+  c.json({
+    status: "ok",
+    message: "Cricket247 API",
+    version: "1.0.0",
+    timestamp: new Date().toISOString(),
   })
 );
 
+// Auth routes (Better Auth)
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
+// ORPC handlers for type-safe RPC calls
 export const apiHandler = new OpenAPIHandler(appRouter, {
   plugins: [
     new OpenAPIReferencePlugin({
@@ -34,7 +43,7 @@ export const apiHandler = new OpenAPIHandler(appRouter, {
   ],
   interceptors: [
     onError((error) => {
-      console.error(error);
+      console.error("ORPC Error:", error);
     }),
   ],
 });
@@ -42,11 +51,12 @@ export const apiHandler = new OpenAPIHandler(appRouter, {
 export const rpcHandler = new RPCHandler(appRouter, {
   interceptors: [
     onError((error) => {
-      console.error(error);
+      console.error("RPC Error:", error);
     }),
   ],
 });
 
+// ORPC middleware
 app.use("/*", async (c, next) => {
   const context = await createContext({ context: c });
 
@@ -71,6 +81,19 @@ app.use("/*", async (c, next) => {
   await next();
 });
 
-app.get("/", (c) => c.text("OK"));
+// REST API routes
+app.route("/", routes);
+
+// 404 handler
+app.notFound((c) =>
+  c.json(
+    {
+      success: false,
+      error: "Route not found",
+      timestamp: new Date().toISOString(),
+    },
+    404
+  )
+);
 
 export default app;
