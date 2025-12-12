@@ -2,7 +2,74 @@
 applyTo: "**/*.{ts,tsx,js,jsx}"
 ---
 
-# Project Context
+# Cricket247 - Live Cricket Scores & Updates
+
+## About This Project
+Cricket247 is a modern web application built with React 19, TanStack Router, Hono, and Drizzle ORM. It provides live cricket scores, match updates, and cricket-related features with a focus on performance, type safety, and accessibility.
+
+**Tech Stack:**
+- **Frontend**: React 19, TanStack Router, TailwindCSS, shadcn/ui
+- **Backend**: Hono, oRPC, Better-Auth
+- **Database**: SQLite/Turso with Drizzle ORM
+- **Runtime**: Bun
+- **Deployment**: Cloudflare Pages/Workers
+- **Tooling**: Biome, Ultracite, TypeScript, Vite, Turborepo
+
+## Project Structure
+```
+cricket247/
+├── apps/
+│   ├── web/         # Frontend application (React + TanStack Router)
+│   └── server/      # Backend API (Hono, oRPC, Better-Auth)
+├── packages/        # Shared packages
+├── .github/         # GitHub configuration and workflows
+└── AGENTS.md        # Development guidelines (READ THIS FIRST)
+```
+
+## Key Documents
+- **AGENTS.md**: Comprehensive development guidelines, build commands, and code style patterns
+- **README.md**: Getting started guide and project overview
+- **.rules**: Ultracite rules for code quality (referenced below)
+
+# Development Workflow
+
+## Common Commands (Monorepo)
+- `bun run check` - Lint & format with Biome (run before committing)
+- `bun run build` - Build all apps via Turbo
+- `bun run check-types` - TypeScript checking across all apps
+- `bun run dev` - Start all apps in development mode
+- `bun run dev:web` - Start only web app (port 3001)
+- `bun run dev:server` - Start only server (port 3000)
+- `bun run db:push` - Push schema changes to database
+- `bun run db:studio` - Open Drizzle Studio for database management
+- `bun run db:generate` - Generate database migrations
+- `bun run db:migrate` - Run database migrations
+
+## Development Process
+1. **Before coding**: Read `AGENTS.md` and analyze existing patterns in similar files
+2. **During coding**: Follow Ultracite rules strictly (enforced by Biome)
+3. **Before commit**: Run `bun run check` and `bun run check-types`
+4. **Testing**: Manual testing + accessibility audit (no test framework currently configured)
+
+## Task Guidelines
+**Good tasks for AI coding agents:**
+- Bug fixes with clear reproduction steps
+- New UI components following existing patterns
+- API endpoints with clear input/output specs
+- Database schema changes with migration scripts
+- Documentation updates
+- Refactoring to improve code quality
+- Adding TypeScript types
+
+**Tasks requiring human review:**
+- Authentication/security changes
+- Database migrations on production
+- Breaking API changes
+- Complex business logic
+- Performance-critical code
+
+# Ultracite Code Quality Standards
+
 Ultracite enforces strict type safety, accessibility standards, and consistent code quality for JavaScript/TypeScript projects using Biome's lightning-fast formatter and linter.
 
 ## Key Principles
@@ -346,3 +413,180 @@ try {
 - **Accessibility (a11y)**: Reinforce a11y rules when using frameworks — always add keyboard handlers, `title` on SVGs, meaningful `alt` text, and correct `lang` on `html`.
 
 When generating code for any of the frameworks or libraries above, preserve existing directory structures, follow naming conventions in `AGENTS.md`, avoid introducing new top-level architectural patterns, and prefer small, incremental changes that match current idioms.
+
+## Common Development Tasks
+
+### Adding a New React Component
+1. Create component in `apps/web/src/components/` with kebab-case filename
+2. Use functional component with TypeScript
+3. Import from `@/` alias for internal modules
+4. Add keyboard handlers for any `onClick` events
+5. Ensure proper ARIA attributes and semantic HTML
+6. Use Tailwind classes for styling
+7. Export as named export (not default)
+
+**Example:**
+```typescript
+// apps/web/src/components/match-card.tsx
+import type { Match } from '@/types/match';
+import { Card } from '@/components/ui/card';
+
+interface MatchCardProps {
+  match: Match;
+  onSelect?: (matchId: string) => void;
+}
+
+export const MatchCard = ({ match, onSelect }: MatchCardProps) => {
+  const handleClick = () => {
+    onSelect?.(match.id);
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleClick();
+    }
+  };
+
+  return (
+    <Card
+      role="button"
+      tabIndex={0}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      className="cursor-pointer hover:shadow-lg transition-shadow"
+    >
+      <h3 className="text-lg font-semibold">{match.title}</h3>
+      <p className="text-sm text-muted-foreground">{match.status}</p>
+    </Card>
+  );
+};
+```
+
+### Adding a New API Endpoint
+1. Create route handler in `apps/server/src/routers/`
+2. Validate input with Zod schemas
+3. Use Drizzle for database queries
+4. Return typed JSON responses
+5. Handle errors explicitly
+6. Add authentication/authorization if needed
+
+**Example:**
+```typescript
+// apps/server/src/routers/matches.ts
+import { z } from 'zod';
+import { db } from '@/db';
+import { matches } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+
+const getMatchSchema = z.object({
+  id: z.string().uuid(),
+});
+
+export const getMatch = async (c: Context) => {
+  try {
+    const { id } = getMatchSchema.parse(await c.req.json());
+    
+    const match = await db
+      .select()
+      .from(matches)
+      .where(eq(matches.id, id))
+      .limit(1);
+
+    if (match.length === 0) {
+      return c.json({ error: 'Match not found' }, 404);
+    }
+
+    return c.json({ data: match[0] });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json({ error: 'Invalid request', details: error.errors }, 400);
+    }
+    console.error('Failed to fetch match:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+};
+```
+
+### Adding a Database Table
+1. Define schema in `apps/server/src/db/schema/`
+2. Add relations if needed in `apps/server/src/db/relations/`
+3. Run `bun run db:generate` to create migration
+4. Review migration file
+5. Run `bun run db:migrate` to apply migration
+6. Update TypeScript types as needed
+
+**Example:**
+```typescript
+// apps/server/src/db/schema/matches.ts
+import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+
+export const matches = sqliteTable('matches', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  team1: text('team1').notNull(),
+  team2: text('team2').notNull(),
+  status: text('status').notNull(),
+  startTime: integer('start_time', { mode: 'timestamp' }).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+});
+```
+
+### Adding a TanStack Router Route
+1. Create route file in `apps/web/src/routes/` following file-based routing conventions
+2. Use route-level loaders for data fetching
+3. Implement proper error boundaries
+4. Add loading states
+5. Route file will auto-generate in `routeTree.gen.ts`
+
+**Example:**
+```typescript
+// apps/web/src/routes/matches/$matchId.tsx
+import { createFileRoute } from '@tanstack/react-router';
+import { apiClient } from '@/utils/orpc';
+
+export const Route = createFileRoute('/matches/$matchId')({
+  loader: async ({ params }) => {
+    const result = await apiClient.matches.get({ id: params.matchId });
+    if (result.error) {
+      throw new Error(result.error);
+    }
+    return result.data;
+  },
+  component: MatchDetail,
+  errorComponent: ({ error }) => (
+    <div role="alert" className="p-4 text-red-600">
+      <p>Failed to load match: {error.message}</p>
+    </div>
+  ),
+  pendingComponent: () => (
+    <div className="flex items-center justify-center p-8">
+      <Loader />
+    </div>
+  ),
+});
+
+function MatchDetail() {
+  const match = Route.useLoaderData();
+  return (
+    <div>
+      <h1 className="text-2xl font-bold">{match.title}</h1>
+      {/* ... */}
+    </div>
+  );
+}
+```
+
+## Checklist Before Submitting Work
+- [ ] Code follows Ultracite rules (no Biome errors)
+- [ ] TypeScript compiles without errors (`bun run check-types`)
+- [ ] All interactive elements have keyboard handlers
+- [ ] Proper ARIA attributes and semantic HTML used
+- [ ] Error handling is comprehensive
+- [ ] No hardcoded secrets or sensitive data
+- [ ] No `console.log` statements in production code
+- [ ] Imports use `@/` alias for internal modules
+- [ ] Database migrations generated and reviewed (if schema changed)
+- [ ] Code matches existing patterns in the codebase
+- [ ] Edge cases and error scenarios considered

@@ -75,7 +75,20 @@ cricket247/
 - `bun build`: Build all applications
 - `bun dev:web`: Start only the web application
 - `bun dev:server`: Start only the server
+- `bun check`: Lint and format code with Biome
 - `bun check-types`: Check TypeScript types across all apps
 - `bun db:push`: Push schema changes to database
 - `bun db:studio`: Open database studio UI
 - `cd apps/server && bun db:local`: Start the local SQLite database
+
+## Development Guidelines
+
+This repository includes comprehensive instructions for developers and AI coding agents:
+
+- **[COPILOT_INSTRUCTIONS.md](./COPILOT_INSTRUCTIONS.md)** - Overview of all instruction files and how to use them
+- **[AGENTS.md](./AGENTS.md)** - Development guidelines, build commands, and code style patterns
+- **[.github/copilot-instructions.md](./.github/copilot-instructions.md)** - Repository-wide coding standards and rules
+- **[apps/server/.instructions.md](./apps/server/.instructions.md)** - Backend-specific patterns and best practices
+- **[apps/web/.instructions.md](./apps/web/.instructions.md)** - Frontend-specific patterns and best practices
+
+**Before contributing**, please read `AGENTS.md` and the relevant instruction files to understand project conventions.
