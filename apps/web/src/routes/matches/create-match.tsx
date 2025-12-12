@@ -1,17 +1,16 @@
 import { useForm } from "@tanstack/react-form";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 import type z from "zod";
 import { MatchFormSchema } from "@/lib/schema/match-schema";
+import { client } from "@/utils/orpc";
 
 export const Route = createFileRoute("/matches/create-match")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  // Types from @cricket247/types are now available
-  // Example: const match: Match = { /* ... */ }
-  // Example: const team: Team = { /* ... */ }
-  // Example: const player: Player = { /* ... */ }
+  const navigate = useNavigate();
 
   const defaultValues: z.infer<typeof MatchFormSchema> = {
     matchDate: new Date(),
@@ -28,15 +27,22 @@ function RouteComponent() {
     hasSuperOver: false,
     format: "T6",
   };
-  const form = useForm({
+
+  const _form = useForm({
     defaultValues,
     validators: {
       onSubmit: MatchFormSchema,
     },
-    onSubmit: ({ value }) => {
-      console.log("Form submitted with values:", value);
-      // TODO: Call the create match API here
-
+    onSubmit: async ({ value }) => {
+      try {
+        await client.createMatch(value);
+        toast.success("Match created successfully!");
+        navigate({ to: "/" });
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Failed to create match";
+        toast.error(errorMessage);
+      }
     },
   });
 
