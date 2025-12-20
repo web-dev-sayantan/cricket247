@@ -15,7 +15,7 @@ export function getLiveMatches() {
 }
 
 export async function getAllMatches() {
-  const matches = await db.query.matches.findMany({
+  const allMatches = await db.query.matches.findMany({
     with: {
       innings: true,
       team1: true,
@@ -23,7 +23,7 @@ export async function getAllMatches() {
       tossWinner: true,
     },
   });
-  return matches;
+  return allMatches;
 }
 
 export async function getMatchById(id: number) {

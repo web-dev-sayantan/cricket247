@@ -1,6 +1,7 @@
 import type { RouterClient } from "@orpc/server";
 import { z } from "zod";
 import { createMatchAction, getLiveMatches } from "@/services/match.service";
+import { getAllTeams, getTeamsByName } from "@/services/team.service";
 import { protectedProcedure, publicProcedure } from "../lib/orpc";
 
 // Match creation schema matching the frontend MatchFormSchema
@@ -38,6 +39,14 @@ export const appRouter = {
     user: context.session?.user,
   })),
   liveMatches: publicProcedure.handler(() => getLiveMatches()),
+  teams: publicProcedure.handler(() => getAllTeams()),
+  searchTeamsByName: publicProcedure
+    .input(z.string())
+    .handler(({ input }) => getTeamsByName(input)),
+  getTeamById: publicProcedure.input(z.number()).handler(async ({ input }) => {
+    const teams = await getAllTeams();
+    return teams.find((team) => team.id === input) || null;
+  }),
   createMatch: protectedProcedure
     .input(CreateMatchInputSchema)
     .handler(async ({ input }) => {

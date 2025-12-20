@@ -1,18 +1,41 @@
 import { Hono } from "hono";
-import { errorResponse, requireAuth } from "@/middleware";
+import { errorResponse, requireAuth, successResponse } from "@/middleware";
+import {
+  getAllTeams,
+  getTeamById,
+  getTeamsByName,
+} from "@/services/team.service";
 
 const teamRoutes = new Hono();
 
 // Get all teams (public)
 teamRoutes.get("/", async (c) => {
-  // TODO: Implement get all teams
-  return errorResponse(c, "Not implemented yet", 501);
+  try {
+    const teams = await getAllTeams();
+    return successResponse(c, teams);
+  } catch (_error) {
+    return errorResponse(c, "Failed to fetch teams", 500);
+  }
 });
 
 // Get team by ID (public)
 teamRoutes.get("/:id", async (c) => {
-  // TODO: Implement get team by ID
-  return errorResponse(c, "Not implemented yet", 501);
+  try {
+    const teams = await getTeamById(Number(c.req.param("id")));
+    return successResponse(c, teams);
+  } catch (_error) {
+    return errorResponse(c, "Failed to fetch teams", 500);
+  }
+});
+
+teamRoutes.get("/search/name/:name", async (c) => {
+  try {
+    const name = c.req.param("name");
+    const teams = await getTeamsByName(name);
+    return successResponse(c, teams);
+  } catch (_error) {
+    return errorResponse(c, "Failed to fetch teams", 500);
+  }
 });
 
 // Create team (authenticated)

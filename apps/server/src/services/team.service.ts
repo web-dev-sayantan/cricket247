@@ -1,7 +1,22 @@
+import { eq, like } from "drizzle-orm";
 import { db } from "@/db";
 import { teamPlayers, teams } from "@/db/schema";
 
 export const getAllTeams = () => db.select().from(teams);
+
+export const getTeamById = (id: number) =>
+  db
+    .select()
+    .from(teams)
+    .where(eq(teams.id, id))
+    .limit(1)
+    .then((res) => res[0]);
+
+export const getTeamsByName = (name: string) =>
+  db
+    .select()
+    .from(teams)
+    .where(like(teams.name, `${name}%`));
 
 export async function createTeamAction({
   name,
