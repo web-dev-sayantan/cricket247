@@ -1,7 +1,6 @@
-import { useForm } from "@tanstack/react-form";
-import { useQuery } from "@tanstack/react-query";
+import { useForm, useStore } from "@tanstack/react-form";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -16,8 +15,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { useTeamSearch } from "@/hooks/use-team-search";
 import { MatchFormSchema } from "@/lib/schema/match-schema";
-import { client, orpc } from "@/utils/orpc";
+import { client } from "@/utils/orpc";
 
 export const Route = createFileRoute("/matches/create-match")({
   component: RouteComponent,
@@ -45,45 +45,19 @@ function RouteComponent() {
   const navigate = useNavigate();
   const [team1SearchInput, setTeam1SearchInput] = useState("");
   const [team2SearchInput, setTeam2SearchInput] = useState("");
-  const [debouncedTeam1Search, setDebouncedTeam1Search] = useState("");
-  const [debouncedTeam2Search, setDebouncedTeam2Search] = useState("");
 
-  // Debounce team1 search input
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (team1SearchInput.trim() !== "") {
-        setDebouncedTeam1Search(team1SearchInput);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [team1SearchInput]);
-
-  // Debounce team2 search input
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (team2SearchInput.trim() !== "") {
-        setDebouncedTeam2Search(team2SearchInput);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [team2SearchInput]);
-
-  // Search teams based on debounced input
+  // Search teams using custom hook
   const {
     data: team1Results = [],
     isLoading: loadingTeam1,
     error: team1Error,
-  } = useQuery(
-    orpc.searchTeamsByName.queryOptions({ input: debouncedTeam1Search || "" })
-  );
+  } = useTeamSearch(team1SearchInput);
 
   const {
     data: team2Results = [],
     isLoading: loadingTeam2,
     error: team2Error,
-  } = useQuery(
-    orpc.searchTeamsByName.queryOptions({ input: debouncedTeam2Search || "" })
-  );
+  } = useTeamSearch(team2SearchInput);
 
   // Show error toast if team searching fails
   useEffect(() => {
@@ -134,41 +108,8 @@ function RouteComponent() {
     },
   });
 
-  // Subscribe to form field changes for reactive values
-  const [team1Id, setTeam1Id] = useState(0);
-  const [team2Id, setTeam2Id] = useState(0);
-  const [format, setFormat] = useState("T6");
-
-  // Listen to form field changes
-  useEffect(() => {
-    const unsubscribe = form.store.subscribe(() => {
-      const state = form.store.state;
-      setTeam1Id(state.values.team1Id);
-      setTeam2Id(state.values.team2Id);
-      setFormat(state.values.format);
-    });
-    return unsubscribe;
-  }, [form.store]);
-
-  // Filter teams for autocomplete
-  const filteredTeam1 = useMemo(
-    () => team1Results.filter((team) => team.id !== team2Id),
-    [team1Results, team2Id]
-  );
-
-  const filteredTeam2 = useMemo(
-    () => team2Results.filter((team) => team.id !== team1Id),
-    [team2Results, team1Id]
-  );
-
-  // Get all teams for finding selected teams
-  const allTeams = useMemo(
-    () => [...team1Results, ...team2Results],
-    [team1Results, team2Results]
-  );
-
-  const selectedTeam1 = allTeams.find((t) => t.id === team1Id);
-  const selectedTeam2 = allTeams.find((t) => t.id === team2Id);
+  const team1Id = useStore(form.store, (state) => state.values.team1Id);
+  const team2Id = useStore(form.store, (state) => state.values.team2Id);
 
   return (
     <Card className="mx-3 mt-4 max-w-2xl">
@@ -253,22 +194,19 @@ function RouteComponent() {
                       disabled={loadingTeams}
                       id="team1"
                       onChange={(e) => setTeam1SearchInput(e.target.value)}
-                      onFocus={() =>
-                        selectedTeam1 && setTeam1SearchInput(selectedTeam1.name)
-                      }
                       placeholder="Search or select team 1..."
-                      value={team1SearchInput || selectedTeam1?.name || ""}
+                      value={team1SearchInput || ""}
                     />
                     {team1SearchInput ? (
                       <div className="absolute top-full right-0 left-0 z-50 mt-1 rounded-md border border-input bg-background shadow-md">
-                        {filteredTeam1.length > 0 ? (
-                          filteredTeam1.map((team) => (
+                        {team1Results.length > 0 ? (
+                          team1Results.map((team) => (
                             <button
                               className="block w-full px-3 py-2 text-left first:rounded-t-md last:rounded-b-md hover:bg-accent"
                               key={team.id}
                               onClick={() => {
                                 field.handleChange(team.id);
-                                setTeam1SearchInput("");
+                                setTeam1SearchInput(team.name);
                               }}
                               type="button"
                             >
@@ -307,22 +245,19 @@ function RouteComponent() {
                       disabled={loadingTeams}
                       id="team2"
                       onChange={(e) => setTeam2SearchInput(e.target.value)}
-                      onFocus={() =>
-                        selectedTeam2 && setTeam2SearchInput(selectedTeam2.name)
-                      }
                       placeholder="Search or select team 2..."
-                      value={team2SearchInput || selectedTeam2?.name || ""}
+                      value={team2SearchInput || ""}
                     />
                     {team2SearchInput ? (
                       <div className="absolute top-full right-0 left-0 z-50 mt-1 rounded-md border border-input bg-background shadow-md">
-                        {filteredTeam2.length > 0 ? (
-                          filteredTeam2.map((team) => (
+                        {team2Results.length > 0 ? (
+                          team2Results.map((team) => (
                             <button
                               className="block w-full px-3 py-2 text-left first:rounded-t-md last:rounded-b-md hover:bg-accent"
                               key={team.id}
                               onClick={() => {
                                 field.handleChange(team.id);
-                                setTeam2SearchInput("");
+                                setTeam2SearchInput(team.name);
                               }}
                               type="button"
                             >
@@ -351,7 +286,7 @@ function RouteComponent() {
           </FieldGroup>
 
           {/* Toss Winner */}
-          {selectedTeam1 && selectedTeam2 && (
+          {team1Id && team2Id ? (
             <FieldGroup>
               <form.Field name="tossWinnerId">
                 {(field) => (
@@ -368,10 +303,10 @@ function RouteComponent() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value={team1Id.toString()}>
-                          {selectedTeam1.name}
+                          {team1Id}
                         </SelectItem>
                         <SelectItem value={team2Id.toString()}>
-                          {selectedTeam2.name}
+                          {team2Id}
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -384,10 +319,10 @@ function RouteComponent() {
                 )}
               </form.Field>
             </FieldGroup>
-          )}
+          ) : null}
 
           {/* Toss Decision */}
-          {selectedTeam1 && selectedTeam2 && (
+          {team1Id && team2Id ? (
             <FieldGroup>
               <form.Field name="tossDecision">
                 {(field) => (
@@ -424,40 +359,46 @@ function RouteComponent() {
                 )}
               </form.Field>
             </FieldGroup>
-          )}
+          ) : null}
 
           {/* Overs Per Side - Conditional */}
-          {format === "Custom" && (
-            <FieldGroup>
-              <form.Field name="oversPerSide">
-                {(field) => (
-                  <Field orientation="vertical">
-                    <FieldLabel htmlFor="oversPerSide">
-                      Overs Per Side
-                    </FieldLabel>
-                    <Input
-                      id="oversPerSide"
-                      min="1"
-                      onChange={(e) =>
-                        field.handleChange(
-                          Number.parseInt(e.target.value, 10) || 0
-                        )
-                      }
-                      placeholder="Enter overs per side"
-                      step="1"
-                      type="number"
-                      value={field.state.value}
-                    />
-                    {field.state.meta.errors.length > 0 && (
-                      <span className="text-red-500 text-sm">
-                        {String(field.state.meta.errors[0])}
-                      </span>
-                    )}
-                  </Field>
-                )}
-              </form.Field>
-            </FieldGroup>
-          )}
+          {
+            <form.Subscribe selector={(state) => state.values.format}>
+              {(format) =>
+                format === "Custom" && (
+                  <FieldGroup>
+                    <form.Field name="oversPerSide">
+                      {(field) => (
+                        <Field orientation="vertical">
+                          <FieldLabel htmlFor="oversPerSide">
+                            Overs Per Side
+                          </FieldLabel>
+                          <Input
+                            id="oversPerSide"
+                            min="1"
+                            onChange={(e) =>
+                              field.handleChange(
+                                Number.parseInt(e.target.value, 10) || 0
+                              )
+                            }
+                            placeholder="Enter overs per side"
+                            step="1"
+                            type="number"
+                            value={field.state.value}
+                          />
+                          {field.state.meta.errors.length > 0 && (
+                            <span className="text-red-500 text-sm">
+                              {String(field.state.meta.errors[0])}
+                            </span>
+                          )}
+                        </Field>
+                      )}
+                    </form.Field>
+                  </FieldGroup>
+                )
+              }
+            </form.Subscribe>
+          }
 
           {/* Max Over Per Bowler */}
           <FieldGroup>

@@ -3,6 +3,7 @@
 ## Build/Lint/Test Commands
 
 ### Root Commands (Monorepo)
+
 - **Lint & Format**: `bun run check` - Runs Biome check with auto-fix
 - **Build All**: `bun run build` - Builds all apps via Turbo
 - **Type Check**: `bun run check-types` - TypeScript checking across all apps
@@ -12,29 +13,34 @@
 - **Database Migrate**: `bun run db:migrate` - Run database migrations
 
 ### Server Commands
+
 - **Build**: `bun run build` - Builds with tsdown
 - **Type Check**: `bun run check-types` - TypeScript compilation check
 - **Dev**: `bun run dev` - Hot reload development server
 - **Database**: `bun run db:push` - Push schema changes to database
 
 ### Web Commands
+
 - **Build**: `bun run build` - Vite production build
 - **Type Check**: `bun run check-types` - TypeScript checking
 - **Dev**: `bun run dev` - Vite dev server on port 3001
 - **Deploy**: `bun run deploy` - Build and deploy to Cloudflare
 
 ### Testing
+
 No test framework currently configured. Run linting and type checking before commits.
 
 ## Code Style Guidelines
 
 ### Core Principles
+
 - **Zero Configuration**: Follow Ultracite rules (Biome-based)
 - **Maximum Type Safety**: Strict TypeScript with null checks
 - **Accessibility First**: WCAG compliance required
 - **AI-Friendly**: Consistent patterns for automated tooling
 
 ### TypeScript
+
 - Use `strictNullChecks: true`
 - No `any` or `unknown` types
 - No non-null assertions (`!`)
@@ -44,12 +50,14 @@ No test framework currently configured. Run linting and type checking before com
 - `export type` for type exports
 
 ### Imports & Modules
+
 - Relative imports with `@/` alias (e.g., `@/lib/utils`)
 - No namespace imports
 - No default exports in most cases
 - Group imports: external libs, then internal modules
 
 ### Naming Conventions
+
 - **Variables/Functions**: camelCase
 - **Components**: PascalCase
 - **Types/Interfaces**: PascalCase
@@ -57,6 +65,7 @@ No test framework currently configured. Run linting and type checking before com
 - **Constants**: UPPER_SNAKE_CASE
 
 ### React Patterns
+
 - Functional components with hooks
 - TanStack Router for routing
 - TanStack Query for data fetching
@@ -65,13 +74,14 @@ No test framework currently configured. Run linting and type checking before com
 - Destructure props at component level
 
 ### Error Handling
+
 ```typescript
 // ✅ Good: Comprehensive error handling
 try {
   const result = await fetchData();
   return { success: true, data: result };
 } catch (error) {
-  console.error('API call failed:', error);
+  console.error("API call failed:", error);
   return { success: false, error: error.message };
 }
 
@@ -84,6 +94,7 @@ try {
 ```
 
 ### Formatting
+
 - Biome handles all formatting automatically
 - 2-space indentation
 - Single quotes for strings
@@ -91,6 +102,7 @@ try {
 - Trailing commas in multiline structures
 
 ### Accessibility (Critical)
+
 - All interactive elements must be keyboard accessible
 - Semantic HTML elements required
 - ARIA attributes only when necessary
@@ -99,18 +111,21 @@ try {
 - Focus management for modals/dialogs
 
 ### Database
+
 - Drizzle ORM for queries
 - SQLite with Turso
 - Schema defined in TypeScript
 - Migrations via drizzle-kit
 
 ### Authentication
+
 - Better Auth with social providers
 - Email OTP for passwordless auth
 - Passkey support
 - Role-based access control
 
 ### Performance
+
 - React 19 with compiler
 - Vite for fast builds
 - Tree shaking enabled
@@ -121,6 +136,7 @@ try {
 Follow all rules from `.rules` and `.github/copilot-instructions.md`:
 
 ### Key Restrictions
+
 - No `console.log` in production code
 - No `debugger` statements
 - No `eval()` or `with` statements
@@ -135,6 +151,7 @@ Follow all rules from `.rules` and `.github/copilot-instructions.md`:
 - No magic numbers without constants
 
 ### React Specific
+
 - No `dangerouslySetInnerHTML` without validation
 - No array indices as keys
 - No `onClick` without keyboard handlers
@@ -142,6 +159,7 @@ Follow all rules from `.rules` and `.github/copilot-instructions.md`:
 - No side effects in render
 
 ### Security
+
 - No hardcoded secrets
 - Input validation with Zod schemas
 - Sanitize user inputs
@@ -151,6 +169,7 @@ Follow all rules from `.rules` and `.github/copilot-instructions.md`:
 ## Architecture
 
 ### Tech Stack
+
 - **Frontend**: React 19, TanStack Router, Tailwind CSS
 - **Backend**: Hono, Drizzle ORM, Better Auth
 - **Database**: SQLite (Turso)
@@ -158,6 +177,7 @@ Follow all rules from `.rules` and `.github/copilot-instructions.md`:
 - **Tooling**: Biome, TypeScript, Vite, Turbo
 
 ### Project Structure
+
 ```
 apps/
   server/     # Hono API server
@@ -166,6 +186,7 @@ packages/     # Shared packages (if any)
 ```
 
 ### File Organization
+
 - Components in `src/components/`
 - Routes in `src/routes/`
 - Utilities in `src/lib/`
@@ -183,6 +204,7 @@ packages/     # Shared packages (if any)
 ## Common Patterns
 
 ### API Calls
+
 ```typescript
 const { data, error } = await apiClient.method(params);
 if (error) {
@@ -193,22 +215,33 @@ if (error) {
 ```
 
 ### Form Handling
+
 ```typescript
 const form = useForm({
-  defaultValues: { /* ... */ },
+  defaultValues: {
+    /* ... */
+  },
   onSubmit: async ({ value }) => {
     // Handle submission
   },
   validators: {
-    onSubmit: schema
-  }
+    onSubmit: schema,
+  },
 });
 ```
 
 ### Database Queries
+
 ```typescript
 const result = await db.select().from(table).where(condition);
 ```
 
 Remember: Always run `bun run check` before committing to catch style and correctness issues.</content>
 <parameter name="filePath">/Users/sayantan/Developer/webapps/cricket247/AGENTS.md
+
+### Misc
+
+- Always use bun for package management
+- Always use bun for running scripts
+- Assume dev server is already running on port 3001
+- Assume backend server is already running on port 3000

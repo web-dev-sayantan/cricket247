@@ -8,13 +8,13 @@
     "skipLibCheck": true,
     "baseUrl": "./",
     "paths": {
-      "@/*": ["./src/*"],
-      "@cricket247/types": ["../../packages/types/src/index.ts"],
-      "@cricket247/types/*": ["../../packages/types/src/*"]
+      "@/*": ["./src/*"]
     },
     "outDir": "./dist",
     "types": ["bun"],
     "composite": true,
+    "declaration": true,
+    "declarationMap": true,
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
     "strictNullChecks": true

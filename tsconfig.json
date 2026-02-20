@@ -2,8 +2,11 @@
   "compilerOptions": {
     "strictNullChecks": true,
     "paths": {
-      "@cricket247/types": ["./packages/types/src/index.ts"],
-      "@cricket247/types/*": ["./packages/types/src/*"]
+      "@cricket247/server/types": ["./apps/server/src/db/types.ts"],
+      "@cricket247/server/schemas": [
+        "./apps/server/src/schemas/drizzle.schemas.ts"
+      ],
+      "@cricket247/server/contract": ["./apps/server/src/routers/index.ts"]
     }
   }
 }

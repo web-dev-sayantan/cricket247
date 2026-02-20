@@ -3,7 +3,6 @@
   "files": {
     "ignoreUnknown": false,
     "includes": [
-      "**",
       "!**/.next",
       "!**/dist",
       "!**/.turbo",
@@ -22,5 +21,10 @@
       "!**/.source"
     ]
   },
-  "extends": ["node_modules/ultracite/config/core/biome.jsonc"]
+  "extends": [
+    "node_modules/ultracite/config/core/biome.jsonc",
+    "ultracite/core",
+    "ultracite/react",
+    "ultracite/remix"
+  ]
 }

@@ -80,10 +80,12 @@ export default function SignInForm({
   });
 
   async function signInWithSocial(provider: "facebook" | "google") {
-    const { data, error } = await authClient.signIn.social({ provider });
-    if (data?.redirect) {
-      // navigate("/play/matches");
-    } else {
+    const { data, error } = await authClient.signIn.social({
+      provider,
+      callbackURL: `${import.meta.env.VITE_BASE_URL}/dashboard`,
+      errorCallbackURL: `${import.meta.env.VITE_BASE_URL}/error`,
+    });
+    if (error || !data) {
       setSigninError("Login Failed. Try Again");
     }
   }
@@ -98,17 +100,21 @@ export default function SignInForm({
     });
     if (data?.success) {
       setOtpSent(otpSent + 1);
+    } else if (error) {
+      setSigninError("Failed to send OTP. Try Again");
     }
   }
 
   async function verifyOTP(formValues: z.infer<typeof signinSchema>) {
     const { data, error } = await authClient.signIn.emailOtp({
       email: formValues.email,
+      // biome-ignore lint/style/noNonNullAssertion: <otp will be present here>
       otp: formValues.otp!,
     });
     if (data?.user) {
       // navigate("/dashboard");
     } else {
+      console.error("OTP verification failed:", error);
       setSigninError("Invalid Code");
     }
   }
@@ -118,7 +124,7 @@ export default function SignInForm({
 
   return (
     <div className="mx-auto mt-10 w-full max-w-md p-6">
-      <Card className="min-w-[300px]">
+      <Card className="min-w-75">
         <CardHeader className="flex flex-col items-center justify-center">
           <img
             alt="logo"

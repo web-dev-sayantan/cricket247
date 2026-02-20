@@ -14,6 +14,20 @@ export function getLiveMatches() {
   });
 }
 
+export function getCompletedMatches() {
+  return db.query.matches.findMany({
+    where: eq(matches.isCompleted, true),
+    with: {
+      team1: true,
+      team2: true,
+      tossWinner: true,
+      winner: true,
+      innings: true,
+    },
+    orderBy: (matches, { desc }) => [desc(matches.matchDate)],
+  });
+}
+
 export async function getAllMatches() {
   const allMatches = await db.query.matches.findMany({
     with: {

@@ -39,7 +39,9 @@ export function getInningsByMatchId(id: number) {
 }
 
 export function getInningsByMatchIdAndTeamId(matchId: number, teamId?: number) {
-  if (!teamId) return;
+  if (!teamId) {
+    return;
+  }
   return db.query.innings.findFirst({
     where: and(eq(innings.matchId, matchId), eq(innings.battingTeamId, teamId)),
     with: {

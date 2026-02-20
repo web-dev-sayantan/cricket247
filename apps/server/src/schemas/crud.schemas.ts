@@ -1,0 +1,66 @@
+import { z } from 'zod';
+import {
+  insertBallSchema,
+  insertInningsSchema,
+  insertMatchSchema,
+  insertPlayerCareerStatsSchema,
+  insertPlayerMatchPerformanceSchema,
+  insertPlayerSchema,
+  insertPlayerTournamentStatsSchema,
+  insertTeamPlayerSchema,
+  insertTeamSchema,
+  insertTournamentSchema,
+  insertTournamentTeamSchema,
+  insertVenueSchema,
+} from './drizzle.schemas';
+
+export const idRouteParamSchema = z.coerce.number().int().positive();
+
+export const createPlayerBodySchema = insertPlayerSchema.omit({ id: true });
+export const updatePlayerBodySchema = createPlayerBodySchema.partial();
+
+export const createTeamBodySchema = insertTeamSchema.omit({ id: true });
+export const updateTeamBodySchema = createTeamBodySchema.partial();
+
+export const createMatchBodySchema = insertMatchSchema.omit({ id: true });
+export const updateMatchBodySchema = createMatchBodySchema.partial();
+
+export const createTournamentBodySchema = insertTournamentSchema.omit({
+  id: true,
+});
+export const updateTournamentBodySchema = createTournamentBodySchema.partial();
+
+export const createVenueBodySchema = insertVenueSchema.omit({ id: true });
+export const updateVenueBodySchema = createVenueBodySchema.partial();
+
+export const createTeamPlayerBodySchema = insertTeamPlayerSchema.omit({
+  id: true,
+});
+export const updateTeamPlayerBodySchema = createTeamPlayerBodySchema.partial();
+
+export const createTournamentTeamBodySchema = insertTournamentTeamSchema.omit({
+  id: true,
+});
+export const updateTournamentTeamBodySchema =
+  createTournamentTeamBodySchema.partial();
+
+export const createInningsBodySchema = insertInningsSchema.omit({ id: true });
+export const updateInningsBodySchema = createInningsBodySchema.partial();
+
+export const createBallBodySchema = insertBallSchema.omit({ id: true });
+export const updateBallBodySchema = createBallBodySchema.partial();
+
+export const createPlayerMatchPerformanceBodySchema =
+  insertPlayerMatchPerformanceSchema.omit({ id: true });
+export const updatePlayerMatchPerformanceBodySchema =
+  createPlayerMatchPerformanceBodySchema.partial();
+
+export const createPlayerTournamentStatsBodySchema =
+  insertPlayerTournamentStatsSchema.omit({ id: true });
+export const updatePlayerTournamentStatsBodySchema =
+  createPlayerTournamentStatsBodySchema.partial();
+
+export const createPlayerCareerStatsBodySchema =
+  insertPlayerCareerStatsSchema.omit({ id: true });
+export const updatePlayerCareerStatsBodySchema =
+  createPlayerCareerStatsBodySchema.partial();

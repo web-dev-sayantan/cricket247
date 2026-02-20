@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { API_PREFIX } from "@/config/constants";
 import healthRoutes from "./health.routes";
+import managementRoutes from "./management.routes";
 import matchRoutes from "./match.routes";
 import playerRoutes from "./player.routes";
 import scoringRoutes from "./scoring.routes";
@@ -14,6 +15,7 @@ apiRoutes.route("/matches", matchRoutes);
 apiRoutes.route("/teams", teamRoutes);
 apiRoutes.route("/players", playerRoutes);
 apiRoutes.route("/scoring", scoringRoutes);
+apiRoutes.route("/", managementRoutes);
 
 // Create main API router with version prefix
 const routes = new Hono();

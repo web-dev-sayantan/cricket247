@@ -1,14 +1,17 @@
 import { createORPCClient } from "@orpc/client";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";
+import { TanStackDevtools } from "@tanstack/react-devtools";
+import { FormDevtoolsPanel } from "@tanstack/react-form-devtools";
 import type { QueryClient } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
 import {
   createRootRouteWithContext,
   HeadContent,
   Outlet,
   useRouterState,
 } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+
 import { useState } from "react";
 import Header from "@/components/header";
 import Loader from "@/components/loader";
@@ -18,6 +21,7 @@ import { link, type orpc } from "@/utils/orpc";
 import type { AppRouterClient } from "../../../server/src/routers";
 import "../index.css";
 
+// biome-ignore lint/style/useConsistentTypeDefinitions: <framework code>
 export interface RouterAppContext {
   orpc: typeof orpc;
   queryClient: QueryClient;
@@ -50,7 +54,7 @@ function RootComponent() {
   });
 
   const [client] = useState<AppRouterClient>(() => createORPCClient(link));
-  const [orpcUtils] = useState(() => createTanstackQueryUtils(client));
+  const [_orpcUtils] = useState(() => createTanstackQueryUtils(client));
 
   return (
     <>
@@ -67,8 +71,16 @@ function RootComponent() {
         </div>
         <Toaster richColors />
       </ThemeProvider>
-      <TanStackRouterDevtools position="bottom-left" />
-      <ReactQueryDevtools buttonPosition="bottom-right" position="bottom" />
+      <TanStackDevtools
+        plugins={[
+          {
+            name: "Tanstack Query",
+            render: <ReactQueryDevtoolsPanel />,
+          },
+          { name: "Tanstack Router", render: <TanStackRouterDevtoolsPanel /> },
+          { name: "Tanstack Form", render: <FormDevtoolsPanel /> },
+        ]}
+      />
     </>
   );
 }

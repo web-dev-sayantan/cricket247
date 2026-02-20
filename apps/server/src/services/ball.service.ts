@@ -85,7 +85,9 @@ export async function createNewBallAction({
       isLegBye,
     })
     .returning({ id: balls.id });
-  if (newBall.length === 0) return null;
+  if (newBall.length === 0) {
+    return null;
+  }
   return newBall[0].id;
 }
 
@@ -128,7 +130,9 @@ export async function updateBallAction({
     })
     .where(eq(balls.id, id))
     .returning();
-  if (updatedBall.length === 0) return null;
+  if (updatedBall.length === 0) {
+    return null;
+  }
   return updatedBall[0].id;
 }
 
