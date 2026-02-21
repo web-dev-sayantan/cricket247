@@ -5,7 +5,7 @@
  * These are the single source of truth for validation.
  */
 
-import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import { createInsertSchema, createSelectSchema } from 'drizzle-orm/zod';
 import {
   balls,
   innings,
@@ -19,7 +19,7 @@ import {
   tournaments,
   tournamentTeams,
   venues,
-} from "@/db/schema";
+} from '@/db/schema';
 
 // ============================================================================
 // Select Schemas (for reading/response validation)
@@ -34,14 +34,9 @@ export const selectVenueSchema = createSelectSchema(venues);
 export const selectMatchSchema = createSelectSchema(matches);
 export const selectInningsSchema = createSelectSchema(innings);
 export const selectBallSchema = createSelectSchema(balls);
-export const selectPlayerMatchPerformanceSchema = createSelectSchema(
-  playerMatchPerformance
-);
-export const selectPlayerTournamentStatsSchema = createSelectSchema(
-  playerTournamentStats
-);
-export const selectPlayerCareerStatsSchema =
-  createSelectSchema(playerCareerStats);
+export const selectPlayerMatchPerformanceSchema = createSelectSchema(playerMatchPerformance);
+export const selectPlayerTournamentStatsSchema = createSelectSchema(playerTournamentStats);
+export const selectPlayerCareerStatsSchema = createSelectSchema(playerCareerStats);
 
 // ============================================================================
 // Insert Schemas (for create/update validation)
@@ -56,11 +51,6 @@ export const insertVenueSchema = createInsertSchema(venues);
 export const insertMatchSchema = createInsertSchema(matches);
 export const insertInningsSchema = createInsertSchema(innings);
 export const insertBallSchema = createInsertSchema(balls);
-export const insertPlayerMatchPerformanceSchema = createInsertSchema(
-  playerMatchPerformance
-);
-export const insertPlayerTournamentStatsSchema = createInsertSchema(
-  playerTournamentStats
-);
-export const insertPlayerCareerStatsSchema =
-  createInsertSchema(playerCareerStats);
+export const insertPlayerMatchPerformanceSchema = createInsertSchema(playerMatchPerformance);
+export const insertPlayerTournamentStatsSchema = createInsertSchema(playerTournamentStats);
+export const insertPlayerCareerStatsSchema = createInsertSchema(playerCareerStats);

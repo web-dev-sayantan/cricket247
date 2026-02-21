@@ -141,10 +141,10 @@ export type WicketType =
  */
 export interface TeamPlayerType {
   id: number;
-  teamId: number;
-  playerId: number;
   isCaptain: boolean;
   player: Player;
+  playerId: number;
+  teamId: number;
 }
 
 /**
@@ -158,13 +158,13 @@ export interface TeamWithPlayers extends Team {
  * Match with related team data for display.
  */
 export interface MatchWithTeams extends Match {
+  playerOfTheMatch?: Player | null;
   team1: Team;
   team2: Team;
   tossWinner: Team;
-  winner?: Team | null;
-  venue?: Venue | null;
   tournament?: Tournament | null;
-  playerOfTheMatch?: Player | null;
+  venue?: Venue | null;
+  winner?: Team | null;
 }
 
 /**
@@ -179,10 +179,10 @@ export interface InningsWithDetails extends Innings {
  * Ball with player information for display.
  */
 export interface BallWithPlayers extends Ball {
-  striker: Player;
-  nonStriker: Player;
   bowler: Player;
   fielder?: Player;
+  nonStriker: Player;
+  striker: Player;
 }
 
 // ============================================================================
@@ -193,37 +193,37 @@ export interface BallWithPlayers extends Ball {
  * Represents extras information in scoring UI.
  */
 export interface Extras {
-  value: boolean;
   type: ExtrasType;
+  value: boolean;
 }
 
 /**
  * Represents dismissal information in scoring UI.
  */
 export interface Dismissed {
-  value: boolean;
   type: WicketType;
+  value: boolean;
 }
 
 /**
  * Data for updating a ball.
  */
 export interface UpdateBallData {
+  assistPlayerId?: number | null;
+  ballNumber: number;
+  bowlerId: number;
+  dismissedPlayerId?: number | null;
   id: number;
   inningsId: number;
-  strikerId: number;
-  nonStrikerId: number;
-  bowlerId: number;
-  ballNumber: number;
-  runsScored: number;
-  isWide?: boolean;
-  isNoBall?: boolean;
   isBye?: boolean;
   isLegBye?: boolean;
+  isNoBall?: boolean;
   isWicket?: boolean;
+  isWide?: boolean;
+  nonStrikerId: number;
+  runsScored: number;
+  strikerId: number;
   wicketType?: WicketType;
-  assistPlayerId?: number | null;
-  dismissedPlayerId?: number | null;
 }
 
 // ============================================================================

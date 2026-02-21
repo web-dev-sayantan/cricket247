@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 import {
   insertBallSchema,
   insertInningsSchema,
@@ -12,7 +12,7 @@ import {
   insertTournamentSchema,
   insertTournamentTeamSchema,
   insertVenueSchema,
-} from './drizzle.schemas';
+} from "./drizzle.schemas";
 
 export const idRouteParamSchema = z.coerce.number().int().positive();
 
