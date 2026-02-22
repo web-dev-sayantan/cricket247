@@ -13,6 +13,7 @@ import {
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { PlayerImageUploadInput } from "@/components/player-image-upload-input";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
@@ -39,7 +40,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { authClient } from "@/lib/auth-client";
 import { COUNTRIES } from "@/lib/constants";
-import { cn } from "@/lib/utils";
+import { uploadProfileImage } from "@/lib/profile-image-upload";
+import { cn, getInitials } from "@/lib/utils";
 import { client, orpc } from "@/utils/orpc";
 
 import { Route as createPlayerRoute } from "./create";
@@ -65,12 +67,6 @@ const playerRoleValues = [
   "All-rounder",
   "Wicket Keeper",
 ] as const;
-
-const dateFormatter = new Intl.DateTimeFormat("en", {
-  day: "2-digit",
-  month: "short",
-  year: "numeric",
-});
 
 type SortOption = "name-asc" | "name-desc" | "age-asc" | "age-desc";
 type PlayerSex = (typeof playerSexValues)[number];
@@ -194,11 +190,6 @@ const resolvePlayerDob = (value: Player["dob"]) => {
   return getDefaultDob();
 };
 
-const formatDateDisplay = (value: Player["dob"]) => {
-  const resolvedDate = resolvePlayerDob(value);
-  return dateFormatter.format(resolvedDate);
-};
-
 const getNationalityLabel = (value: string | null | undefined) => {
   return value?.trim().length ? value : "Not specified";
 };
@@ -299,6 +290,7 @@ function RouteComponent() {
   const [expandedPlayerId, setExpandedPlayerId] = useState<number | null>(null);
   const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
   const [editingDraft, setEditingDraft] = useState<PlayerDraft | null>(null);
+  const [uploadedEditImageName, setUploadedEditImageName] = useState("");
   const [activeDeleteId, setActiveDeleteId] = useState<number | null>(null);
   const [activeUpdateId, setActiveUpdateId] = useState<number | null>(null);
   const [pendingDeletePlayer, setPendingDeletePlayer] =
@@ -352,6 +344,15 @@ function RouteComponent() {
     },
     onSettled: () => {
       setActiveDeleteId(null);
+    },
+  });
+
+  const uploadImageMutation = useMutation({
+    mutationFn: async (file: File) => uploadProfileImage(file),
+    onError: (error) => {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to upload image";
+      toast.error(errorMessage);
     },
   });
 
@@ -435,6 +436,7 @@ function RouteComponent() {
     setEditingPlayerId(player.id);
     setExpandedPlayerId(player.id);
     setEditingDraft(createPlayerDraft(player));
+    setUploadedEditImageName("");
   };
 
   const handleEditCancel = () => {
@@ -444,6 +446,7 @@ function RouteComponent() {
 
     setEditingPlayerId(null);
     setEditingDraft(null);
+    setUploadedEditImageName("");
   };
 
   const handleSaveEdit = () => {
@@ -494,6 +497,12 @@ function RouteComponent() {
 
   const handleDelete = (player: PlayerWithCurrentTeams) => {
     setPendingDeletePlayer(player);
+  };
+
+  const handleEditImageSelect = async (file: File) => {
+    const uploadResult = await uploadImageMutation.mutateAsync(file);
+    handleDraftChange("image", uploadResult.url);
+    setUploadedEditImageName(file.name);
   };
 
   const handleConfirmDelete = () => {
@@ -690,16 +699,24 @@ function RouteComponent() {
                 isAdmin={isAdmin}
                 isExpanded={expandedPlayerId === player.id}
                 isPending={
-                  activeDeleteId === player.id || activeUpdateId === player.id
+                  activeDeleteId === player.id ||
+                  activeUpdateId === player.id ||
+                  (uploadImageMutation.isPending &&
+                    editingPlayerId === player.id)
                 }
                 key={player.id}
                 onCancelEdit={handleEditCancel}
                 onDelete={() => handleDelete(player)}
                 onDraftChange={handleDraftChange}
+                onEditImageSelect={handleEditImageSelect}
                 onEditStart={() => handleEditStart(player)}
                 onSaveEdit={handleSaveEdit}
                 onToggleExpand={() => handleToggleExpand(player.id)}
                 player={player}
+                uploadedImageName={uploadedEditImageName}
+                uploadImagePending={
+                  uploadImageMutation.isPending && editingPlayerId === player.id
+                }
               />
             ))}
           </section>
@@ -767,10 +784,13 @@ interface PlayerAccordionRowProps {
     key: K,
     value: PlayerDraft[K]
   ) => void;
+  onEditImageSelect: (file: File) => Promise<void>;
   onEditStart: () => void;
   onSaveEdit: () => void;
   onToggleExpand: () => void;
   player: PlayerWithCurrentTeams;
+  uploadedImageName: string;
+  uploadImagePending: boolean;
 }
 
 function PlayerAccordionRow({
@@ -782,10 +802,13 @@ function PlayerAccordionRow({
   onCancelEdit,
   onDelete,
   onDraftChange,
+  onEditImageSelect,
   onEditStart,
   onSaveEdit,
   onToggleExpand,
   player,
+  uploadedImageName,
+  uploadImagePending,
 }: PlayerAccordionRowProps) {
   return (
     <article className={cn(hasBottomBorder ? "border-b" : null)}>
@@ -801,7 +824,22 @@ function PlayerAccordionRow({
         type="button"
       >
         <div className="hidden grid-cols-[minmax(0,1.8fr)_150px_90px_minmax(0,1.3fr)_minmax(0,2fr)_36px] items-center gap-4 md:grid">
-          <span className="truncate font-medium">{player.name}</span>
+          <div className="flex items-center gap-3 overflow-hidden">
+            {player.image ? (
+              <img
+                alt={player.name}
+                className="size-8 shrink-0 rounded-full object-cover"
+                height={32}
+                src={player.image}
+                width={32}
+              />
+            ) : (
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 font-medium text-primary text-xs">
+                {getInitials(player.name)}
+              </div>
+            )}
+            <span className="truncate font-medium">{player.name}</span>
+          </div>
           <span className="truncate">{normalizeRole(player.role)}</span>
           <span>{player.age}</span>
           <span className="truncate">
@@ -820,9 +858,24 @@ function PlayerAccordionRow({
 
         <div className="space-y-2 md:hidden">
           <div className="flex items-center justify-between gap-2">
-            <span className="truncate font-medium text-base">
-              {player.name}
-            </span>
+            <div className="flex items-center gap-3 overflow-hidden">
+              {player.image ? (
+                <img
+                  alt={player.name}
+                  className="size-8 shrink-0 rounded-full object-cover"
+                  height={32}
+                  src={player.image}
+                  width={32}
+                />
+              ) : (
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 font-medium text-primary text-xs">
+                  {getInitials(player.name)}
+                </div>
+              )}
+              <span className="truncate font-medium text-base">
+                {player.name}
+              </span>
+            </div>
             <ChevronDown
               className={cn(
                 "size-4 shrink-0 transition-transform",
@@ -868,7 +921,10 @@ function PlayerAccordionRow({
               isPending={isPending}
               onCancel={onCancelEdit}
               onDraftChange={onDraftChange}
+              onEditImageSelect={onEditImageSelect}
               onSave={onSaveEdit}
+              uploadedImageName={uploadedImageName}
+              uploadImagePending={uploadImagePending}
             />
           ) : (
             <PlayerDetailsPanel
@@ -895,44 +951,11 @@ function PlayerDetailsPanel({
   return (
     <div className="space-y-4">
       <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
-        <DetailItem label="Player Name" value={player.name} />
-        <DetailItem label="Role" value={normalizeRole(player.role)} />
+        <DetailItem label="Batting Style" value={player.battingStance} />
         <DetailItem
-          label="Date of Birth"
-          value={formatDateDisplay(player.dob)}
-        />
-        <DetailItem label="Age" value={String(player.age)} />
-        <DetailItem label="Sex" value={normalizeSex(player.sex)} />
-        <DetailItem
-          label="Nationality"
-          value={getNationalityLabel(player.nationality)}
-        />
-        <DetailItem label="Batting Stance" value={player.battingStance} />
-        <DetailItem
-          label="Bowling Stance"
+          label="Bowling Style"
           value={player.bowlingStance ?? "Not specified"}
         />
-        <DetailItem
-          label="Wicket Keeper"
-          value={player.isWicketKeeper ? "Yes" : "No"}
-        />
-        <DetailItem
-          label="Height (cm)"
-          value={
-            typeof player.height === "number"
-              ? String(player.height)
-              : "Not specified"
-          }
-        />
-        <DetailItem
-          label="Weight (kg)"
-          value={
-            typeof player.weight === "number"
-              ? String(player.weight)
-              : "Not specified"
-          }
-        />
-        <DetailItem label="Image URL" value={player.image ?? "Not specified"} />
       </dl>
 
       <section className="space-y-2">
@@ -993,7 +1016,7 @@ function DetailItem({ label, value }: DetailItemProps) {
   return (
     <div className="space-y-1 rounded-md border bg-background p-3">
       <dt className="text-muted-foreground text-xs">{label}</dt>
-      <dd className="break-words font-medium text-sm">{value}</dd>
+      <dd className="wrap-break-word font-medium text-sm">{value}</dd>
     </div>
   );
 }
@@ -1006,7 +1029,10 @@ interface PlayerEditPanelProps {
     key: K,
     value: PlayerDraft[K]
   ) => void;
+  onEditImageSelect: (file: File) => Promise<void>;
   onSave: () => void;
+  uploadedImageName: string;
+  uploadImagePending: boolean;
 }
 
 function PlayerEditPanel({
@@ -1014,7 +1040,10 @@ function PlayerEditPanel({
   isPending,
   onCancel,
   onDraftChange,
+  onEditImageSelect,
   onSave,
+  uploadedImageName,
+  uploadImagePending,
 }: PlayerEditPanelProps) {
   return (
     <form
@@ -1233,15 +1262,14 @@ function PlayerEditPanel({
 
       <FieldGroup>
         <Field>
-          <FieldLabel htmlFor="edit-player-image">Image URL</FieldLabel>
-          <Input
-            id="edit-player-image"
-            onChange={(event) => onDraftChange("image", event.target.value)}
-            placeholder="https://example.com/player.jpg"
-            type="url"
-            value={draft.image ?? ""}
+          <PlayerImageUploadInput
+            disabled={isPending}
+            imageUrl={draft.image ?? ""}
+            inputId="edit-player-image"
+            isUploading={uploadImagePending}
+            onSelectFile={onEditImageSelect}
+            uploadedImageName={uploadedImageName}
           />
-          <FieldDescription>Optional. Use a public image URL.</FieldDescription>
         </Field>
       </FieldGroup>
 

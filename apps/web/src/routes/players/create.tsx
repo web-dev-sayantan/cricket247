@@ -5,6 +5,7 @@ import { ArrowLeft, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { PlayerImageUploadInput } from "@/components/player-image-upload-input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
@@ -661,44 +662,21 @@ function RouteComponent() {
                       field.state.meta.isTouched && !field.state.meta.isValid;
                     return (
                       <Field data-invalid={isInvalid}>
-                        <FieldLabel htmlFor={field.name}>
-                          Profile image
-                        </FieldLabel>
-                        <Input
-                          accept="image/jpeg,image/png,image/webp"
-                          aria-invalid={isInvalid}
-                          id={field.name}
-                          onChange={async (event) => {
-                            const selectedFile = event.target.files?.[0];
-                            if (!selectedFile) {
-                              return;
-                            }
-
-                            try {
-                              const result =
-                                await uploadImageMutation.mutateAsync(
-                                  selectedFile
-                                );
-                              field.handleChange(result.url);
-                              setUploadedImageName(selectedFile.name);
-                            } catch {
-                              return;
-                            }
+                        <PlayerImageUploadInput
+                          disabled={createPlayerMutation.isPending}
+                          imageUrl={field.state.value ?? ""}
+                          inputId={field.name}
+                          isUploading={uploadImageMutation.isPending}
+                          onSelectFile={async (selectedFile) => {
+                            const result =
+                              await uploadImageMutation.mutateAsync(
+                                selectedFile
+                              );
+                            field.handleChange(result.url);
+                            setUploadedImageName(selectedFile.name);
                           }}
-                          type="file"
+                          uploadedImageName={uploadedImageName}
                         />
-                        <FieldDescription>
-                          Optional. JPEG, PNG, or WebP up to 5MB.
-                        </FieldDescription>
-                        {uploadImageMutation.isPending ? (
-                          <p className="text-xs">Uploading image...</p>
-                        ) : null}
-                        {uploadedImageName.length > 0 &&
-                        (field.state.value ?? "").length > 0 ? (
-                          <p className="text-muted-foreground text-xs">
-                            Uploaded: {uploadedImageName}
-                          </p>
-                        ) : null}
                         {isInvalid ? (
                           <FieldError errors={field.state.meta.errors} />
                         ) : null}

@@ -24,3 +24,17 @@ export function shortenName(name: string) {
   }
   return name;
 }
+
+const WHITESPACE_REGEX = /\s+/;
+
+export function getInitials(name: string) {
+  const parts = name.trim().split(WHITESPACE_REGEX);
+  if (parts.length === 0) {
+    return "";
+  }
+  if (parts.length === 1) {
+    return parts[0].substring(0, 2).toUpperCase();
+  }
+  const lastPart = parts.at(-1);
+  return (parts[0][0] + (lastPart ? lastPart[0] : "")).toUpperCase();
+}
