@@ -27,6 +27,10 @@ export default function UserMenu() {
       </Button>
     );
   }
+
+  const isAdmin =
+    (session.user as { role?: string } | undefined)?.role === "admin";
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger>
@@ -44,6 +48,18 @@ export default function UserMenu() {
           >
             Account
           </DropdownMenuItem>
+          {isAdmin ? (
+            <DropdownMenuItem
+              onClick={() => {
+                navigate({
+                  to: "/account",
+                  hash: "bulk-player-import",
+                });
+              }}
+            >
+              Bulk Player Import
+            </DropdownMenuItem>
+          ) : null}
           <DropdownMenuItem
             onClick={() => {
               authClient.signOut({

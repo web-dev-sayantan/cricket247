@@ -1,5 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { AdminPlayerBulkImportCard } from "@/components/account/admin-player-bulk-import-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { authClient } from "@/lib/auth-client";
@@ -23,6 +24,9 @@ function AccountRoute() {
   const { data: status } = useSuspenseQuery(
     orpc.onboardingStatus.queryOptions()
   );
+  const { data: session } = authClient.useSession();
+  const isAdmin =
+    (session?.user as { role?: string } | undefined)?.role === "admin";
 
   const linkedPlayerName = status.linkedPlayer?.name ?? "Not linked";
 
@@ -73,6 +77,8 @@ function AccountRoute() {
             </div>
           </CardContent>
         </Card>
+
+        {isAdmin ? <AdminPlayerBulkImportCard /> : null}
       </div>
     </div>
   );

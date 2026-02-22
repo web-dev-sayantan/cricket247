@@ -2,7 +2,7 @@ import { ORPCError, type RouterClient } from "@orpc/server";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { tournamentTeams, user } from "@/db/schema";
+import { players, tournamentTeams, user } from "@/db/schema";
 import { getBallsOfSameOver } from "@/services/ball.service";
 import { playerCrudService, teamCrudService } from "@/services/crud.service";
 import {
@@ -44,6 +44,7 @@ import {
   sensitiveProcedure,
 } from "../lib/orpc";
 import {
+  bulkImportPlayersBodySchema,
   claimPlayerOtpRequestSchema,
   claimPlayerVerifySchema,
   createOwnPlayerBodySchema,
@@ -51,6 +52,7 @@ import {
   createTeamBodySchema,
   listClaimablePlayersQuerySchema,
 } from "../schemas/crud.schemas";
+import { calculateAgeFromDob } from "../utils";
 
 // Match creation schema matching the frontend MatchFormSchema
 const CreateMatchInputSchema = z.object({
@@ -131,6 +133,11 @@ async function requireAdminByEmail(email: string) {
   }
 }
 
+function getPlayerDuplicateKey(params: { name: string; dob: Date }) {
+  const normalizedName = params.name.trim().toLowerCase();
+  return `${normalizedName}|${params.dob.toISOString()}`;
+}
+
 export const appRouter = {
   healthCheck: publicProcedure.handler(() => "OK"),
   privateData: protectedProcedure.handler(({ context }) => ({
@@ -203,6 +210,69 @@ export const appRouter = {
       }
 
       return player;
+    }),
+  bulkImportPlayers: sensitiveProcedure
+    .input(bulkImportPlayersBodySchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      const existingPlayers = await db
+        .select({
+          name: players.name,
+          dob: players.dob,
+        })
+        .from(players);
+
+      const existingDuplicateKeys = new Set(
+        existingPlayers.map((player) =>
+          getPlayerDuplicateKey({
+            name: player.name,
+            dob: player.dob,
+          })
+        )
+      );
+
+      const batchDuplicateKeys = new Set<string>();
+      const failedRows: Array<{ index: number; reason: string }> = [];
+      let importedCount = 0;
+      let skippedDuplicateCount = 0;
+
+      for (const [index, row] of input.rows.entries()) {
+        const duplicateKey = getPlayerDuplicateKey({
+          name: row.name,
+          dob: row.dob,
+        });
+
+        if (
+          existingDuplicateKeys.has(duplicateKey) ||
+          batchDuplicateKeys.has(duplicateKey)
+        ) {
+          skippedDuplicateCount += 1;
+          continue;
+        }
+
+        const created = await playerCrudService.create({
+          ...row,
+          age: calculateAgeFromDob(row.dob),
+        });
+
+        if (!created) {
+          failedRows.push({
+            index,
+            reason: "Failed to create player",
+          });
+          continue;
+        }
+
+        batchDuplicateKeys.add(duplicateKey);
+        importedCount += 1;
+      }
+
+      return {
+        importedCount,
+        skippedDuplicateCount,
+        failedRows,
+      };
     }),
   createTeam: sensitiveProcedure
     .input(createTeamBodySchema)
