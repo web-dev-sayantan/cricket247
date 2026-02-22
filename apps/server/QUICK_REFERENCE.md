@@ -149,6 +149,7 @@ return validationErrorResponse(c, {
 import { eq, and, or, like, gte, lte, desc, asc } from "drizzle-orm";
 import { db } from "@/db";
 import { matches, teams } from "@/db/schema";
+import { getCurrentDate } from "@/utils";
 
 // Simple select
 const allMatches = await db.select().from(matches);
@@ -164,7 +165,7 @@ const upcomingMatches = await db
   .select()
   .from(matches)
   .where(
-    and(eq(matches.status, "scheduled"), gte(matches.matchDate, new Date()))
+    and(eq(matches.status, "scheduled"), gte(matches.matchDate, getCurrentDate()))
   );
 
 // With relations
@@ -194,7 +195,7 @@ const newMatch = await db
   .values({
     team1Id: 1,
     team2Id: 2,
-    matchDate: new Date(),
+    matchDate: getCurrentDate(),
     format: "t20",
   })
   .returning();

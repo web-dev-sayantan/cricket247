@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { formatMonthDay } from "@/lib/date";
 
 interface MatchCardProps {
   id: number;
@@ -32,10 +33,7 @@ export function MatchCard({
     <Card className="group relative w-[85vw] max-w-[320px] shrink-0 snap-center overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-primary/20 hover:shadow-xl md:max-w-[350px]">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 px-5 pt-5 pb-2">
         <CardTitle className="font-semibold text-muted-foreground text-xs uppercase tracking-wider">
-          {new Date(matchDate).toLocaleDateString(undefined, {
-            month: "short",
-            day: "numeric",
-          })}
+          {formatMonthDay(matchDate)}
         </CardTitle>
         {isLive && (
           <Badge

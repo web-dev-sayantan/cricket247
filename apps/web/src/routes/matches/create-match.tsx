@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useTeamSearch } from "@/hooks/use-team-search";
+import { formatDateInput, parseDateInput } from "@/lib/date";
 import { MatchFormSchema } from "@/lib/schema/match-schema";
 import { client, orpc } from "@/utils/orpc";
 
@@ -85,10 +86,11 @@ function RouteComponent() {
   }, [tournamentsError]);
 
   const loadingTeams = loadingTeam1 || loadingTeam2;
+  const defaultMatchDate = parseDateInput(formatDateInput(new Date()));
 
   const defaultValues: z.infer<typeof MatchFormSchema> = {
     tournamentId: 0,
-    matchDate: new Date(),
+    matchDate: defaultMatchDate ?? new Date(),
     tossWinnerId: 0,
     tossDecision: "bat",
     team1Id: 0,
@@ -186,11 +188,14 @@ function RouteComponent() {
                   <input
                     className="rounded border border-input bg-background px-3 py-2"
                     id={field.name}
-                    onChange={(e) =>
-                      field.handleChange(new Date(e.target.value))
-                    }
+                    onChange={(e) => {
+                      const parsedDate = parseDateInput(e.target.value);
+                      if (parsedDate) {
+                        field.handleChange(parsedDate);
+                      }
+                    }}
                     type="date"
-                    value={field.state.value.toISOString().substring(0, 10)}
+                    value={formatDateInput(field.state.value)}
                   />
                   {field.state.meta.errors.length > 0 && (
                     <span className="text-red-500 text-sm">

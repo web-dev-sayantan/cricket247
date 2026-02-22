@@ -1,4 +1,4 @@
-import type { Player, PlayerWithCurrentTeams } from "@cricket247/server/types";
+import type { PlayerWithCurrentTeams } from "@cricket247/server/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
@@ -40,7 +40,16 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { authClient } from "@/lib/auth-client";
 import { COUNTRIES } from "@/lib/constants";
+import {
+  calculateAgeFromDob,
+  formatDateInput,
+  getDefaultAdultDob,
+  isNotFutureDate,
+  parseDateInput,
+  resolveDateLike,
+} from "@/lib/date";
 import { uploadProfileImage } from "@/lib/profile-image-upload";
+import { getProfileImageUrl } from "@/lib/profile-image-url";
 import { cn, getInitials } from "@/lib/utils";
 import { client, orpc } from "@/utils/orpc";
 
@@ -50,8 +59,6 @@ const DEFAULT_BATTING_FILTER = "all";
 const DEFAULT_WICKET_KEEPER_FILTER = "all";
 const DEFAULT_SORT = "name-asc";
 const UNSPECIFIED_NATIONALITY = "unspecified";
-const DATE_FROM_SECONDS_THRESHOLD = 1_000_000_000_000;
-const SECONDS_TO_MILLISECONDS = 1000;
 const EXPANDED_SKELETON_ROWS = 6;
 
 const battingStanceValues = ["Right handed", "Left handed"] as const;
@@ -74,29 +81,6 @@ type PlayerRole = (typeof playerRoleValues)[number];
 type BattingStance = (typeof battingStanceValues)[number];
 type Country = (typeof COUNTRIES)[number];
 
-const getDefaultDob = () => {
-  const date = new Date();
-  date.setFullYear(date.getFullYear() - 18);
-  return date;
-};
-
-const formatDateInputValue = (date: Date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-};
-
-const parseDateInputValue = (value: string) => {
-  const parsedDate = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(parsedDate.getTime())) {
-    return null;
-  }
-
-  return parsedDate;
-};
-
 const parseOptionalInteger = (value: string) => {
   if (value.trim().length === 0) {
     return undefined;
@@ -108,30 +92,6 @@ const parseOptionalInteger = (value: string) => {
   }
 
   return parsedValue;
-};
-
-const calculateAgeFromDob = (dob: Date) => {
-  const today = new Date();
-  let age = today.getFullYear() - dob.getFullYear();
-  const monthDifference = today.getMonth() - dob.getMonth();
-  const hasNotHadBirthdayYet =
-    monthDifference < 0 ||
-    (monthDifference === 0 && today.getDate() < dob.getDate());
-
-  if (hasNotHadBirthdayYet) {
-    age -= 1;
-  }
-
-  return Math.max(age, 0);
-};
-
-const isValidUrl = (value: string) => {
-  try {
-    new URL(value);
-    return true;
-  } catch {
-    return false;
-  }
 };
 
 const isCountry = (value: string): value is Country =>
@@ -152,42 +112,6 @@ const normalizeBattingStance = (
 ): BattingStance => {
   const resolved = battingStanceValues.find((item) => item === value);
   return resolved ?? "Right handed";
-};
-
-const resolveNumberTimestamp = (value: number) => {
-  const normalizedValue =
-    value < DATE_FROM_SECONDS_THRESHOLD
-      ? value * SECONDS_TO_MILLISECONDS
-      : value;
-  return new Date(normalizedValue);
-};
-
-const resolvePlayerDob = (value: Player["dob"]) => {
-  if (value instanceof Date) {
-    return value;
-  }
-
-  if (typeof value === "number") {
-    const parsed = resolveNumberTimestamp(value);
-    return Number.isNaN(parsed.getTime()) ? getDefaultDob() : parsed;
-  }
-
-  if (typeof value === "string") {
-    const numericValue = Number(value);
-    if (!Number.isNaN(numericValue)) {
-      const parsedNumericDate = resolveNumberTimestamp(numericValue);
-      if (!Number.isNaN(parsedNumericDate.getTime())) {
-        return parsedNumericDate;
-      }
-    }
-
-    const parsedDate = new Date(value);
-    if (!Number.isNaN(parsedDate.getTime())) {
-      return parsedDate;
-    }
-  }
-
-  return getDefaultDob();
 };
 
 const getNationalityLabel = (value: string | null | undefined) => {
@@ -215,7 +139,9 @@ const playerEditSchema = z.object({
     .trim()
     .min(2, "Player name must be at least 2 characters")
     .max(100, "Player name must be at most 100 characters"),
-  dob: z.date().max(new Date(), "Date of birth cannot be in the future"),
+  dob: z
+    .date()
+    .refine(isNotFutureDate, "Date of birth cannot be in the future"),
   sex: z.enum(playerSexValues),
   nationality: z.enum(COUNTRIES).optional(),
   height: z
@@ -230,15 +156,7 @@ const playerEditSchema = z.object({
     .min(1, "Weight must be at least 1 kg")
     .max(250, "Weight must be at most 250 kg")
     .optional(),
-  image: z
-    .string()
-    .trim()
-    .max(2048, "Image URL is too long")
-    .optional()
-    .refine(
-      (value) => value === undefined || value.length === 0 || isValidUrl(value),
-      "Image must be a valid URL"
-    ),
+  image: z.string().trim().max(1024, "Image key is too long").optional(),
   role: z.enum(playerRoleValues),
   battingStance: z.enum(battingStanceValues),
   bowlingStance: z
@@ -259,7 +177,7 @@ const createPlayerDraft = (player: PlayerWithCurrentTeams): PlayerDraft => {
 
   return {
     name: player.name,
-    dob: resolvePlayerDob(player.dob),
+    dob: resolveDateLike(player.dob, getDefaultAdultDob()),
     sex: normalizeSex(player.sex),
     nationality,
     height: typeof player.height === "number" ? player.height : undefined,
@@ -501,7 +419,7 @@ function RouteComponent() {
 
   const handleEditImageSelect = async (file: File) => {
     const uploadResult = await uploadImageMutation.mutateAsync(file);
-    handleDraftChange("image", uploadResult.url);
+    handleDraftChange("image", uploadResult.key);
     setUploadedEditImageName(file.name);
   };
 
@@ -810,6 +728,8 @@ function PlayerAccordionRow({
   uploadedImageName,
   uploadImagePending,
 }: PlayerAccordionRowProps) {
+  const playerImageUrl = getProfileImageUrl(player.image);
+
   return (
     <article className={cn(hasBottomBorder ? "border-b" : null)}>
       <button
@@ -825,12 +745,12 @@ function PlayerAccordionRow({
       >
         <div className="hidden grid-cols-[minmax(0,1.8fr)_150px_90px_minmax(0,1.3fr)_minmax(0,2fr)_36px] items-center gap-4 md:grid">
           <div className="flex items-center gap-3 overflow-hidden">
-            {player.image ? (
+            {playerImageUrl ? (
               <img
                 alt={player.name}
                 className="size-8 shrink-0 rounded-full object-cover"
                 height={32}
-                src={player.image}
+                src={playerImageUrl}
                 width={32}
               />
             ) : (
@@ -859,12 +779,12 @@ function PlayerAccordionRow({
         <div className="space-y-2 md:hidden">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 overflow-hidden">
-              {player.image ? (
+              {playerImageUrl ? (
                 <img
                   alt={player.name}
                   className="size-8 shrink-0 rounded-full object-cover"
                   height={32}
-                  src={player.image}
+                  src={playerImageUrl}
                   width={32}
                 />
               ) : (
@@ -1073,13 +993,13 @@ function PlayerEditPanel({
           <Input
             id="edit-player-dob"
             onChange={(event) => {
-              const parsedDate = parseDateInputValue(event.target.value);
+              const parsedDate = parseDateInput(event.target.value);
               if (parsedDate) {
                 onDraftChange("dob", parsedDate);
               }
             }}
             type="date"
-            value={formatDateInputValue(draft.dob)}
+            value={formatDateInput(draft.dob)}
           />
         </Field>
       </FieldGroup>
@@ -1264,7 +1184,7 @@ function PlayerEditPanel({
         <Field>
           <PlayerImageUploadInput
             disabled={isPending}
-            imageUrl={draft.image ?? ""}
+            imageUrl={getProfileImageUrl(draft.image ?? "") ?? ""}
             inputId="edit-player-image"
             isUploading={uploadImagePending}
             onSelectFile={onEditImageSelect}

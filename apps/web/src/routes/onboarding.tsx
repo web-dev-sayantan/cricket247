@@ -22,6 +22,11 @@ import {
 } from "@/components/ui/select";
 import { authClient } from "@/lib/auth-client";
 import { COUNTRIES } from "@/lib/constants";
+import {
+  formatDateInput,
+  getDefaultAdultDob,
+  parseDateInput,
+} from "@/lib/date";
 import { uploadProfileImage } from "@/lib/profile-image-upload";
 import { client, orpc, queryClient } from "@/utils/orpc";
 
@@ -29,11 +34,7 @@ const searchSchema = z.object({
   from: z.string().optional(),
 });
 
-const defaultDob = () => {
-  const date = new Date();
-  date.setFullYear(date.getFullYear() - 18);
-  return date.toISOString().split("T")[0] ?? "";
-};
+const defaultDob = () => formatDateInput(getDefaultAdultDob());
 
 const battingStanceValues = ["Right handed", "Left handed"] as const;
 const playerSexValues = [
@@ -335,8 +336,8 @@ function OnboardingRoute() {
                 uploadImageMutation.isPending
               }
               onClick={async () => {
-                const parsedDob = new Date(`${dob}T00:00:00`);
-                if (Number.isNaN(parsedDob.getTime())) {
+                const parsedDob = parseDateInput(dob);
+                if (!parsedDob) {
                   return;
                 }
 

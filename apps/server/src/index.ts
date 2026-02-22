@@ -13,6 +13,7 @@ import { createContext } from "./lib/context";
 import { errorHandler } from "./middleware";
 import { appRouter } from "./routers/index";
 import routes from "./routes";
+import { getCurrentIsoTimestamp } from "./utils";
 
 const app = new Hono();
 
@@ -27,7 +28,7 @@ app.get("/", (c) =>
     status: "ok",
     message: "Cricket247 API",
     version: "1.0.0",
-    timestamp: new Date().toISOString(),
+    timestamp: getCurrentIsoTimestamp(),
   })
 );
 
@@ -90,7 +91,7 @@ app.notFound((c) =>
     {
       success: false,
       error: "Route not found",
-      timestamp: new Date().toISOString(),
+      timestamp: getCurrentIsoTimestamp(),
     },
     404
   )

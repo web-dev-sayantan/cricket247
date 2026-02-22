@@ -26,7 +26,15 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { authClient } from "@/lib/auth-client";
 import { COUNTRIES } from "@/lib/constants";
+import {
+  calculateAgeFromDob,
+  formatDateInput,
+  getDefaultAdultDob,
+  isNotFutureDate,
+  parseDateInput,
+} from "@/lib/date";
 import { uploadProfileImage } from "@/lib/profile-image-upload";
+import { getProfileImageUrl } from "@/lib/profile-image-url";
 import { client } from "@/utils/orpc";
 
 const battingStanceValues = ["Right handed", "Left handed"] as const;
@@ -44,29 +52,6 @@ const playerRoleValues = [
 ] as const;
 const UNSPECIFIED_NATIONALITY = "unspecified";
 
-const getDefaultDob = () => {
-  const date = new Date();
-  date.setFullYear(date.getFullYear() - 18);
-  return date;
-};
-
-const formatDateInputValue = (date: Date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-};
-
-const parseDateInputValue = (value: string) => {
-  const parsedDate = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(parsedDate.getTime())) {
-    return null;
-  }
-
-  return parsedDate;
-};
-
 const parseOptionalInteger = (value: string) => {
   if (value.trim().length === 0) {
     return undefined;
@@ -80,37 +65,15 @@ const parseOptionalInteger = (value: string) => {
   return parsedValue;
 };
 
-const calculateAgeFromDob = (dob: Date) => {
-  const today = new Date();
-  let age = today.getFullYear() - dob.getFullYear();
-  const monthDifference = today.getMonth() - dob.getMonth();
-  const hasNotHadBirthdayYet =
-    monthDifference < 0 ||
-    (monthDifference === 0 && today.getDate() < dob.getDate());
-
-  if (hasNotHadBirthdayYet) {
-    age -= 1;
-  }
-
-  return Math.max(age, 0);
-};
-
-const isValidUrl = (value: string) => {
-  try {
-    new URL(value);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
 const createPlayerSchema = z.object({
   name: z
     .string()
     .trim()
     .min(2, "Player name must be at least 2 characters")
     .max(100, "Player name must be at most 100 characters"),
-  dob: z.date().max(new Date(), "Date of birth cannot be in the future"),
+  dob: z
+    .date()
+    .refine(isNotFutureDate, "Date of birth cannot be in the future"),
   sex: z.enum(playerSexValues),
   nationality: z.enum(COUNTRIES).optional(),
   height: z
@@ -125,15 +88,7 @@ const createPlayerSchema = z.object({
     .min(1, "Weight must be at least 1 kg")
     .max(250, "Weight must be at most 250 kg")
     .optional(),
-  image: z
-    .string()
-    .trim()
-    .max(2048, "Image URL is too long")
-    .optional()
-    .refine(
-      (value) => value === undefined || value.length === 0 || isValidUrl(value),
-      "Image must be a valid URL"
-    ),
+  image: z.string().trim().max(1024, "Image key is too long").optional(),
   role: z.enum(playerRoleValues),
   battingStance: z.enum(battingStanceValues),
   bowlingStance: z
@@ -147,7 +102,7 @@ type CreatePlayerFormValues = z.infer<typeof createPlayerSchema>;
 
 const defaultValues: CreatePlayerFormValues = {
   name: "",
-  dob: getDefaultDob(),
+  dob: getDefaultAdultDob(),
   sex: "Male",
   nationality: "India",
   height: undefined,
@@ -349,7 +304,7 @@ function RouteComponent() {
                           id={field.name}
                           onBlur={field.handleBlur}
                           onChange={(event) => {
-                            const parsedDate = parseDateInputValue(
+                            const parsedDate = parseDateInput(
                               event.target.value
                             );
                             if (parsedDate) {
@@ -357,7 +312,7 @@ function RouteComponent() {
                             }
                           }}
                           type="date"
-                          value={formatDateInputValue(field.state.value)}
+                          value={formatDateInput(field.state.value)}
                         />
                         {isInvalid ? (
                           <FieldError errors={field.state.meta.errors} />
@@ -664,7 +619,9 @@ function RouteComponent() {
                       <Field data-invalid={isInvalid}>
                         <PlayerImageUploadInput
                           disabled={createPlayerMutation.isPending}
-                          imageUrl={field.state.value ?? ""}
+                          imageUrl={
+                            getProfileImageUrl(field.state.value ?? "") ?? ""
+                          }
                           inputId={field.name}
                           isUploading={uploadImageMutation.isPending}
                           onSelectFile={async (selectedFile) => {
@@ -672,7 +629,7 @@ function RouteComponent() {
                               await uploadImageMutation.mutateAsync(
                                 selectedFile
                               );
-                            field.handleChange(result.url);
+                            field.handleChange(result.key);
                             setUploadedImageName(selectedFile.name);
                           }}
                           uploadedImageName={uploadedImageName}

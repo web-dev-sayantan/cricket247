@@ -1,7 +1,8 @@
 import { db } from "@/db";
+import { getCurrentDate } from "@/utils";
 
 export function getLiveTournaments() {
-  const now = new Date();
+  const now = getCurrentDate();
   return db.query.tournaments.findMany({
     where: {
       startDate: {

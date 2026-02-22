@@ -1,3 +1,4 @@
+import { compareDesc } from "date-fns";
 import { and, eq, inArray, or } from "drizzle-orm";
 import { db } from "@/db";
 import {
@@ -9,6 +10,7 @@ import {
   tournaments,
   tournamentTeams,
 } from "@/db/schema";
+import { getCurrentDate } from "@/utils";
 
 const POINTS_FOR_WIN = 2;
 const POINTS_FOR_TIE = 1;
@@ -189,8 +191,8 @@ function aggregateStats(
   relevantInnings: (typeof innings.$inferSelect)[]
 ): MutableStats {
   const stats = createEmptyStats();
-  const sortedMatches = [...relevantMatches].sort(
-    (first, second) => second.matchDate.getTime() - first.matchDate.getTime()
+  const sortedMatches = [...relevantMatches].sort((first, second) =>
+    compareDesc(first.matchDate, second.matchDate)
   );
 
   for (const match of sortedMatches) {
@@ -218,7 +220,7 @@ async function upsertCareerStats(
   stats: MutableStats,
   trophiesWon: number
 ) {
-  const now = new Date();
+  const now = getCurrentDate();
   const winPercentage = computeWinPercentage(
     stats.matchesWon,
     stats.matchesPlayed
@@ -288,7 +290,7 @@ async function upsertTournamentStatsForTeam(
     return;
   }
 
-  const now = new Date();
+  const now = getCurrentDate();
 
   for (const tournamentId of tournamentIds) {
     const tournamentMatches = finalizedMatches.filter(

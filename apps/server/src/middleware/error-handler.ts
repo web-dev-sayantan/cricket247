@@ -1,6 +1,7 @@
 import type { Context, Next } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { ZodError } from "zod";
+import { getCurrentIsoTimestamp } from "@/utils";
 import type { ApiResponse } from "./response";
 
 export async function errorHandler(c: Context, next: Next) {
@@ -13,7 +14,7 @@ export async function errorHandler(c: Context, next: Next) {
         {
           success: false,
           error: error.message,
-          timestamp: new Date().toISOString(),
+          timestamp: getCurrentIsoTimestamp(),
         },
         status
       );
@@ -37,7 +38,7 @@ export async function errorHandler(c: Context, next: Next) {
           success: false,
           error: "Validation failed",
           data: errors,
-          timestamp: new Date().toISOString(),
+          timestamp: getCurrentIsoTimestamp(),
         },
         400
       );
@@ -50,7 +51,7 @@ export async function errorHandler(c: Context, next: Next) {
       {
         success: false,
         error: "Internal server error",
-        timestamp: new Date().toISOString(),
+        timestamp: getCurrentIsoTimestamp(),
       },
       500
     );

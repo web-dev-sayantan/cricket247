@@ -1,6 +1,7 @@
 import { CalendarIcon, TrophyIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatMonthDay, isDateWithinInclusiveRange } from "@/lib/date";
 
 interface TournamentCardProps {
   endDate: Date;
@@ -17,8 +18,7 @@ export function TournamentCard({
   endDate,
   format,
 }: TournamentCardProps) {
-  const isLive =
-    new Date() >= new Date(startDate) && new Date() <= new Date(endDate);
+  const isLive = isDateWithinInclusiveRange(new Date(), startDate, endDate);
 
   return (
     <Card className="group relative w-[85vw] max-w-[300px] shrink-0 snap-center overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-primary/20 hover:shadow-xl md:max-w-[320px]">
@@ -37,15 +37,9 @@ export function TournamentCard({
         <div className="mt-4 flex items-center font-medium text-muted-foreground text-xs">
           <CalendarIcon className="mr-1.5 h-3.5 w-3.5 shrink-0" />
           <span className="truncate">
-            {new Date(startDate).toLocaleDateString(undefined, {
-              month: "short",
-              day: "numeric",
-            })}
+            {formatMonthDay(startDate)}
             {" - "}
-            {new Date(endDate).toLocaleDateString(undefined, {
-              month: "short",
-              day: "numeric",
-            })}
+            {formatMonthDay(endDate)}
           </span>
         </div>
         <div className="mt-5">

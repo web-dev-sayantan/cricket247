@@ -17,6 +17,12 @@ import type {
   Player,
   PlayerWithCurrentTeams,
 } from "@/db/types";
+import {
+  calculateAgeFromDob,
+  createFutureDateByMinutes,
+  getCurrentDate,
+  isDateExpired,
+} from "@/utils";
 import { sendEmailOtp } from "./email.service";
 
 const CLAIM_OTP_LENGTH = 6;
@@ -31,21 +37,6 @@ function generateClaimOtp(): string {
   crypto.getRandomValues(randomValues);
   const maxOtpValue = 10 ** CLAIM_OTP_LENGTH;
   return padOtp(randomValues[0] % maxOtpValue);
-}
-
-function calculateAgeFromDob(dob: Date) {
-  const today = new Date();
-  let age = today.getFullYear() - dob.getFullYear();
-  const monthDifference = today.getMonth() - dob.getMonth();
-  const hasNotHadBirthdayYet =
-    monthDifference < 0 ||
-    (monthDifference === 0 && today.getDate() < dob.getDate());
-
-  if (hasNotHadBirthdayYet) {
-    age -= 1;
-  }
-
-  return Math.max(age, 0);
 }
 
 function getClaimOtpIdentifier(userId: number, playerId: number) {
@@ -126,9 +117,11 @@ export async function getOnboardingStatusByEmail(email: string) {
 }
 
 export async function markOnboardingSeenByEmail(email: string) {
+  const currentDate = getCurrentDate();
+
   const updatedRows = await db
     .update(user)
-    .set({ onboardingSeenAt: new Date() })
+    .set({ onboardingSeenAt: currentDate })
     .where(eq(user.email, email))
     .returning({
       id: user.id,
@@ -192,9 +185,11 @@ export async function createOwnPlayerProfileByEmail(
     throw new Error("Failed to create player profile");
   }
 
+  const currentDate = getCurrentDate();
+
   await db
     .update(user)
-    .set({ onboardingCompletedAt: new Date(), onboardingSeenAt: new Date() })
+    .set({ onboardingCompletedAt: currentDate, onboardingSeenAt: currentDate })
     .where(eq(user.id, userRecord.id));
 
   return createdPlayer;
@@ -245,7 +240,7 @@ export async function sendClaimOtpByEmail(email: string, playerId: number) {
 
   const otp = generateClaimOtp();
   const identifier = getClaimOtpIdentifier(userRecord.id, playerId);
-  const expiresAt = new Date(Date.now() + CLAIM_OTP_EXPIRY_MINUTES * 60 * 1000);
+  const expiresAt = createFutureDateByMinutes(CLAIM_OTP_EXPIRY_MINUTES);
 
   await db.delete(verification).where(eq(verification.identifier, identifier));
   await db.insert(verification).values({
@@ -302,7 +297,7 @@ export async function verifyClaimOtpAndLinkByEmail(params: {
     throw new Error("Invalid OTP");
   }
 
-  if (otpRecord.expiresAt.getTime() < Date.now()) {
+  if (isDateExpired(otpRecord.expiresAt)) {
     throw new Error("OTP expired");
   }
 
@@ -334,9 +329,14 @@ export async function verifyClaimOtpAndLinkByEmail(params: {
       verificationType: CLAIM_OTP_VERIFICATION_TYPE,
     });
 
+    const currentDate = getCurrentDate();
+
     await tx
       .update(user)
-      .set({ onboardingCompletedAt: new Date(), onboardingSeenAt: new Date() })
+      .set({
+        onboardingCompletedAt: currentDate,
+        onboardingSeenAt: currentDate,
+      })
       .where(eq(user.id, userRecord.id));
 
     await tx
@@ -355,7 +355,7 @@ export const getAllPlayers: () => Promise<Player[]> = async () =>
 export const getPlayersWithCurrentTeams: () => Promise<
   PlayerWithCurrentTeams[]
 > = async () => {
-  const now = new Date();
+  const now = getCurrentDate();
   const [allPlayers, liveTournamentMemberships] = await Promise.all([
     db.select().from(players),
     db

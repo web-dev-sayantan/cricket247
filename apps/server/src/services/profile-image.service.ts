@@ -1,3 +1,5 @@
+import { getAwsUtcDateParts, getCurrentDate, getCurrentEpochMs } from "@/utils";
+
 const ALLOWED_IMAGE_MIME_TYPES = [
   "image/jpeg",
   "image/png",
@@ -30,22 +32,6 @@ const toHex = (buffer: ArrayBuffer) => {
   return Array.from(bytes)
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
-};
-
-const toIsoWithoutSeparators = (date: Date) => {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(date.getUTCDate()).padStart(2, "0");
-  const hour = String(date.getUTCHours()).padStart(2, "0");
-  const minute = String(date.getUTCMinutes()).padStart(2, "0");
-  const second = String(date.getUTCSeconds()).padStart(2, "0");
-
-  return {
-    dateStamp: `${year}${month}${day}`,
-    amzDate: `${year}${month}${day}T${hour}${minute}${second}Z`,
-    year,
-    month,
-  };
 };
 
 const encodeObjectKey = (key: string) =>
@@ -120,8 +106,8 @@ export function createProfileImageObjectKey(
   userId: string,
   contentType: string
 ) {
-  const { year, month } = toIsoWithoutSeparators(new Date());
-  const timestamp = Date.now();
+  const { year, month } = getAwsUtcDateParts(getCurrentDate());
+  const timestamp = getCurrentEpochMs();
   const randomSuffix = crypto.randomUUID().replace(/-/g, "");
   const extension =
     fileExtensionByMimeType[contentType as AllowedImageMimeType] ?? "bin";
@@ -148,7 +134,7 @@ export async function createProfileImagePresignedPutUrl(params: {
   const service = "s3";
   const expiresInSeconds =
     params.expiresInSeconds ?? SIGNED_UPLOAD_EXPIRES_IN_SECONDS;
-  const { dateStamp, amzDate } = toIsoWithoutSeparators(new Date());
+  const { dateStamp, amzDate } = getAwsUtcDateParts(getCurrentDate());
   const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
   const signedHeaders = "content-type;host";
   const encodedKey = encodeObjectKey(params.objectKey);

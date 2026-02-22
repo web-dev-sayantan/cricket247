@@ -1,4 +1,5 @@
 import type { Context, Next } from "hono";
+import { getCurrentEpochMs, getCurrentIsoTimestamp } from "@/utils";
 
 const requestCounts = new Map<string, { count: number; resetTime: number }>();
 
@@ -6,7 +7,7 @@ export function rateLimit(maxRequests: number, windowMs = 60_000) {
   return async (c: Context, next: Next) => {
     const identifier =
       c.req.header("x-forwarded-for") || c.req.header("x-real-ip") || "unknown";
-    const now = Date.now();
+    const now = getCurrentEpochMs();
 
     const requestData = requestCounts.get(identifier);
 
@@ -25,7 +26,7 @@ export function rateLimit(maxRequests: number, windowMs = 60_000) {
           success: false,
           error: "Too many requests",
           retryAfter: Math.ceil((requestData.resetTime - now) / 1000),
-          timestamp: new Date().toISOString(),
+          timestamp: getCurrentIsoTimestamp(),
         },
         429
       );

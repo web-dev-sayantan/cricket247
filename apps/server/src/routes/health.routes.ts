@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { errorResponse, requireAuth, successResponse } from "@/middleware";
+import { getCurrentIsoTimestamp } from "@/utils";
 
 const healthRoutes = new Hono();
 
@@ -8,7 +9,7 @@ healthRoutes.get("/", (c) =>
   successResponse(c, {
     status: "ok",
     uptime: process.uptime(),
-    timestamp: Date.now(),
+    timestamp: getCurrentIsoTimestamp(),
   })
 );
 
@@ -19,7 +20,7 @@ healthRoutes.get("/detailed", requireAuth, (c) => {
     return successResponse(c, {
       status: "ok",
       uptime: process.uptime(),
-      timestamp: Date.now(),
+      timestamp: getCurrentIsoTimestamp(),
       database: "connected",
     });
   } catch (_error) {

@@ -1,9 +1,11 @@
+import { toDate } from "date-fns";
 import { db } from "@/db";
 import { matches } from "@/db/schema";
 import {
   getMatchScorecard as getMatchScorecardService,
   type ScorecardQuery,
 } from "@/services/scorecard.service";
+import { getCurrentDate } from "@/utils";
 
 export function getLiveMatches() {
   return db.query.matches.findMany({
@@ -146,7 +148,7 @@ export async function createMatchAction({
   notes?: string;
 }) {
   const newMatch = await db.insert(matches).values({
-    matchDate: matchDate ? new Date(matchDate) : new Date(),
+    matchDate: matchDate ? toDate(matchDate) : getCurrentDate(),
     tournamentId,
     tossWinnerId,
     tossDecision,

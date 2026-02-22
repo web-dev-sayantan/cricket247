@@ -318,6 +318,7 @@ bun run db:migrate
 6. **Routes**: Keep route handlers thin, delegate to services
 7. **Constants**: Use constants from `config/constants.ts`
 8. **Utilities**: Extract reusable logic to utility functions
+9. **Date Handling**: Use `date-fns` helpers and return API timestamps as ISO 8601 strings
 
 ## 📝 Environment Variables
 

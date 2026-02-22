@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { FileText, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatWeekdayMonthDayYear } from "@/lib/date";
 
 interface MatchCardProps {
   match: {
@@ -77,12 +78,7 @@ export const MatchCard = ({ match }: MatchCardProps) => {
           </div>
 
           <div className="text-muted-foreground text-xs">
-            {match.matchDate.toLocaleDateString("en-US", {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
+            {formatWeekdayMonthDayYear(match.matchDate)}
           </div>
 
           <div className="flex flex-col gap-4 pt-2 md:flex-row md:gap-2">

@@ -55,7 +55,7 @@ import {
 // Match creation schema matching the frontend MatchFormSchema
 const CreateMatchInputSchema = z.object({
   tournamentId: z.number().int().positive(),
-  matchDate: z.date(),
+  matchDate: z.coerce.date(),
   tossWinnerId: z.number(),
   tossDecision: z.string(),
   team1Id: z.number(),

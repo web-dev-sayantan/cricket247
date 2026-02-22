@@ -1,4 +1,5 @@
 import type { Context } from "hono";
+import { getCurrentIsoTimestamp } from "@/utils";
 
 export interface ApiResponse<T = unknown> {
   data?: T;
@@ -19,7 +20,7 @@ export function successResponse<T>(
       success: true,
       data,
       message,
-      timestamp: new Date().toISOString(),
+      timestamp: getCurrentIsoTimestamp(),
     },
     status as 200
   );
@@ -30,7 +31,7 @@ export function errorResponse(c: Context, error: string, status = 400) {
     {
       success: false,
       error,
-      timestamp: new Date().toISOString(),
+      timestamp: getCurrentIsoTimestamp(),
     },
     status as 400
   );
@@ -45,7 +46,7 @@ export function validationErrorResponse(
       success: false,
       error: "Validation failed",
       data: errors,
-      timestamp: new Date().toISOString(),
+      timestamp: getCurrentIsoTimestamp(),
     },
     400
   );

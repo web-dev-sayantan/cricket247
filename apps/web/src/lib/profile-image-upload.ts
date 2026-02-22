@@ -1,3 +1,5 @@
+import { getProfileImageUrl } from "@/lib/profile-image-url";
+
 const baseURL =
   import.meta.env.VITE_SERVER_URL ||
   (typeof window === "undefined" ? "" : window.location.origin);
@@ -18,7 +20,6 @@ interface PresignUploadResponse {
   key: string;
   method: "PUT";
   uploadUrl: string;
-  url: string;
 }
 
 const attemptDirectUpload = async (
@@ -69,7 +70,7 @@ const attemptDirectUpload = async (
 
     return {
       key: presignPayload.data.key,
-      url: presignPayload.data.url,
+      url: getProfileImageUrl(presignPayload.data.key) ?? "",
     };
   } catch (_error) {
     return null;
@@ -120,5 +121,8 @@ export const uploadProfileImage = async (
     throw new Error(payload.error ?? "Failed to upload profile image");
   }
 
-  return payload.data;
+  return {
+    key: payload.data.key,
+    url: getProfileImageUrl(payload.data.key) ?? "",
+  };
 };
