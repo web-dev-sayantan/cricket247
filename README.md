@@ -57,7 +57,11 @@ The API is running at [http://localhost:3000](http://localhost:3000).
 
 
 ## Deployment (Cloudflare Wrangler)
-- Web deploy: cd apps/web && bun deploy
+- API deploy: `bun run deploy:api`
+- Web deploy: `bun run deploy:web`
+- Full deploy (API then web): `bun run deploy`
+- CI deploy on `main`: `.github/workflows/deploy-cloudflare.yml`
+- Runbook: `docs/cloudflare-deployment.md`
 
 
 ## Project Structure

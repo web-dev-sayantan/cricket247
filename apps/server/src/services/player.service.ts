@@ -1,7 +1,7 @@
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { playerMatchPerformance, players } from "@/db/schema";
-import type { NewPlayerMatchPerformance, Player } from "@/db/types";
+import { playerInningsStats, players } from "@/db/schema";
+import type { NewPlayerInningsStats, Player } from "@/db/types";
 
 export const getAllPlayers: () => Promise<Player[]> = async () =>
   await db.select().from(players);
@@ -12,71 +12,102 @@ export async function getPlayerById(id: number) {
 
 export async function getPlayerMatchPerformance(
   playerId: number,
-  matchId: number
+  matchId: number,
+  inningsId?: number
 ) {
   return await db
     .select()
-    .from(playerMatchPerformance)
+    .from(playerInningsStats)
     .where(
-      and(
-        eq(playerMatchPerformance.playerId, playerId),
-        eq(playerMatchPerformance.matchId, matchId)
-      )
+      inningsId
+        ? and(
+            eq(playerInningsStats.playerId, playerId),
+            eq(playerInningsStats.matchId, matchId),
+            eq(playerInningsStats.inningsId, inningsId)
+          )
+        : and(
+            eq(playerInningsStats.playerId, playerId),
+            eq(playerInningsStats.matchId, matchId)
+          )
     )
+    .orderBy(desc(playerInningsStats.id))
     .limit(1);
 }
 
 export async function createPlayerAction({
   name,
-  age,
+  dob,
+  sex,
+  role,
   battingStance,
   bowlingStance,
   isWicketKeeper,
+  nationality,
+  image,
 }: {
   name: string;
-  age: number;
+  dob: Date;
+  sex: string;
+  role: string;
   battingStance: string;
-  bowlingStance: string;
+  bowlingStance?: string;
   isWicketKeeper?: boolean;
+  nationality?: string;
+  image?: string;
 }) {
   const result = await db.insert(players).values({
     name,
-    age,
+    dob,
+    sex,
+    role,
     battingStance,
     bowlingStance,
     isWicketKeeper: !!isWicketKeeper,
+    nationality,
+    image,
   });
-  if (result) {
-    return result;
-  }
-  return null;
+
+  return result ?? null;
 }
 
 export async function createPlayerPerformanceAction({
+  inningsId,
   matchId,
   playerId,
   teamId,
-}: NewPlayerMatchPerformance) {
-  await db.insert(playerMatchPerformance).values({
-    matchId,
-    playerId,
-    teamId,
-  });
+  battingOrder,
+}: Pick<
+  NewPlayerInningsStats,
+  "inningsId" | "matchId" | "playerId" | "teamId" | "battingOrder"
+>) {
+  await db
+    .insert(playerInningsStats)
+    .values({
+      inningsId,
+      matchId,
+      playerId,
+      teamId,
+      battingOrder,
+    })
+    .onConflictDoNothing({
+      target: [playerInningsStats.inningsId, playerInningsStats.playerId],
+    });
 }
 
 export async function updatePlayerPerformanceAction(
-  playerMatchPerformanceStats: NewPlayerMatchPerformance
+  playerStats: NewPlayerInningsStats
 ) {
+  if (!(playerStats.inningsId && playerStats.playerId)) {
+    throw new Error("inningsId and playerId are required to update stats");
+  }
+
   await db
-    .update(playerMatchPerformance)
-    .set(playerMatchPerformanceStats)
+    .update(playerInningsStats)
+    .set(playerStats)
     .where(
       and(
-        eq(
-          playerMatchPerformance.playerId,
-          playerMatchPerformanceStats.playerId
-        ),
-        eq(playerMatchPerformance.matchId, playerMatchPerformanceStats.matchId)
+        eq(playerInningsStats.inningsId, playerStats.inningsId),
+        eq(playerInningsStats.playerId, playerStats.playerId)
       )
     );
 }

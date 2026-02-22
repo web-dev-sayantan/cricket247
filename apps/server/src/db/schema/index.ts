@@ -20,7 +20,7 @@ const timestampCols = {
   updatedAt: timestampMs(),
 };
 
-export const user = sqliteTable("user", {
+export const users = sqliteTable("users", {
   id: integer().primaryKey().notNull(),
   name: text().notNull(),
   username: text().unique(),
@@ -35,13 +35,13 @@ export const user = sqliteTable("user", {
   ...timestampCols,
 });
 
-export const session = sqliteTable(
-  "session",
+export const sessions = sqliteTable(
+  "sessions",
   {
     id: integer().primaryKey().notNull(),
     userId: integer()
       .notNull()
-      .references(() => user.id),
+      .references(() => users.id),
     token: text().notNull(),
     expiresAt: timestampMs().notNull(),
     ipAddress: text(),
@@ -56,11 +56,11 @@ export const session = sqliteTable(
   ]
 );
 
-export const account = sqliteTable("account", {
+export const accounts = sqliteTable("accounts", {
   id: integer().primaryKey().notNull(),
   userId: integer()
     .notNull()
-    .references(() => user.id),
+    .references(() => users.id),
   accountId: text().notNull(),
   providerId: text().notNull(),
   accessToken: text(),
@@ -73,7 +73,7 @@ export const account = sqliteTable("account", {
   ...timestampCols,
 });
 
-export const verification = sqliteTable("verification", {
+export const verifications = sqliteTable("verifications", {
   id: integer().primaryKey().notNull(),
   identifier: text().notNull(),
   value: text().notNull(),
@@ -81,15 +81,15 @@ export const verification = sqliteTable("verification", {
   ...timestampCols,
 });
 
-export const passkey = sqliteTable(
-  "passkey",
+export const passkeys = sqliteTable(
+  "passkeys",
   {
     id: integer().primaryKey().notNull(),
     name: text(),
     publicKey: text().notNull(),
-    userId: text()
+    userId: integer()
       .notNull()
-      .references(() => user.id),
+      .references(() => users.id),
     credentialID: text().notNull(),
     counter: integer().notNull().default(0),
     deviceType: text().notNull(),
@@ -107,16 +107,17 @@ export const passkey = sqliteTable(
 export const players = sqliteTable("players", {
   id: integer().primaryKey().notNull(),
   name: text().notNull(),
-  dob: integer({ mode: "timestamp" }).notNull(),
-  sex: text().notNull(),
+  age: integer().notNull().default(0),
+  dob: integer({ mode: "timestamp" }).default(sql`(unixepoch())`).notNull(),
+  sex: text().notNull().default("unknown"),
   nationality: text(),
   height: integer(),
   weight: integer(),
   image: text(),
-  role: text().notNull(), // "Batsman", "Bowler", "All-rounder"
+  role: text().notNull().default("Batter"),
   battingStance: text().default("Right handed").notNull(),
   bowlingStance: text(),
-  isWicketKeeper: integer({ mode: "boolean" }).default(false).notNull(),
+  isWicketKeeper: booleanFlag(),
   ...timestampCols,
 });
 
@@ -125,7 +126,7 @@ export const playerVerification = sqliteTable("player_verification", {
   playerId: integer()
     .notNull()
     .references(() => players.id),
-  verificationType: text().notNull(), // "Passport", "Driver's License", "National ID", etc.
+  verificationType: text().notNull(),
   verificationId: text().notNull(),
   ...timestampCols,
 });
@@ -135,7 +136,7 @@ export const teams = sqliteTable("teams", {
   name: text().notNull(),
   shortName: text().notNull(),
   baseLocation: text(),
-  country: text().notNull(),
+  country: text().notNull().default("Unknown"),
   ...timestampCols,
 });
 
@@ -149,8 +150,8 @@ export const teamPlayers = sqliteTable(
     playerId: integer()
       .notNull()
       .references(() => players.id),
-    isCaptain: integer({ mode: "boolean" }).default(false).notNull(),
-    isViceCaptain: integer({ mode: "boolean" }).default(false).notNull(),
+    isCaptain: booleanFlag(),
+    isViceCaptain: booleanFlag(),
     ...timestampCols,
   },
   (t) => [uniqueIndex("unique_team_player").on(t.teamId, t.playerId)]
@@ -161,7 +162,7 @@ export const tournaments = sqliteTable("tournaments", {
   name: text().notNull(),
   startDate: integer({ mode: "timestamp" }).notNull(),
   endDate: integer({ mode: "timestamp" }).notNull(),
-  format: text().notNull(), // "T5", "T6", "T7", "T8", "T10", "T12", "T20", "ODI"
+  format: text().notNull(),
   ...timestampCols,
 });
 
@@ -204,7 +205,7 @@ export const matches = sqliteTable(
     tossWinnerId: integer()
       .notNull()
       .references(() => teams.id),
-    tossDecision: text().notNull(), // "bat" or "bowl"
+    tossDecision: text().notNull(),
     team1Id: integer()
       .notNull()
       .references(() => teams.id),
@@ -214,23 +215,26 @@ export const matches = sqliteTable(
     inningsPerSide: integer().notNull().default(1),
     oversPerSide: integer().notNull().default(20),
     maxOverPerBowler: integer().notNull().default(4),
+    playersPerSide: integer().notNull().default(11),
+    hasSuperSub: booleanFlag(),
+    substitutesPerSide: integer().notNull().default(0),
     result: text(),
     winnerId: integer().references(() => teams.id),
-    ranked: integer({ mode: "boolean" }).default(false),
+    ranked: booleanFlag(),
     isLive: integer({ mode: "boolean" }).default(true),
-    isCompleted: integer({ mode: "boolean" }).default(false),
-    isAbandoned: integer({ mode: "boolean" }).default(false),
-    isTied: integer({ mode: "boolean" }).default(false),
-    margin: text(), // e.g., "10 runs", "5 wickets"
+    isCompleted: booleanFlag(),
+    isAbandoned: booleanFlag(),
+    isTied: booleanFlag(),
+    margin: text(),
     playerOfTheMatchId: integer().references(() => players.id),
-    hasLBW: integer({ mode: "boolean" }).default(false),
-    hasBye: integer({ mode: "boolean" }).default(false),
-    hasLegBye: integer({ mode: "boolean" }).default(false),
-    hasBoundaryOut: integer({ mode: "boolean" }).default(false),
-    hasWides: integer({ mode: "boolean" }).default(false),
-    hasNoBalls: integer({ mode: "boolean" }).default(false),
-    hasPenaltyRuns: integer({ mode: "boolean" }).default(false),
-    hasSuperOver: integer({ mode: "boolean" }).default(false),
+    hasLBW: booleanFlag(),
+    hasBye: integer({ mode: "boolean" }).notNull().default(true),
+    hasLegBye: booleanFlag(),
+    hasBoundaryOut: booleanFlag(),
+    hasWides: integer({ mode: "boolean" }).notNull().default(true),
+    hasNoBalls: integer({ mode: "boolean" }).notNull().default(true),
+    hasPenaltyRuns: booleanFlag(),
+    hasSuperOver: booleanFlag(),
     venueId: integer().references(() => venues.id),
     format: text().notNull().default("T20"), // "T5", "T6", "T7", "T8", "T10", "T12", "T20", "ODI", "Test", "Custom"
     notes: text(),
@@ -239,61 +243,41 @@ export const matches = sqliteTable(
   (t) => [index("rank_idx").on(t.winnerId)]
 );
 
-export const roster = sqliteTable("roster", {
-  id: integer().primaryKey().notNull(),
-  matchId: integer()
-    .notNull()
-    .references(() => matches.id),
-  teamId: integer()
-    .notNull()
-    .references(() => teams.id),
-  player1Id: integer()
-    .notNull()
-    .references(() => players.id),
-  player2Id: integer()
-    .notNull()
-    .references(() => players.id),
-  player3Id: integer()
-    .notNull()
-    .references(() => players.id),
-  player4Id: integer()
-    .notNull()
-    .references(() => players.id),
-  player5Id: integer()
-    .notNull()
-    .references(() => players.id),
-  player6Id: integer()
-    .notNull()
-    .references(() => players.id),
-  player7Id: integer()
-    .notNull()
-    .references(() => players.id),
-  player8Id: integer()
-    .notNull()
-    .references(() => players.id),
-  player9Id: integer()
-    .notNull()
-    .references(() => players.id),
-  player10Id: integer()
-    .notNull()
-    .references(() => players.id),
-  player11Id: integer()
-    .notNull()
-    .references(() => players.id),
-  captainId: integer()
-    .notNull()
-    .references(() => players.id),
-  viceCaptainId: integer()
-    .notNull()
-    .references(() => players.id),
-  wicketKeeperId: integer()
-    .notNull()
-    .references(() => players.id),
-  superSubId: integer()
-    .notNull()
-    .references(() => players.id),
-  ...timestampCols,
-});
+export const matchLineup = sqliteTable(
+  "match_lineup",
+  {
+    id: integer().primaryKey().notNull(),
+    matchId: integer()
+      .notNull()
+      .references(() => matches.id),
+    teamId: integer()
+      .notNull()
+      .references(() => teams.id),
+    playerId: integer()
+      .notNull()
+      .references(() => players.id),
+    battingOrder: integer(),
+    isCaptain: booleanFlag(),
+    isViceCaptain: booleanFlag(),
+    isWicketKeeper: booleanFlag(),
+    isSubstitute: booleanFlag(),
+    ...timestampCols,
+  },
+  (t) => [
+    uniqueIndex("unique_match_lineup_player").on(
+      t.matchId,
+      t.teamId,
+      t.playerId
+    ),
+    uniqueIndex("unique_match_lineup_batting_order").on(
+      t.matchId,
+      t.teamId,
+      t.battingOrder
+    ),
+    index("match_lineup_match_idx").on(t.matchId),
+    index("match_lineup_team_idx").on(t.teamId),
+  ]
+);
 
 export const innings = sqliteTable(
   "innings",
@@ -309,24 +293,37 @@ export const innings = sqliteTable(
       .notNull()
       .references(() => teams.id),
     inningsNumber: integer().notNull().default(1),
+    status: text().notNull().default("not_started"),
     totalScore: integer().notNull().default(0),
     wickets: integer().notNull().default(0),
     ballsBowled: integer().notNull().default(0),
-    extras: integer().notNull().default(0),
-    isCompleted: integer({ mode: "boolean" }).default(false),
+    wides: integer().notNull().default(0),
+    noBalls: integer().notNull().default(0),
+    byes: integer().notNull().default(0),
+    legByes: integer().notNull().default(0),
+    penaltyRuns: integer().notNull().default(0),
+    others: integer().notNull().default(0),
+    targetRuns: integer(),
+    isCompleted: booleanFlag(),
     ...timestampCols,
   },
-  (t) => [index("match_idx").on(t.matchId)]
+  (t) => [
+    index("innings_match_idx").on(t.matchId),
+    uniqueIndex("unique_match_innings_number").on(t.matchId, t.inningsNumber),
+  ]
 );
 
-export const balls = sqliteTable(
-  "balls",
+export const deliveries = sqliteTable(
+  "deliveries",
   {
     id: integer().primaryKey().notNull(),
     inningsId: integer()
       .notNull()
       .references(() => innings.id),
-    ballNumber: integer().notNull(),
+    sequenceNo: integer().notNull(),
+    overNumber: integer().notNull(),
+    ballInOver: integer().notNull(),
+    isLegalDelivery: integer({ mode: "boolean" }).notNull().default(true),
     strikerId: integer()
       .notNull()
       .references(() => players.id),
@@ -336,27 +333,36 @@ export const balls = sqliteTable(
     bowlerId: integer()
       .notNull()
       .references(() => players.id),
-    runsScored: integer().notNull().default(0),
+    batterRuns: integer().notNull().default(0),
+    wideRuns: integer().notNull().default(0),
+    noBallRuns: integer().notNull().default(0),
+    byeRuns: integer().notNull().default(0),
+    legByeRuns: integer().notNull().default(0),
+    penaltyRuns: integer().notNull().default(0),
+    totalRuns: integer().notNull().default(0),
     isWicket: integer({ mode: "boolean" }).notNull().default(false),
     wicketType: text(),
     dismissedPlayerId: integer().references(() => players.id),
-    assistPlayerId: integer().references(() => players.id),
-    isWide: integer({ mode: "boolean" }).notNull().default(false),
-    isNoBall: integer({ mode: "boolean" }).notNull().default(false),
-    isBye: integer({ mode: "boolean" }).notNull().default(false),
-    isLegBye: integer({ mode: "boolean" }).notNull().default(false),
+    dismissedById: integer().references(() => players.id),
+    assistedById: integer().references(() => players.id),
     ...timestampCols,
   },
   (t) => [
-    index("over_idx").on(t.inningsId, t.bowlerId),
-    index("innings_idx").on(t.inningsId),
+    uniqueIndex("unique_innings_sequence").on(t.inningsId, t.sequenceNo),
+    index("delivery_over_idx").on(t.inningsId, t.overNumber, t.ballInOver),
+    index("delivery_bowler_idx").on(t.inningsId, t.bowlerId),
+    index("delivery_striker_idx").on(t.inningsId, t.strikerId),
+    index("delivery_innings_idx").on(t.inningsId),
   ]
 );
 
-export const playerMatchPerformance = sqliteTable(
-  "player_match_performance",
+export const playerInningsStats = sqliteTable(
+  "player_innings_stats",
   {
     id: integer().primaryKey().notNull(),
+    inningsId: integer()
+      .notNull()
+      .references(() => innings.id),
     matchId: integer()
       .notNull()
       .references(() => matches.id),
@@ -366,6 +372,7 @@ export const playerMatchPerformance = sqliteTable(
     teamId: integer()
       .notNull()
       .references(() => teams.id),
+    battingOrder: integer(),
     runsScored: integer().notNull().default(0),
     ballsFaced: integer().notNull().default(0),
     fours: integer().notNull().default(0),
@@ -373,9 +380,13 @@ export const playerMatchPerformance = sqliteTable(
     isDismissed: integer({ mode: "boolean" }).notNull().default(false),
     dismissalType: text(),
     dismissedById: integer().references(() => players.id),
+    assistedById: integer().references(() => players.id),
     ballsBowled: integer().notNull().default(0),
+    maidens: integer().notNull().default(0),
     runsConceded: integer().notNull().default(0),
     wicketsTaken: integer().notNull().default(0),
+    wides: integer().notNull().default(0),
+    noBalls: integer().notNull().default(0),
     dotBalls: integer().notNull().default(0),
     catches: integer().notNull().default(0),
     runOuts: integer().notNull().default(0),
@@ -383,8 +394,10 @@ export const playerMatchPerformance = sqliteTable(
     ...timestampCols,
   },
   (t) => [
-    index("player_idx").on(t.playerId),
-    uniqueIndex("player_match_performance_idx").on(t.playerId, t.matchId),
+    uniqueIndex("unique_player_innings_stats").on(t.inningsId, t.playerId),
+    index("player_innings_stats_match_idx").on(t.matchId),
+    index("player_innings_stats_team_idx").on(t.teamId),
+    index("player_innings_stats_player_idx").on(t.playerId),
   ]
 );
 
@@ -425,7 +438,7 @@ export const playerCareerStats = sqliteTable("player_career_stats", {
   playerId: integer()
     .notNull()
     .references(() => players.id),
-  format: text().notNull(), // "T5", "T6", "T7", "T8", "T10", "T12", "T20", "ODI"
+  format: text().notNull(),
   matchesPlayed: integer().notNull().default(0),
   runsScored: integer().notNull().default(0),
   ballsFaced: integer().notNull().default(0),

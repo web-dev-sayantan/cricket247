@@ -16,12 +16,16 @@ export function truncate(
   maxLength: number,
   suffix = "..."
 ): string {
-  if (text.length <= maxLength) return text;
+  if (text.length <= maxLength) {
+    return text;
+  }
   return text.slice(0, maxLength - suffix.length) + suffix;
 }
 
 export function capitalizeFirstLetter(text: string): string {
-  if (!text) return text;
+  if (!text) {
+    return text;
+  }
   return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
 }
 

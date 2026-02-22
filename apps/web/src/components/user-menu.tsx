@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -21,25 +22,22 @@ export default function UserMenu() {
 
   if (!session) {
     return (
-      <Button asChild variant="outline">
+      <Button variant="outline">
         <Link to="/login">Sign In</Link>
       </Button>
     );
   }
-  console.log(session);
-
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+      <DropdownMenuTrigger>
         <Button variant="outline">{session.user.email}</Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="bg-card">
-        <DropdownMenuLabel>My Account</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem>{session.user.email}</DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Button
-            className="w-full"
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem>{session.user.email}</DropdownMenuItem>
+          <DropdownMenuItem
             onClick={() => {
               authClient.signOut({
                 fetchOptions: {
@@ -54,8 +52,8 @@ export default function UserMenu() {
             variant="destructive"
           >
             Sign Out
-          </Button>
-        </DropdownMenuItem>
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );

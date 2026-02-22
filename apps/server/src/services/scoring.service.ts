@@ -1,14 +1,14 @@
-"use server";
-
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { matches } from "@/db/schema";
-import type { NewBall } from "@/db/types";
 import {
-  createNewBallAction,
-  getBallById,
-  updateBallAction,
-} from "@/services/ball.service";
+  deliveries,
+  innings,
+  matches,
+  matchLineup,
+  playerInningsStats,
+} from "@/db/schema";
+import type { NewDelivery } from "@/db/types";
+import { createNewBallAction } from "@/services/ball.service";
 import {
   createInningsAction,
   updateInningsAction,
@@ -17,194 +17,383 @@ import { getMatchById } from "@/services/match.service";
 import {
   createPlayerPerformanceAction,
   getPlayerMatchPerformance,
-  updatePlayerPerformanceAction,
 } from "@/services/player.service";
 
+interface LegacyBallInput {
+  assistPlayerId?: number | null;
+  ballNumber?: number;
+  bowlerId: number;
+  dismissedPlayerId?: number | null;
+  id?: number;
+  inningsId: number;
+  isBye?: boolean;
+  isLegBye?: boolean;
+  isNoBall?: boolean;
+  isWicket?: boolean;
+  isWide?: boolean;
+  nonStrikerId: number;
+  runsScored?: number;
+  strikerId: number;
+  wicketType?: string;
+}
+
+function getSequenceMeta(sequenceNo: number) {
+  const normalized = Math.max(1, sequenceNo);
+  return {
+    sequenceNo: normalized,
+    overNumber: Math.floor((normalized - 1) / 6) + 1,
+    ballInOver: ((normalized - 1) % 6) + 1,
+  };
+}
+
+function toDeliveryPayload(input: LegacyBallInput): Omit<NewDelivery, "id"> {
+  const sequenceNo = input.ballNumber ?? 1;
+  const { overNumber, ballInOver } = getSequenceMeta(sequenceNo);
+
+  const runsScored = input.runsScored ?? 0;
+  const isWide = Boolean(input.isWide);
+  const isNoBall = Boolean(input.isNoBall);
+  const isBye = Boolean(input.isBye);
+  const isLegBye = Boolean(input.isLegBye);
+
+  const batterRuns = isBye || isLegBye ? 0 : runsScored;
+  const wideRuns = isWide ? 1 : 0;
+  const noBallRuns = isNoBall ? 1 : 0;
+  const byeRuns = isBye ? runsScored : 0;
+  const legByeRuns = isLegBye ? runsScored : 0;
+  const penaltyRuns = 0;
+  const totalRuns =
+    batterRuns + wideRuns + noBallRuns + byeRuns + legByeRuns + penaltyRuns;
+
+  const dismissedById =
+    input.isWicket && input.wicketType !== "run out" ? input.bowlerId : null;
+
+  return {
+    inningsId: input.inningsId,
+    sequenceNo,
+    overNumber,
+    ballInOver,
+    isLegalDelivery: !(isWide || isNoBall),
+    strikerId: input.strikerId,
+    nonStrikerId: input.nonStrikerId,
+    bowlerId: input.bowlerId,
+    batterRuns,
+    wideRuns,
+    noBallRuns,
+    byeRuns,
+    legByeRuns,
+    penaltyRuns,
+    totalRuns,
+    isWicket: Boolean(input.isWicket),
+    wicketType: input.wicketType ?? null,
+    dismissedPlayerId: input.dismissedPlayerId ?? null,
+    dismissedById,
+    assistedById: input.assistPlayerId ?? null,
+  };
+}
+
+async function syncInningsAndStats(inningsId: number) {
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Scoring state synchronization is intentionally centralized.
+  await db.transaction(async (tx) => {
+    const inningsRow = await tx.query.innings.findFirst({
+      where: {
+        id: inningsId,
+      },
+    });
+
+    if (!inningsRow) {
+      throw new Error("Innings not found");
+    }
+
+    const deliveryRows = await tx
+      .select()
+      .from(deliveries)
+      .where(eq(deliveries.inningsId, inningsId))
+      .orderBy(deliveries.sequenceNo);
+
+    let totalScore = 0;
+    let wickets = 0;
+    let ballsBowled = 0;
+    let wides = 0;
+    let noBalls = 0;
+    let byes = 0;
+    let legByes = 0;
+    let penaltyRuns = 0;
+    let batterRunsTotal = 0;
+
+    for (const delivery of deliveryRows) {
+      totalScore += delivery.totalRuns;
+      batterRunsTotal += delivery.batterRuns;
+      if (delivery.isWicket) {
+        wickets += 1;
+      }
+      if (delivery.isLegalDelivery) {
+        ballsBowled += 1;
+      }
+      wides += delivery.wideRuns;
+      noBalls += delivery.noBallRuns;
+      byes += delivery.byeRuns;
+      legByes += delivery.legByeRuns;
+      penaltyRuns += delivery.penaltyRuns;
+    }
+
+    const others =
+      totalScore -
+      (batterRunsTotal + wides + noBalls + byes + legByes + penaltyRuns);
+
+    await tx
+      .update(innings)
+      .set({
+        totalScore,
+        wickets,
+        ballsBowled,
+        wides,
+        noBalls,
+        byes,
+        legByes,
+        penaltyRuns,
+        others: Math.max(0, others),
+        status: deliveryRows.length > 0 ? "in_progress" : "not_started",
+      })
+      .where(eq(innings.id, inningsId));
+
+    const battingOrderRows = await tx
+      .select({
+        playerId: matchLineup.playerId,
+        battingOrder: matchLineup.battingOrder,
+      })
+      .from(matchLineup)
+      .where(
+        and(
+          eq(matchLineup.matchId, inningsRow.matchId),
+          eq(matchLineup.teamId, inningsRow.battingTeamId)
+        )
+      );
+
+    const battingOrderByPlayer = new Map<number, number | null>();
+    for (const row of battingOrderRows) {
+      battingOrderByPlayer.set(row.playerId, row.battingOrder);
+    }
+
+    interface MutableStats {
+      assistedById: number | null;
+      ballsBowled: number;
+      ballsFaced: number;
+      battingOrder: number | null;
+      catches: number;
+      dismissalType: string | null;
+      dismissedById: number | null;
+      dotBalls: number;
+      fours: number;
+      inningsId: number;
+      isDismissed: boolean;
+      maidens: number;
+      matchId: number;
+      noBalls: number;
+      playerId: number;
+      runOuts: number;
+      runsConceded: number;
+      runsScored: number;
+      sixes: number;
+      stumpings: number;
+      teamId: number;
+      wicketsTaken: number;
+      wides: number;
+    }
+
+    const statsByPlayer = new Map<number, MutableStats>();
+
+    const ensureStats = (playerId: number, teamId: number): MutableStats => {
+      const existing = statsByPlayer.get(playerId);
+      if (existing) {
+        return existing;
+      }
+
+      const next: MutableStats = {
+        inningsId,
+        matchId: inningsRow.matchId,
+        playerId,
+        teamId,
+        battingOrder: battingOrderByPlayer.get(playerId) ?? null,
+        runsScored: 0,
+        ballsFaced: 0,
+        fours: 0,
+        sixes: 0,
+        isDismissed: false,
+        dismissalType: null,
+        dismissedById: null,
+        assistedById: null,
+        ballsBowled: 0,
+        maidens: 0,
+        runsConceded: 0,
+        wicketsTaken: 0,
+        wides: 0,
+        noBalls: 0,
+        dotBalls: 0,
+        catches: 0,
+        runOuts: 0,
+        stumpings: 0,
+      };
+
+      statsByPlayer.set(playerId, next);
+      return next;
+    };
+
+    const overBowlerTracker = new Map<
+      string,
+      { legalBalls: number; runs: number }
+    >();
+
+    for (const delivery of deliveryRows) {
+      const strikerStats = ensureStats(
+        delivery.strikerId,
+        inningsRow.battingTeamId
+      );
+      const bowlerStats = ensureStats(
+        delivery.bowlerId,
+        inningsRow.bowlingTeamId
+      );
+
+      const countsAsBallFaced =
+        delivery.isLegalDelivery ||
+        (delivery.noBallRuns > 0 &&
+          delivery.batterRuns > 0 &&
+          delivery.wideRuns === 0);
+
+      if (countsAsBallFaced) {
+        strikerStats.ballsFaced += 1;
+      }
+
+      strikerStats.runsScored += delivery.batterRuns;
+      if (delivery.batterRuns === 4) {
+        strikerStats.fours += 1;
+      }
+      if (delivery.batterRuns === 6) {
+        strikerStats.sixes += 1;
+      }
+
+      if (delivery.isWicket && delivery.dismissedPlayerId) {
+        const dismissedStats = ensureStats(
+          delivery.dismissedPlayerId,
+          inningsRow.battingTeamId
+        );
+        dismissedStats.isDismissed = true;
+        dismissedStats.dismissalType = delivery.wicketType ?? null;
+        dismissedStats.dismissedById = delivery.dismissedById ?? null;
+        dismissedStats.assistedById = delivery.assistedById ?? null;
+      }
+
+      if (delivery.isLegalDelivery) {
+        bowlerStats.ballsBowled += 1;
+      }
+
+      const concededByBowler =
+        delivery.batterRuns +
+        delivery.wideRuns +
+        delivery.noBallRuns +
+        delivery.penaltyRuns;
+
+      bowlerStats.runsConceded += concededByBowler;
+      bowlerStats.wides += delivery.wideRuns;
+      bowlerStats.noBalls += delivery.noBallRuns;
+      if (delivery.isLegalDelivery && delivery.totalRuns === 0) {
+        bowlerStats.dotBalls += 1;
+      }
+
+      if (
+        delivery.isWicket &&
+        delivery.dismissedById === delivery.bowlerId &&
+        delivery.wicketType !== "run out"
+      ) {
+        bowlerStats.wicketsTaken += 1;
+      }
+
+      if (delivery.assistedById && delivery.isWicket) {
+        const assistingStats = ensureStats(
+          delivery.assistedById,
+          inningsRow.bowlingTeamId
+        );
+
+        if (delivery.wicketType === "caught") {
+          assistingStats.catches += 1;
+        } else if (delivery.wicketType === "stumped") {
+          assistingStats.stumpings += 1;
+        } else if (delivery.wicketType === "run out") {
+          assistingStats.runOuts += 1;
+        }
+      }
+
+      const overKey = `${delivery.bowlerId}:${delivery.overNumber}`;
+      const overState = overBowlerTracker.get(overKey) ?? {
+        legalBalls: 0,
+        runs: 0,
+      };
+      overState.runs += concededByBowler;
+      if (delivery.isLegalDelivery) {
+        overState.legalBalls += 1;
+      }
+      overBowlerTracker.set(overKey, overState);
+    }
+
+    for (const [overKey, state] of overBowlerTracker.entries()) {
+      if (state.legalBalls === 6 && state.runs === 0) {
+        const [bowlerIdRaw] = overKey.split(":");
+        const bowlerId = Number(bowlerIdRaw);
+        const bowlerStats = statsByPlayer.get(bowlerId);
+        if (bowlerStats) {
+          bowlerStats.maidens += 1;
+        }
+      }
+    }
+
+    await tx
+      .delete(playerInningsStats)
+      .where(eq(playerInningsStats.inningsId, inningsId));
+
+    const statsValues = [...statsByPlayer.values()];
+    if (statsValues.length > 0) {
+      await tx.insert(playerInningsStats).values(statsValues);
+    }
+  });
+}
+
 export async function saveBallData(
-  {
-    id,
-    strikerId,
-    nonStrikerId,
-    bowlerId,
-    ballNumber,
-    runsScored,
-    isBye,
-    isLegBye,
-    isWide,
-    isNoBall,
-    isWicket,
-    wicketType,
-    assistPlayerId,
-    dismissedPlayerId,
-  }: NewBall,
-  {
-    inningsId,
-    wickets,
-    balls,
-    extras,
-    totalScore,
-  }: {
+  input: LegacyBallInput,
+  _inningsState: {
     inningsId: number;
     wickets: number;
     balls: number;
     extras: number;
     totalScore: number;
   },
-  {
-    matchId,
-  }: {
+  _matchState: {
     matchId: number;
   }
 ) {
-  "use server";
+  const payload = toDeliveryPayload(input);
 
-  if (!id) {
-    throw new Error("Ball id is required");
-  }
-  // fetch the current ball data to compare with the new data
-  const currentBall = await getBallById(id);
+  await db.transaction(async (tx) => {
+    if (input.id) {
+      const existing = await tx
+        .select({ id: deliveries.id })
+        .from(deliveries)
+        .where(eq(deliveries.id, input.id))
+        .limit(1);
 
-  // Update the current ball
-  await updateBallAction({
-    id,
-    inningsId,
-    ballNumber,
-    strikerId,
-    nonStrikerId,
-    bowlerId,
-    runsScored,
-    isWicket,
-    wicketType,
-    assistPlayerId,
-    dismissedPlayerId,
-    isBye,
-    isLegBye,
-    isWide,
-    isNoBall,
+      if (existing.length > 0) {
+        await tx
+          .update(deliveries)
+          .set(payload)
+          .where(eq(deliveries.id, input.id));
+      } else {
+        await tx.insert(deliveries).values({ ...payload, id: input.id });
+      }
+    } else {
+      await tx.insert(deliveries).values(payload);
+    }
   });
 
-  // Update the innings table
-  const isExtra = isWide || isNoBall;
-  const inningsData = await updateInningsAction({
-    id: inningsId,
-    wickets: currentBall?.isWicket
-      ? isWicket
-        ? wickets
-        : wickets - 1
-      : isWicket
-        ? wickets + 1
-        : wickets,
-    ballsBowled: isExtra ? balls : balls + 1,
-    extras: isExtra ? extras + 1 : extras,
-    totalScore: totalScore + (runsScored || 0) + (isExtra ? 1 : 0),
-  });
-
-  const updatePerformancePromises: Promise<any>[] = [];
-
-  // update player's individual stats
-  const playerPerformance = await getPlayerMatchPerformance(strikerId, matchId);
-  if (playerPerformance.length > 0) {
-    const batterCurrentScore =
-      playerPerformance[0].runsScored + (runsScored || 0);
-    const batterBallsFaced =
-      playerPerformance[0].ballsFaced + (isExtra ? 0 : 1);
-    const isDismissed =
-      isWicket && dismissedPlayerId === playerPerformance[0].id;
-    updatePerformancePromises.push(
-      updatePlayerPerformanceAction({
-        ...playerPerformance[0],
-        ballsFaced: batterBallsFaced,
-        runsScored: batterCurrentScore,
-        dotBalls:
-          playerPerformance[0].dotBalls +
-          (isExtra ? 0 : runsScored === 0 ? 1 : 0),
-        fours: playerPerformance[0].fours + (runsScored === 4 ? 1 : 0),
-        sixes: playerPerformance[0].sixes + (runsScored === 6 ? 1 : 0),
-        isDismissed,
-        dismissedBy: isDismissed && wicketType !== "run out" ? bowlerId : null,
-      })
-    );
-  }
-  // update non-striker run out
-  if (nonStrikerId && isWicket && wicketType === "run out") {
-    const playerPerformance = await getPlayerMatchPerformance(
-      nonStrikerId,
-      matchId
-    );
-    if (playerPerformance.length > 0) {
-      updatePerformancePromises.push(
-        updatePlayerPerformanceAction({
-          ...playerPerformance[0],
-          isDismissed: true,
-        })
-      );
-    }
-  }
-  // update bowler's individual stats
-  const bowlerPerformance = await getPlayerMatchPerformance(bowlerId, matchId);
-  if (bowlerPerformance.length > 0) {
-    updatePerformancePromises.push(
-      updatePlayerPerformanceAction({
-        ...bowlerPerformance[0],
-        ballsBowled: bowlerPerformance[0].ballsBowled + (isExtra ? 0 : 1),
-        runsConceded:
-          bowlerPerformance[0].runsConceded +
-          (runsScored || 0) +
-          (isExtra ? 1 : 0),
-        wicketsTaken:
-          bowlerPerformance[0].wicketsTaken +
-          (isWicket && wicketType !== "run out" ? 1 : 0),
-      })
-    );
-  }
-  // update fielder's stats on dismissal
-  if (isWicket && assistPlayerId) {
-    const fielderPerformance = await getPlayerMatchPerformance(
-      assistPlayerId,
-      matchId
-    );
-    if (fielderPerformance.length > 0) {
-      updatePerformancePromises.push(
-        updatePlayerPerformanceAction({
-          ...fielderPerformance[0],
-          catches:
-            fielderPerformance[0].catches + (wicketType === "caught" ? 1 : 0),
-          stumpings:
-            fielderPerformance[0].stumpings +
-            (wicketType === "stumped" ? 1 : 0),
-          runOuts:
-            fielderPerformance[0].runOuts + (wicketType === "run out" ? 1 : 0),
-        })
-      );
-    }
-  }
-
-  await Promise.all(updatePerformancePromises);
-
-  // let path = `/play/matches/${matchId}/${inningsId}/${id}/new-batter`;
-  if (isWicket) {
-    // open new batter selection page when wicket falls
-    // revalidatePath(path);
-    // redirect(path);
-  } else if (!isExtra && ballNumber % 6 === 0) {
-    // open new bowler selection page when over ends
-    // path = `/play/matches/${matchId}/${inningsId}/${id}/new-bowler`;
-    // revalidatePath(path);
-    // redirect(path);
-  } else {
-    // Create the next ball
-    const newBallId = await createNewBallAction({
-      inningsId,
-      ballNumber: isExtra ? ballNumber : ballNumber + 1,
-      strikerId: runsScored! % 2 === 1 ? nonStrikerId : strikerId,
-      nonStrikerId: runsScored! % 2 === 1 ? strikerId : nonStrikerId,
-      bowlerId,
-    });
-
-    // path = `/play/matches/${matchId}/${inningsData.id}/${newBallId}`;
-    // revalidatePath(path);
-    // redirect(path);
-  }
+  await syncInningsAndStats(payload.inningsId);
 }
 
 export async function onSelectCurrentBattersAndBowler({
@@ -222,57 +411,73 @@ export async function onSelectCurrentBattersAndBowler({
   nonStrikerId: number;
   bowlerId: number;
 }) {
-  "use server";
-  // Find the match
   const match = await getMatchById(matchId);
   if (!match) {
     throw new Error("Match not found");
   }
 
-  // Create a new scorecard for the match
+  const existingInnings = await db.query.innings.findMany({
+    where: {
+      matchId,
+    },
+  });
+
+  const nextInningsNumber = existingInnings.length + 1;
+
   const inningsId = await createInningsAction({
-    matchId: +matchId,
+    matchId,
     battingTeamId: match.team1Id,
     bowlingTeamId,
-    wickets: 0,
-    ballsBowled: 0,
-    extras: 0,
-    totalScore: 0,
+    inningsNumber: nextInningsNumber,
+    status: "in_progress",
   });
+
   if (!inningsId) {
-    throw new Error("Scorecard not created");
+    throw new Error("Innings not created");
   }
 
-  // Create a new ball
-  const ballId = await createNewBallAction({
-    inningsId: inningsId as unknown as number,
-    ballNumber,
+  const { sequenceNo, overNumber, ballInOver } = getSequenceMeta(ballNumber);
+
+  await createNewBallAction({
+    inningsId: Number(inningsId),
+    sequenceNo,
+    overNumber,
+    ballInOver,
+    isLegalDelivery: true,
     strikerId,
     nonStrikerId,
     bowlerId,
+    batterRuns: 0,
+    wideRuns: 0,
+    noBallRuns: 0,
+    byeRuns: 0,
+    legByeRuns: 0,
+    penaltyRuns: 0,
+    totalRuns: 0,
+    isWicket: false,
   });
 
-  // create player's performance table entries
   await Promise.all([
     createPlayerPerformanceAction({
+      inningsId: Number(inningsId),
       playerId: strikerId,
       matchId,
       teamId: match.team1Id,
     }),
     createPlayerPerformanceAction({
+      inningsId: Number(inningsId),
       playerId: nonStrikerId,
       matchId,
       teamId: match.team1Id,
     }),
     createPlayerPerformanceAction({
+      inningsId: Number(inningsId),
       playerId: bowlerId,
       matchId,
       teamId: match.team2Id,
     }),
     setMatchLiveStatus({ matchId, isLive: true }),
   ]);
-  // revalidatePath(`/play/matches/${matchId}`);
-  // redirect(`/play/matches/${matchId}/${inningsId}/${ballId}`);
 }
 
 export async function setMatchLiveStatus({
@@ -282,7 +487,6 @@ export async function setMatchLiveStatus({
   matchId: number;
   isLive: boolean;
 }) {
-  "use server";
   return await db
     .update(matches)
     .set({ isLive })
@@ -308,36 +512,43 @@ export async function onSelectNewBatter({
   nonStrikerId: number;
   bowlerId: number;
 }) {
-  "use server";
+  const nextSequenceNo = isExtra ? ballNumber : ballNumber + 1;
+  const { sequenceNo, overNumber, ballInOver } =
+    getSequenceMeta(nextSequenceNo);
 
-  // Create a new ball
-  const ballId = await createNewBallAction({
+  await createNewBallAction({
     inningsId,
-    ballNumber: isExtra ? ballNumber : ballNumber + 1,
+    sequenceNo,
+    overNumber,
+    ballInOver,
+    isLegalDelivery: !isExtra,
     strikerId,
     nonStrikerId,
     bowlerId,
+    batterRuns: 0,
+    wideRuns: 0,
+    noBallRuns: 0,
+    byeRuns: 0,
+    legByeRuns: 0,
+    penaltyRuns: 0,
+    totalRuns: 0,
+    isWicket: false,
   });
-  try {
-    await createPlayerPerformanceAction({
+
+  await Promise.all([
+    createPlayerPerformanceAction({
+      inningsId,
       playerId: strikerId,
       matchId,
       teamId,
-    });
-    await createPlayerPerformanceAction({
+    }),
+    createPlayerPerformanceAction({
+      inningsId,
       playerId: nonStrikerId,
       matchId,
       teamId,
-    });
-  } catch (error) {
-    // DO NOTHING
-  }
-  if (isExtra || ballNumber % 6 !== 0) {
-    // revalidatePath(`/play/matches/${matchId}/${inningsId}/${ballId}`);
-    // redirect(`/play/matches/${matchId}/${inningsId}/${ballId}`);
-  } else {
-    // redirect(`/play/matches/${matchId}/${inningsId}/${ballId}/new-bowler`);
-  }
+    }),
+  ]);
 }
 
 export async function onSelectNewBowler({
@@ -359,33 +570,49 @@ export async function onSelectNewBowler({
   nonStrikerId: number;
   bowlerId: number;
 }) {
-  "use server";
+  const nextSequenceNo = ballNumber + 1;
+  const { sequenceNo, overNumber, ballInOver } =
+    getSequenceMeta(nextSequenceNo);
 
-  // Create a new ball
-  const ballId = await createNewBallAction({
+  await createNewBallAction({
     inningsId,
-    ballNumber: ballNumber + 1,
+    sequenceNo,
+    overNumber,
+    ballInOver,
+    isLegalDelivery: true,
     strikerId: runScored % 2 === 1 ? strikerId : nonStrikerId,
     nonStrikerId: runScored % 2 === 1 ? nonStrikerId : strikerId,
     bowlerId,
+    batterRuns: 0,
+    wideRuns: 0,
+    noBallRuns: 0,
+    byeRuns: 0,
+    legByeRuns: 0,
+    penaltyRuns: 0,
+    totalRuns: 0,
+    isWicket: false,
   });
 
-  // create player's performance table entries
-  try {
-    const bowlerPerformance = await getPlayerMatchPerformance(
-      bowlerId,
-      matchId
-    );
-    if (!bowlerPerformance) {
-      createPlayerPerformanceAction({
-        playerId: bowlerId,
-        matchId,
-        teamId,
-      });
-    }
-  } catch (error) {
-    // DO NOTHING
+  const bowlerPerformance = await getPlayerMatchPerformance(
+    bowlerId,
+    matchId,
+    inningsId
+  );
+
+  if (bowlerPerformance.length === 0) {
+    await createPlayerPerformanceAction({
+      inningsId,
+      playerId: bowlerId,
+      matchId,
+      teamId,
+    });
   }
-  // revalidatePath(`/play/matches/${matchId}/${inningsId}/${ballId}`);
-  // redirect(`/play/matches/${matchId}/${inningsId}/${ballId}`);
+}
+
+export async function endInnings(inningsId: number) {
+  await updateInningsAction({
+    id: inningsId,
+    status: "completed",
+    isCompleted: true,
+  });
 }

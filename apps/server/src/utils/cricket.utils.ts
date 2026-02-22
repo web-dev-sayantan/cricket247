@@ -1,5 +1,7 @@
 export function calculateStrikeRate(runs: number, ballsFaced: number): number {
-  if (ballsFaced === 0) return 0;
+  if (ballsFaced === 0) {
+    return 0;
+  }
   return Number(((runs / ballsFaced) * 100).toFixed(2));
 }
 
@@ -7,7 +9,9 @@ export function calculateBowlingEconomy(
   runsConceded: number,
   oversBowled: number
 ): number {
-  if (oversBowled === 0) return 0;
+  if (oversBowled === 0) {
+    return 0;
+  }
   return Number((runsConceded / oversBowled).toFixed(2));
 }
 
@@ -15,7 +19,9 @@ export function calculateBowlingAverage(
   runsConceded: number,
   wicketsTaken: number
 ): number {
-  if (wicketsTaken === 0) return 0;
+  if (wicketsTaken === 0) {
+    return 0;
+  }
   return Number((runsConceded / wicketsTaken).toFixed(2));
 }
 
@@ -25,7 +31,9 @@ export function calculateNetRunRate(
   runsConceded: number,
   oversBowled: number
 ): number {
-  if (oversBatted === 0 || oversBowled === 0) return 0;
+  if (oversBatted === 0 || oversBowled === 0) {
+    return 0;
+  }
   const runRate = runsScored / oversBatted;
   const concededRate = runsConceded / oversBowled;
   return Number((runRate - concededRate).toFixed(2));

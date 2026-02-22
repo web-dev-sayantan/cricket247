@@ -1,10 +1,11 @@
 import { z } from "zod";
 import {
-  insertBallSchema,
+  insertDeliverySchema,
   insertInningsSchema,
+  insertMatchLineupSchema,
   insertMatchSchema,
   insertPlayerCareerStatsSchema,
-  insertPlayerMatchPerformanceSchema,
+  insertPlayerInningsStatsSchema,
   insertPlayerSchema,
   insertPlayerTournamentStatsSchema,
   insertTeamPlayerSchema,
@@ -47,13 +48,19 @@ export const updateTournamentTeamBodySchema =
 export const createInningsBodySchema = insertInningsSchema.omit({ id: true });
 export const updateInningsBodySchema = createInningsBodySchema.partial();
 
-export const createBallBodySchema = insertBallSchema.omit({ id: true });
-export const updateBallBodySchema = createBallBodySchema.partial();
+export const createDeliveryBodySchema = insertDeliverySchema.omit({ id: true });
+export const updateDeliveryBodySchema = createDeliveryBodySchema.partial();
 
-export const createPlayerMatchPerformanceBodySchema =
-  insertPlayerMatchPerformanceSchema.omit({ id: true });
-export const updatePlayerMatchPerformanceBodySchema =
-  createPlayerMatchPerformanceBodySchema.partial();
+export const createMatchLineupBodySchema = insertMatchLineupSchema.omit({
+  id: true,
+});
+export const updateMatchLineupBodySchema =
+  createMatchLineupBodySchema.partial();
+
+export const createPlayerInningsStatsBodySchema =
+  insertPlayerInningsStatsSchema.omit({ id: true });
+export const updatePlayerInningsStatsBodySchema =
+  createPlayerInningsStatsBodySchema.partial();
 
 export const createPlayerTournamentStatsBodySchema =
   insertPlayerTournamentStatsSchema.omit({ id: true });
@@ -64,3 +71,11 @@ export const createPlayerCareerStatsBodySchema =
   insertPlayerCareerStatsSchema.omit({ id: true });
 export const updatePlayerCareerStatsBodySchema =
   createPlayerCareerStatsBodySchema.partial();
+
+// Transitional aliases to keep existing imports compiling.
+export const createBallBodySchema = createDeliveryBodySchema;
+export const updateBallBodySchema = updateDeliveryBodySchema;
+export const createPlayerMatchPerformanceBodySchema =
+  createPlayerInningsStatsBodySchema;
+export const updatePlayerMatchPerformanceBodySchema =
+  updatePlayerInningsStatsBodySchema;

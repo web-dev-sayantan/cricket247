@@ -21,26 +21,37 @@ export const getTeamsByName = (name: string) =>
 export async function createTeamAction({
   name,
   shortName,
+  country,
   captain,
 }: {
   name: string;
   shortName: string;
-  captain: number;
+  country: string;
+  captain?: number;
 }) {
-  const result = await db
+  const [result] = await db
     .insert(teams)
     .values({
       name,
       shortName,
+      country,
     })
     .returning();
-  if (result) {
+
+  if (!result) {
+    return null;
+  }
+
+  if (captain) {
     await db
       .insert(teamPlayers)
-      .values({ teamId: result[0].id, playerId: captain, isCaptain: true });
-    return result[0].id;
+      .values({ teamId: result.id, playerId: captain, isCaptain: true })
+      .onConflictDoNothing({
+        target: [teamPlayers.teamId, teamPlayers.playerId],
+      });
   }
-  return null;
+
+  return result.id;
 }
 
 export async function createTeamPlayerAction({
@@ -54,7 +65,11 @@ export async function createTeamPlayerAction({
 }) {
   const result = await db
     .insert(teamPlayers)
-    .values({ teamId, playerId, isCaptain });
+    .values({ teamId, playerId, isCaptain })
+    .onConflictDoNothing({
+      target: [teamPlayers.teamId, teamPlayers.playerId],
+    });
+
   if (result) {
     return result;
   }

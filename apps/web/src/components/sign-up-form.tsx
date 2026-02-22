@@ -47,7 +47,7 @@ export default function SignUpForm({
     from: "/",
   });
   const [otpSent, setOtpSent] = useState(0);
-  const [signupError, setSignupError] = useState("");
+  const [_signupError, setSignupError] = useState("");
   const { isPending } = authClient.useSession();
 
   const form = useForm({
@@ -85,7 +85,11 @@ export default function SignUpForm({
   });
 
   async function signInWithSocial(provider: "facebook" | "google") {
-    const { data, error } = await authClient.signIn.social({ provider });
+    const { data } = await authClient.signIn.social({
+      provider,
+      callbackURL: `${import.meta.env.VITE_BASE_URL}/dashboard`,
+      errorCallbackURL: `${import.meta.env.VITE_BASE_URL}/error`,
+    });
     if (data?.redirect) {
       // navigate("/play/matches");
     } else {
@@ -97,7 +101,7 @@ export default function SignUpForm({
     if (!email) {
       return;
     }
-    const { data, error } = await authClient.emailOtp.sendVerificationOtp({
+    const { data } = await authClient.emailOtp.sendVerificationOtp({
       email,
       type: "sign-in",
     });
@@ -107,9 +111,13 @@ export default function SignUpForm({
   }
 
   async function verifyOTP(formValues: z.infer<typeof signupSchema>) {
-    const { data, error } = await authClient.signIn.emailOtp({
+    if (!formValues.otp) {
+      setSignupError("Invalid Code");
+      return;
+    }
+    const { data } = await authClient.signIn.emailOtp({
       email: formValues.email,
-      otp: formValues.otp!,
+      otp: formValues.otp,
     });
     if (data?.user) {
       // navigate("/dashboard");

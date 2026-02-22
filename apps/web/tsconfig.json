@@ -12,7 +12,7 @@
     "rootDirs": ["."],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
+      "@/*": ["./src/*", "../server/src/*"],
       "@cricket247/server/types": ["../server/src/db/types.ts"],
       "@cricket247/server/schemas": [
         "../server/src/schemas/drizzle.schemas.ts"
@@ -20,10 +20,5 @@
       "@cricket247/server/contract": ["../server/src/routers/index.ts"]
     },
     "strictNullChecks": true
-  },
-  "references": [
-    {
-      "path": "../server"
-    }
-  ]
+  }
 }

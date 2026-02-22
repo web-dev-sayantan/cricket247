@@ -28,11 +28,12 @@ import {
 } from "@/components/ui/sheet";
 import { cn, getFirstName, shortenName } from "@/lib/utils";
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Match scoring interactions are intentionally grouped in one component.
 function ScoreABall({
   ball,
   otherBalls,
   innings,
-  bowlingTeamId,
+  bowlingTeamId: _bowlingTeamId,
   bowlingTeamPlayers,
   hasLBW,
   hasBoundaryOut,
@@ -245,14 +246,20 @@ function ScoreABall({
         wicketType: dismissed?.value ? dismissed.type : undefined,
         assistPlayerId: dismissedBy ? dismissedBy : undefined,
         dismissedPlayerId: batterDismissed ? batterDismissed : undefined,
-        ballNumber: ball.ballNumber,
+        ballNumber: ball.sequenceNo,
         bowlerId: ball.bowlerId,
       },
       {
         inningsId: innings.id,
         balls: innings.ballsBowled,
         wickets: innings.wickets,
-        extras: innings.extras,
+        extras:
+          innings.wides +
+          innings.noBalls +
+          innings.byes +
+          innings.legByes +
+          innings.penaltyRuns +
+          innings.others,
         totalScore: innings.totalScore,
       },
       {

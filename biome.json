@@ -18,13 +18,9 @@
       "!**/.alchemy",
       "!**/.svelte-kit",
       "!**/wrangler.jsonc",
-      "!**/.source"
+      "!**/.source",
+      "!apps/web/src/components/ui"
     ]
   },
-  "extends": [
-    "node_modules/ultracite/config/core/biome.jsonc",
-    "ultracite/core",
-    "ultracite/react",
-    "ultracite/remix"
-  ]
+  "extends": ["ultracite/core", "ultracite/react", "ultracite/remix"]
 }

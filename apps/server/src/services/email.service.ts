@@ -1,6 +1,14 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY!);
+function getRequiredEnv(key: string): string {
+  const value = process.env[key];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${key}`);
+  }
+  return value;
+}
+
+const resend = new Resend(getRequiredEnv("RESEND_API_KEY"));
 
 export const sendEmailOtp = async ({
   email,
@@ -13,7 +21,7 @@ export const sendEmailOtp = async ({
   from?: string;
   subject?: string;
 }) => {
-  const response = await resend.emails.send({
+  await resend.emails.send({
     from,
     to: email,
     subject: `${otp} ${subject}.`,

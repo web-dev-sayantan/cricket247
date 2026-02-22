@@ -1,10 +1,11 @@
 import { defineRelations } from "drizzle-orm";
 import {
-  balls,
+  deliveries,
   innings,
   matches,
+  matchLineup,
   playerCareerStats,
-  playerMatchPerformance,
+  playerInningsStats,
   players,
   playerTournamentStats,
   teamPlayers,
@@ -15,11 +16,12 @@ import {
 
 export const relations = defineRelations(
   {
-    balls,
+    deliveries,
     innings,
+    matchLineup,
     matches,
     playerCareerStats,
-    playerMatchPerformance,
+    playerInningsStats,
     players,
     playerTournamentStats,
     teamPlayers,
@@ -55,42 +57,69 @@ export const relations = defineRelations(
         to: r.matches.winnerId,
         alias: "winner",
       }),
-      innings: r.many.innings({
+      battingInnings: r.many.innings({
         from: r.teams.id,
         to: r.innings.battingTeamId,
         alias: "battingTeam",
       }),
+      bowlingInnings: r.many.innings({
+        from: r.teams.id,
+        to: r.innings.bowlingTeamId,
+        alias: "bowlingTeam",
+      }),
+      lineup: r.many.matchLineup(),
+      inningsStats: r.many.playerInningsStats(),
     },
     players: {
       teamPlayers: r.many.teamPlayers(),
-      strikerBalls: r.many.balls({
+      strikerDeliveries: r.many.deliveries({
         from: r.players.id,
-        to: r.balls.strikerId,
+        to: r.deliveries.strikerId,
         alias: "striker",
       }),
-      nonStrikerBalls: r.many.balls({
+      nonStrikerDeliveries: r.many.deliveries({
         from: r.players.id,
-        to: r.balls.nonStrikerId,
+        to: r.deliveries.nonStrikerId,
         alias: "nonStriker",
       }),
-      bowlerBalls: r.many.balls({
+      bowlerDeliveries: r.many.deliveries({
         from: r.players.id,
-        to: r.balls.bowlerId,
+        to: r.deliveries.bowlerId,
         alias: "bowler",
       }),
-      dismissedBalls: r.many.balls({
+      dismissedDeliveries: r.many.deliveries({
         from: r.players.id,
-        to: r.balls.dismissedPlayerId,
+        to: r.deliveries.dismissedPlayerId,
         alias: "dismissedPlayer",
       }),
-      assistBalls: r.many.balls({
+      dismissingDeliveries: r.many.deliveries({
         from: r.players.id,
-        to: r.balls.assistPlayerId,
-        alias: "assistPlayer",
+        to: r.deliveries.dismissedById,
+        alias: "dismissedBy",
       }),
-      matchPerformances: r.many.playerMatchPerformance(),
+      assistingDeliveries: r.many.deliveries({
+        from: r.players.id,
+        to: r.deliveries.assistedById,
+        alias: "assistedBy",
+      }),
+      inningsStats: r.many.playerInningsStats({
+        from: r.players.id,
+        to: r.playerInningsStats.playerId,
+        alias: "player",
+      }),
+      dismissedInningsStats: r.many.playerInningsStats({
+        from: r.players.id,
+        to: r.playerInningsStats.dismissedById,
+        alias: "dismissedBy",
+      }),
+      assistedInningsStats: r.many.playerInningsStats({
+        from: r.players.id,
+        to: r.playerInningsStats.assistedById,
+        alias: "assistedBy",
+      }),
       tournamentStats: r.many.playerTournamentStats(),
       careerStats: r.many.playerCareerStats(),
+      matchLineup: r.many.matchLineup(),
     },
     matches: {
       tournament: r.one.tournaments({
@@ -121,7 +150,8 @@ export const relations = defineRelations(
         alias: "winner",
       }),
       innings: r.many.innings(),
-      playerPerformances: r.many.playerMatchPerformance(),
+      lineup: r.many.matchLineup(),
+      playerInningsStats: r.many.playerInningsStats(),
     },
     innings: {
       match: r.one.matches({
@@ -137,37 +167,57 @@ export const relations = defineRelations(
         from: r.innings.bowlingTeamId,
         to: r.teams.id,
       }),
-      balls: r.many.balls(),
+      deliveries: r.many.deliveries(),
+      playerInningsStats: r.many.playerInningsStats(),
     },
-    balls: {
+    deliveries: {
       innings: r.one.innings({
-        from: r.balls.inningsId,
+        from: r.deliveries.inningsId,
         to: r.innings.id,
       }),
       striker: r.one.players({
-        from: r.balls.strikerId,
+        from: r.deliveries.strikerId,
         to: r.players.id,
         alias: "striker",
       }),
       nonStriker: r.one.players({
-        from: r.balls.nonStrikerId,
+        from: r.deliveries.nonStrikerId,
         to: r.players.id,
         alias: "nonStriker",
       }),
       bowler: r.one.players({
-        from: r.balls.bowlerId,
+        from: r.deliveries.bowlerId,
         to: r.players.id,
         alias: "bowler",
       }),
       dismissedPlayer: r.one.players({
-        from: r.balls.dismissedPlayerId,
+        from: r.deliveries.dismissedPlayerId,
         to: r.players.id,
         alias: "dismissedPlayer",
       }),
-      assistPlayer: r.one.players({
-        from: r.balls.assistPlayerId,
+      dismissedBy: r.one.players({
+        from: r.deliveries.dismissedById,
         to: r.players.id,
-        alias: "assistPlayer",
+        alias: "dismissedBy",
+      }),
+      assistedBy: r.one.players({
+        from: r.deliveries.assistedById,
+        to: r.players.id,
+        alias: "assistedBy",
+      }),
+    },
+    matchLineup: {
+      match: r.one.matches({
+        from: r.matchLineup.matchId,
+        to: r.matches.id,
+      }),
+      team: r.one.teams({
+        from: r.matchLineup.teamId,
+        to: r.teams.id,
+      }),
+      player: r.one.players({
+        from: r.matchLineup.playerId,
+        to: r.players.id,
       }),
     },
     tournamentTeams: {
@@ -190,22 +240,33 @@ export const relations = defineRelations(
         to: r.players.id,
       }),
     },
-    playerMatchPerformance: {
+    playerInningsStats: {
+      innings: r.one.innings({
+        from: r.playerInningsStats.inningsId,
+        to: r.innings.id,
+      }),
       match: r.one.matches({
-        from: r.playerMatchPerformance.matchId,
+        from: r.playerInningsStats.matchId,
         to: r.matches.id,
       }),
       player: r.one.players({
-        from: r.playerMatchPerformance.playerId,
+        from: r.playerInningsStats.playerId,
         to: r.players.id,
+        alias: "player",
       }),
       team: r.one.teams({
-        from: r.playerMatchPerformance.teamId,
+        from: r.playerInningsStats.teamId,
         to: r.teams.id,
       }),
       dismissedBy: r.one.players({
-        from: r.playerMatchPerformance.dismissedById,
+        from: r.playerInningsStats.dismissedById,
         to: r.players.id,
+        alias: "dismissedBy",
+      }),
+      assistedBy: r.one.players({
+        from: r.playerInningsStats.assistedById,
+        to: r.players.id,
+        alias: "assistedBy",
       }),
     },
     playerTournamentStats: {

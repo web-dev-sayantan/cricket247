@@ -1,10 +1,15 @@
-import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { matches } from "@/db/schema";
+import {
+  getMatchScorecard as getMatchScorecardService,
+  type ScorecardQuery,
+} from "@/services/scorecard.service";
 
 export function getLiveMatches() {
   return db.query.matches.findMany({
-    where: eq(matches.isLive, true),
+    where: {
+      isLive: true,
+    },
     with: {
       team1: true,
       team2: true,
@@ -16,7 +21,9 @@ export function getLiveMatches() {
 
 export function getCompletedMatches() {
   return db.query.matches.findMany({
-    where: eq(matches.isCompleted, true),
+    where: {
+      isCompleted: true,
+    },
     with: {
       team1: true,
       team2: true,
@@ -24,7 +31,9 @@ export function getCompletedMatches() {
       winner: true,
       innings: true,
     },
-    orderBy: (matches, { desc }) => [desc(matches.matchDate)],
+    orderBy: {
+      matchDate: "desc",
+    },
   });
 }
 
@@ -42,7 +51,9 @@ export async function getAllMatches() {
 
 export async function getMatchById(id: number) {
   const match = await db.query.matches.findFirst({
-    where: eq(matches.id, id),
+    where: {
+      id,
+    },
     with: {
       team1: {
         with: {
@@ -139,4 +150,8 @@ export async function createMatchAction({
   });
 
   return newMatch.rows;
+}
+
+export function getMatchScorecard(matchId: number, query: ScorecardQuery = {}) {
+  return getMatchScorecardService(matchId, query);
 }

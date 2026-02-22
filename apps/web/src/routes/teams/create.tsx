@@ -1,9 +1,251 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { useForm } from "@tanstack/react-form";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { ArrowLeft, Plus } from "lucide-react";
+import { toast } from "sonner";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { authClient } from "@/lib/auth-client";
+import { client } from "@/utils/orpc";
 
-export const Route = createFileRoute('/teams/create')({
+const createTeamSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "Team name must be at least 2 characters")
+    .max(100, "Team name must be at most 100 characters"),
+  shortName: z
+    .string()
+    .trim()
+    .min(2, "Short code must be at least 2 characters")
+    .max(12, "Short code must be at most 12 characters"),
+});
+
+type CreateTeamFormValues = z.infer<typeof createTeamSchema>;
+
+export const Route = createFileRoute("/teams/create")({
   component: RouteComponent,
-})
+});
 
 function RouteComponent() {
-  return <div>Hello "/teams/create"!</div>
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { data: session, isPending: isSessionPending } =
+    authClient.useSession();
+  const isAdmin =
+    (session?.user as { role?: string } | undefined)?.role === "admin";
+
+  const createTeamMutation = useMutation({
+    mutationFn: async (data: CreateTeamFormValues) => client.createTeam(data),
+    onSuccess: async () => {
+      toast.success("Team created");
+      await queryClient.invalidateQueries();
+      navigate({ to: "/teams" });
+    },
+    onError: () => {
+      toast.error("Failed to create team");
+    },
+  });
+
+  const form = useForm({
+    defaultValues: {
+      name: "",
+      shortName: "",
+    } satisfies CreateTeamFormValues,
+    validators: {
+      onSubmit: createTeamSchema,
+    },
+    onSubmit: async ({ value }) => {
+      await createTeamMutation.mutateAsync({
+        name: value.name.trim(),
+        shortName: value.shortName.trim().toUpperCase(),
+      });
+    },
+  });
+
+  if (isSessionPending) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="mx-auto w-full max-w-2xl space-y-4 px-4 py-6 md:px-6 md:py-8">
+          <Skeleton className="h-8 w-48" />
+          <Card className="rounded-xl">
+            <CardHeader className="space-y-2">
+              <Skeleton className="h-6 w-36" />
+              <Skeleton className="h-4 w-56" />
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <div className="flex gap-2">
+                <Skeleton className="h-9 w-24" />
+                <Skeleton className="h-9 w-28" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="mx-auto w-full max-w-2xl space-y-4 px-4 py-6 md:px-6 md:py-8">
+          <header className="space-y-1">
+            <h1 className="font-semibold text-2xl tracking-tight md:text-3xl">
+              Create Team
+            </h1>
+            <p className="text-muted-foreground text-sm md:text-base">
+              You need admin access to create teams.
+            </p>
+          </header>
+          <Card className="rounded-xl border-dashed">
+            <CardContent className="space-y-4 p-6">
+              <p className="text-muted-foreground text-sm">
+                Your account does not have permission to create team records.
+              </p>
+              <Button
+                onClick={() => navigate({ to: "/teams" })}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                <ArrowLeft />
+                Back to teams
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto w-full max-w-2xl space-y-5 px-4 py-6 md:px-6 md:py-8">
+        <header className="space-y-1">
+          <h1 className="font-semibold text-2xl tracking-tight md:text-3xl">
+            Create Team
+          </h1>
+          <p className="text-muted-foreground text-sm md:text-base">
+            Add a new team with a full name and short code.
+          </p>
+        </header>
+
+        <Card className="rounded-xl">
+          <CardHeader className="space-y-1 border-b pb-4">
+            <h2 className="font-medium text-lg">Team Details</h2>
+            <p className="text-muted-foreground text-sm">
+              Keep names consistent to simplify search and match setup.
+            </p>
+          </CardHeader>
+          <CardContent className="pt-5">
+            <form
+              className="space-y-5"
+              onSubmit={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                form.handleSubmit();
+              }}
+            >
+              <FieldGroup>
+                <form.Field name="name">
+                  {(field) => {
+                    const isInvalid =
+                      field.state.meta.isTouched && !field.state.meta.isValid;
+                    return (
+                      <Field data-invalid={isInvalid}>
+                        <FieldLabel htmlFor={field.name}>Team Name</FieldLabel>
+                        <Input
+                          aria-invalid={isInvalid}
+                          autoComplete="organization"
+                          id={field.name}
+                          onBlur={field.handleBlur}
+                          onChange={(event) =>
+                            field.handleChange(event.target.value)
+                          }
+                          placeholder="e.g. Kolkata Knights"
+                          value={field.state.value}
+                        />
+                        {isInvalid ? (
+                          <FieldError errors={field.state.meta.errors} />
+                        ) : null}
+                      </Field>
+                    );
+                  }}
+                </form.Field>
+              </FieldGroup>
+
+              <FieldGroup>
+                <form.Field name="shortName">
+                  {(field) => {
+                    const isInvalid =
+                      field.state.meta.isTouched && !field.state.meta.isValid;
+                    return (
+                      <Field data-invalid={isInvalid}>
+                        <FieldLabel htmlFor={field.name}>Short Code</FieldLabel>
+                        <Input
+                          aria-invalid={isInvalid}
+                          id={field.name}
+                          maxLength={12}
+                          onBlur={field.handleBlur}
+                          onChange={(event) =>
+                            field.handleChange(event.target.value.toUpperCase())
+                          }
+                          placeholder="e.g. KKR"
+                          value={field.state.value}
+                        />
+                        {isInvalid ? (
+                          <FieldError errors={field.state.meta.errors} />
+                        ) : null}
+                      </Field>
+                    );
+                  }}
+                </form.Field>
+              </FieldGroup>
+
+              <form.Subscribe>
+                {(state) => (
+                  <div className="flex flex-wrap gap-2 border-t pt-4">
+                    <Button
+                      onClick={() => navigate({ to: "/teams" })}
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      <ArrowLeft />
+                      Cancel
+                    </Button>
+                    <Button
+                      disabled={
+                        !state.canSubmit ||
+                        state.isSubmitting ||
+                        createTeamMutation.isPending
+                      }
+                      size="sm"
+                      type="submit"
+                    >
+                      <Plus />
+                      {state.isSubmitting || createTeamMutation.isPending
+                        ? "Creating..."
+                        : "Create team"}
+                    </Button>
+                  </div>
+                )}
+              </form.Subscribe>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
 }

@@ -1,5 +1,5 @@
 import { LaptopMinimal, Moon, Sun } from "lucide-react";
-import { useTheme } from "@/components/theme-provider";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -14,7 +14,7 @@ export function ModeToggle() {
   return (
     <div className="flex items-center rounded-md border">
       <Tooltip>
-        <TooltipTrigger asChild>
+        <TooltipTrigger>
           <Button
             className="rounded-r-none hover:outline-hidden hover:outline-transparent"
             onClick={() => setTheme("light")}
@@ -33,7 +33,7 @@ export function ModeToggle() {
         <TooltipContent side="bottom">Light</TooltipContent>
       </Tooltip>
       <Tooltip>
-        <TooltipTrigger asChild>
+        <TooltipTrigger>
           <Button
             className="rounded-none border-r border-l hover:outline-hidden hover:outline-transparent"
             onClick={() => setTheme("dark")}
@@ -52,7 +52,7 @@ export function ModeToggle() {
         <TooltipContent side="bottom">Dark</TooltipContent>
       </Tooltip>
       <Tooltip>
-        <TooltipTrigger asChild>
+        <TooltipTrigger>
           <Button
             className="rounded-l-none hover:outline-hidden hover:outline-transparent"
             onClick={() => setTheme("system")}

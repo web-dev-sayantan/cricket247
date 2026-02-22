@@ -1,15 +1,16 @@
 import { ORPCError, type RouterClient } from "@orpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { getBallsOfSameOver } from "@/services/ball.service";
-import { playerCrudService } from "@/services/crud.service";
 import { db } from "@/db";
-import { user } from "@/db/schema";
+import { users } from "@/db/schema";
+import { getBallsOfSameOver } from "@/services/ball.service";
+import { playerCrudService, teamCrudService } from "@/services/crud.service";
 import {
   createMatchAction,
   getCompletedMatches,
   getLiveMatches,
   getMatchById,
+  getMatchScorecard,
 } from "@/services/match.service";
 import { getAllPlayers } from "@/services/player.service";
 import { getAllTeams, getTeamsByName } from "@/services/team.service";
@@ -17,8 +18,15 @@ import {
   getAllTournaments,
   getLiveTournaments,
 } from "@/services/tournament.service";
-import { createPlayerBodySchema } from "../schemas/crud.schemas";
-import { protectedProcedure, publicProcedure } from "../lib/orpc";
+import {
+  protectedProcedure,
+  publicProcedure,
+  sensitiveProcedure,
+} from "../lib/orpc";
+import {
+  createPlayerBodySchema,
+  createTeamBodySchema,
+} from "../schemas/crud.schemas";
 
 // Match creation schema matching the frontend MatchFormSchema
 const CreateMatchInputSchema = z.object({
@@ -58,11 +66,21 @@ const UpdatePlayerInputSchema = z
     path: ["data"],
   });
 
+const UpdateTeamInputSchema = z
+  .object({
+    id: z.number().int().positive(),
+    data: createTeamBodySchema.partial(),
+  })
+  .refine(({ data }) => Object.keys(data).length > 0, {
+    message: "At least one field is required for update",
+    path: ["data"],
+  });
+
 async function getUserRoleByEmail(email: string) {
   const rows = await db
-    .select({ role: user.role })
-    .from(user)
-    .where(eq(user.email, email))
+    .select({ role: users.role })
+    .from(users)
+    .where(eq(users.email, email))
     .limit(1);
 
   return rows[0]?.role ?? null;
@@ -97,7 +115,31 @@ export const appRouter = {
     const teams = await getAllTeams();
     return teams.find((team) => team.id === input) || null;
   }),
-  createMatch: protectedProcedure
+  createPlayer: sensitiveProcedure
+    .input(createPlayerBodySchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      const player = await playerCrudService.create(input);
+      if (!player) {
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
+      }
+
+      return player;
+    }),
+  createTeam: sensitiveProcedure
+    .input(createTeamBodySchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      const team = await teamCrudService.create(input);
+      if (!team) {
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
+      }
+
+      return team;
+    }),
+  createMatch: sensitiveProcedure
     .input(CreateMatchInputSchema)
     .handler(async ({ input }) => {
       const result = await createMatchAction(input);
@@ -106,6 +148,20 @@ export const appRouter = {
   getMatchById: publicProcedure.input(z.number()).handler(async ({ input }) => {
     return await getMatchById(input);
   }),
+  getMatchScorecard: publicProcedure
+    .input(
+      z.object({
+        matchId: z.number(),
+        inningsNumber: z.number().optional(),
+        includeBallByBall: z.boolean().optional(),
+      })
+    )
+    .handler(async ({ input }) => {
+      return await getMatchScorecard(input.matchId, {
+        inningsNumber: input.inningsNumber,
+        includeBallByBall: input.includeBallByBall,
+      });
+    }),
   getBallsOfSameOver: protectedProcedure
     .input(
       z.object({
@@ -117,7 +173,7 @@ export const appRouter = {
       const balls = await getBallsOfSameOver(input.inningsId, input.ballNumber);
       return balls;
     }),
-  updatePlayer: protectedProcedure
+  updatePlayer: sensitiveProcedure
     .input(UpdatePlayerInputSchema)
     .handler(async ({ context, input }) => {
       await requireAdminByEmail(context.session.user.email);
@@ -129,12 +185,36 @@ export const appRouter = {
 
       return player;
     }),
-  deletePlayer: protectedProcedure
+  deletePlayer: sensitiveProcedure
     .input(z.number().int().positive())
     .handler(async ({ context, input }) => {
       await requireAdminByEmail(context.session.user.email);
 
       const deleted = await playerCrudService.remove(input);
+      if (!deleted) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      return { id: input };
+    }),
+  updateTeam: sensitiveProcedure
+    .input(UpdateTeamInputSchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      const team = await teamCrudService.update(input.id, input.data);
+      if (!team) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      return team;
+    }),
+  deleteTeam: sensitiveProcedure
+    .input(z.number().int().positive())
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      const deleted = await teamCrudService.remove(input);
       if (!deleted) {
         throw new ORPCError("NOT_FOUND");
       }

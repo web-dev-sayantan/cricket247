@@ -44,7 +44,7 @@ export default function SignInForm({
     from: "/",
   });
   const [otpSent, setOtpSent] = useState(0);
-  const [signinError, setSigninError] = useState("");
+  const [_signinError, setSigninError] = useState("");
   const { isPending } = authClient.useSession();
 
   const form = useForm({

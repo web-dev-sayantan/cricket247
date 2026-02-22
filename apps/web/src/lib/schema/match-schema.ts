@@ -1,6 +1,6 @@
 import z from "zod";
 
-const stringBool = z
+const _stringBool = z
   .union([
     z.enum(["false", "0"]).transform(() => false),
     z.boolean(),

@@ -1,11 +1,12 @@
-import { eq } from 'drizzle-orm';
-import { db } from '@/db';
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
 import {
-  balls,
+  deliveries,
   innings,
   matches,
+  matchLineup,
   playerCareerStats,
-  playerMatchPerformance,
+  playerInningsStats,
   players,
   playerTournamentStats,
   teamPlayers,
@@ -13,17 +14,19 @@ import {
   tournaments,
   tournamentTeams,
   venues,
-} from '@/db/schema';
+} from "@/db/schema";
 import type {
-  Ball,
+  Delivery,
   Innings,
   Match,
-  NewBall,
+  MatchLineup,
+  NewDelivery,
   NewInnings,
   NewMatch,
+  NewMatchLineup,
   NewPlayer,
   NewPlayerCareerStats,
-  NewPlayerMatchPerformance,
+  NewPlayerInningsStats,
   NewPlayerTournamentStats,
   NewTeam,
   NewTeamPlayer,
@@ -32,55 +35,63 @@ import type {
   NewVenue,
   Player,
   PlayerCareerStats,
-  PlayerMatchPerformance,
+  PlayerInningsStats,
   PlayerTournamentStats,
   Team,
   TeamPlayer,
   Tournament,
   TournamentTeam,
   Venue,
-} from '@/db/types';
+} from "@/db/types";
 
-type CreatePlayerInput = Omit<NewPlayer, 'id'>;
+type CreatePlayerInput = Omit<NewPlayer, "id">;
 type UpdatePlayerInput = Partial<CreatePlayerInput>;
 
-type CreateTeamInput = Omit<NewTeam, 'id'>;
+type CreateTeamInput = Omit<NewTeam, "id">;
 type UpdateTeamInput = Partial<CreateTeamInput>;
 
-type CreateMatchInput = Omit<NewMatch, 'id'>;
+type CreateMatchInput = Omit<NewMatch, "id">;
 type UpdateMatchInput = Partial<CreateMatchInput>;
 
-type CreateTournamentInput = Omit<NewTournament, 'id'>;
+type CreateTournamentInput = Omit<NewTournament, "id">;
 type UpdateTournamentInput = Partial<CreateTournamentInput>;
 
-type CreateVenueInput = Omit<NewVenue, 'id'>;
+type CreateVenueInput = Omit<NewVenue, "id">;
 type UpdateVenueInput = Partial<CreateVenueInput>;
 
-type CreateTeamPlayerInput = Omit<NewTeamPlayer, 'id'>;
+type CreateTeamPlayerInput = Omit<NewTeamPlayer, "id">;
 type UpdateTeamPlayerInput = Partial<CreateTeamPlayerInput>;
 
-type CreateTournamentTeamInput = Omit<NewTournamentTeam, 'id'>;
+type CreateTournamentTeamInput = Omit<NewTournamentTeam, "id">;
 type UpdateTournamentTeamInput = Partial<CreateTournamentTeamInput>;
 
-type CreateInningsInput = Omit<NewInnings, 'id'>;
+type CreateInningsInput = Omit<NewInnings, "id">;
 type UpdateInningsInput = Partial<CreateInningsInput>;
 
-type CreateBallInput = Omit<NewBall, 'id'>;
-type UpdateBallInput = Partial<CreateBallInput>;
+type CreateDeliveryInput = Omit<NewDelivery, "id">;
+type UpdateDeliveryInput = Partial<CreateDeliveryInput>;
 
-type CreatePlayerMatchPerformanceInput = Omit<NewPlayerMatchPerformance, 'id'>;
-type UpdatePlayerMatchPerformanceInput = Partial<CreatePlayerMatchPerformanceInput>;
+type CreateMatchLineupInput = Omit<NewMatchLineup, "id">;
+type UpdateMatchLineupInput = Partial<CreateMatchLineupInput>;
 
-type CreatePlayerTournamentStatsInput = Omit<NewPlayerTournamentStats, 'id'>;
-type UpdatePlayerTournamentStatsInput = Partial<CreatePlayerTournamentStatsInput>;
+type CreatePlayerInningsStatsInput = Omit<NewPlayerInningsStats, "id">;
+type UpdatePlayerInningsStatsInput = Partial<CreatePlayerInningsStatsInput>;
 
-type CreatePlayerCareerStatsInput = Omit<NewPlayerCareerStats, 'id'>;
+type CreatePlayerTournamentStatsInput = Omit<NewPlayerTournamentStats, "id">;
+type UpdatePlayerTournamentStatsInput =
+  Partial<CreatePlayerTournamentStatsInput>;
+
+type CreatePlayerCareerStatsInput = Omit<NewPlayerCareerStats, "id">;
 type UpdatePlayerCareerStatsInput = Partial<CreatePlayerCareerStatsInput>;
 
 export const playerCrudService = {
   list: (): Promise<Player[]> => db.select().from(players),
   async getById(id: number): Promise<Player | null> {
-    const rows = await db.select().from(players).where(eq(players.id, id)).limit(1);
+    const rows = await db
+      .select()
+      .from(players)
+      .where(eq(players.id, id))
+      .limit(1);
     return rows[0] ?? null;
   },
   async create(payload: CreatePlayerInput): Promise<Player | null> {
@@ -114,7 +125,11 @@ export const teamCrudService = {
     return rows[0] ?? null;
   },
   async update(id: number, payload: UpdateTeamInput): Promise<Team | null> {
-    const rows = await db.update(teams).set(payload).where(eq(teams.id, id)).returning();
+    const rows = await db
+      .update(teams)
+      .set(payload)
+      .where(eq(teams.id, id))
+      .returning();
     return rows[0] ?? null;
   },
   async remove(id: number): Promise<boolean> {
@@ -128,7 +143,11 @@ export const teamCrudService = {
 export const matchCrudService = {
   list: (): Promise<Match[]> => db.select().from(matches),
   async getById(id: number): Promise<Match | null> {
-    const rows = await db.select().from(matches).where(eq(matches.id, id)).limit(1);
+    const rows = await db
+      .select()
+      .from(matches)
+      .where(eq(matches.id, id))
+      .limit(1);
     return rows[0] ?? null;
   },
   async create(payload: CreateMatchInput): Promise<Match | null> {
@@ -165,7 +184,10 @@ export const tournamentCrudService = {
     const rows = await db.insert(tournaments).values(payload).returning();
     return rows[0] ?? null;
   },
-  async update(id: number, payload: UpdateTournamentInput): Promise<Tournament | null> {
+  async update(
+    id: number,
+    payload: UpdateTournamentInput
+  ): Promise<Tournament | null> {
     const rows = await db
       .update(tournaments)
       .set(payload)
@@ -187,7 +209,11 @@ export const tournamentCrudService = {
 export const venueCrudService = {
   list: (): Promise<Venue[]> => db.select().from(venues),
   async getById(id: number): Promise<Venue | null> {
-    const rows = await db.select().from(venues).where(eq(venues.id, id)).limit(1);
+    const rows = await db
+      .select()
+      .from(venues)
+      .where(eq(venues.id, id))
+      .limit(1);
     return rows[0] ?? null;
   },
   async create(payload: CreateVenueInput): Promise<Venue | null> {
@@ -195,7 +221,11 @@ export const venueCrudService = {
     return rows[0] ?? null;
   },
   async update(id: number, payload: UpdateVenueInput): Promise<Venue | null> {
-    const rows = await db.update(venues).set(payload).where(eq(venues.id, id)).returning();
+    const rows = await db
+      .update(venues)
+      .set(payload)
+      .where(eq(venues.id, id))
+      .returning();
     return rows[0] ?? null;
   },
   async remove(id: number): Promise<boolean> {
@@ -252,7 +282,9 @@ export const tournamentTeamCrudService = {
       .limit(1);
     return rows[0] ?? null;
   },
-  async create(payload: CreateTournamentTeamInput): Promise<TournamentTeam | null> {
+  async create(
+    payload: CreateTournamentTeamInput
+  ): Promise<TournamentTeam | null> {
     const rows = await db.insert(tournamentTeams).values(payload).returning();
     return rows[0] ?? null;
   },
@@ -281,15 +313,26 @@ export const tournamentTeamCrudService = {
 export const inningsCrudService = {
   list: (): Promise<Innings[]> => db.select().from(innings),
   async getById(id: number): Promise<Innings | null> {
-    const rows = await db.select().from(innings).where(eq(innings.id, id)).limit(1);
+    const rows = await db
+      .select()
+      .from(innings)
+      .where(eq(innings.id, id))
+      .limit(1);
     return rows[0] ?? null;
   },
   async create(payload: CreateInningsInput): Promise<Innings | null> {
     const rows = await db.insert(innings).values(payload).returning();
     return rows[0] ?? null;
   },
-  async update(id: number, payload: UpdateInningsInput): Promise<Innings | null> {
-    const rows = await db.update(innings).set(payload).where(eq(innings.id, id)).returning();
+  async update(
+    id: number,
+    payload: UpdateInningsInput
+  ): Promise<Innings | null> {
+    const rows = await db
+      .update(innings)
+      .set(payload)
+      .where(eq(innings.id, id))
+      .returning();
     return rows[0] ?? null;
   },
   async remove(id: number): Promise<boolean> {
@@ -300,68 +343,123 @@ export const inningsCrudService = {
   },
 };
 
-export const ballCrudService = {
-  list: (): Promise<Ball[]> => db.select().from(balls),
-  async getById(id: number): Promise<Ball | null> {
-    const rows = await db.select().from(balls).where(eq(balls.id, id)).limit(1);
-    return rows[0] ?? null;
-  },
-  async create(payload: CreateBallInput): Promise<Ball | null> {
-    const rows = await db.insert(balls).values(payload).returning();
-    return rows[0] ?? null;
-  },
-  async update(id: number, payload: UpdateBallInput): Promise<Ball | null> {
-    const rows = await db.update(balls).set(payload).where(eq(balls.id, id)).returning();
-    return rows[0] ?? null;
-  },
-  async remove(id: number): Promise<boolean> {
-    const rows = await db.delete(balls).where(eq(balls.id, id)).returning({
-      id: balls.id,
-    });
-    return rows.length > 0;
-  },
-};
-
-export const playerMatchPerformanceCrudService = {
-  list: (): Promise<PlayerMatchPerformance[]> => db.select().from(playerMatchPerformance),
-  async getById(id: number): Promise<PlayerMatchPerformance | null> {
+export const deliveryCrudService = {
+  list: (): Promise<Delivery[]> => db.select().from(deliveries),
+  async getById(id: number): Promise<Delivery | null> {
     const rows = await db
       .select()
-      .from(playerMatchPerformance)
-      .where(eq(playerMatchPerformance.id, id))
+      .from(deliveries)
+      .where(eq(deliveries.id, id))
       .limit(1);
     return rows[0] ?? null;
   },
-  async create(
-    payload: CreatePlayerMatchPerformanceInput
-  ): Promise<PlayerMatchPerformance | null> {
-    const rows = await db.insert(playerMatchPerformance).values(payload).returning();
+  async create(payload: CreateDeliveryInput): Promise<Delivery | null> {
+    const rows = await db.insert(deliveries).values(payload).returning();
     return rows[0] ?? null;
   },
   async update(
     id: number,
-    payload: UpdatePlayerMatchPerformanceInput
-  ): Promise<PlayerMatchPerformance | null> {
+    payload: UpdateDeliveryInput
+  ): Promise<Delivery | null> {
     const rows = await db
-      .update(playerMatchPerformance)
+      .update(deliveries)
       .set(payload)
-      .where(eq(playerMatchPerformance.id, id))
+      .where(eq(deliveries.id, id))
       .returning();
     return rows[0] ?? null;
   },
   async remove(id: number): Promise<boolean> {
     const rows = await db
-      .delete(playerMatchPerformance)
-      .where(eq(playerMatchPerformance.id, id))
+      .delete(deliveries)
+      .where(eq(deliveries.id, id))
       .returning({
-        id: playerMatchPerformance.id,
+        id: deliveries.id,
+      });
+    return rows.length > 0;
+  },
+};
+
+export const matchLineupCrudService = {
+  list: (): Promise<MatchLineup[]> => db.select().from(matchLineup),
+  async getById(id: number): Promise<MatchLineup | null> {
+    const rows = await db
+      .select()
+      .from(matchLineup)
+      .where(eq(matchLineup.id, id))
+      .limit(1);
+    return rows[0] ?? null;
+  },
+  async create(payload: CreateMatchLineupInput): Promise<MatchLineup | null> {
+    const rows = await db.insert(matchLineup).values(payload).returning();
+    return rows[0] ?? null;
+  },
+  async update(
+    id: number,
+    payload: UpdateMatchLineupInput
+  ): Promise<MatchLineup | null> {
+    const rows = await db
+      .update(matchLineup)
+      .set(payload)
+      .where(eq(matchLineup.id, id))
+      .returning();
+    return rows[0] ?? null;
+  },
+  async remove(id: number): Promise<boolean> {
+    const rows = await db
+      .delete(matchLineup)
+      .where(eq(matchLineup.id, id))
+      .returning({
+        id: matchLineup.id,
+      });
+    return rows.length > 0;
+  },
+};
+
+export const playerInningsStatsCrudService = {
+  list: (): Promise<PlayerInningsStats[]> =>
+    db.select().from(playerInningsStats),
+  async getById(id: number): Promise<PlayerInningsStats | null> {
+    const rows = await db
+      .select()
+      .from(playerInningsStats)
+      .where(eq(playerInningsStats.id, id))
+      .limit(1);
+    return rows[0] ?? null;
+  },
+  async create(
+    payload: CreatePlayerInningsStatsInput
+  ): Promise<PlayerInningsStats | null> {
+    const rows = await db
+      .insert(playerInningsStats)
+      .values(payload)
+      .returning();
+    return rows[0] ?? null;
+  },
+  async update(
+    id: number,
+    payload: UpdatePlayerInningsStatsInput
+  ): Promise<PlayerInningsStats | null> {
+    const rows = await db
+      .update(playerInningsStats)
+      .set(payload)
+      .where(eq(playerInningsStats.id, id))
+      .returning();
+    return rows[0] ?? null;
+  },
+  async remove(id: number): Promise<boolean> {
+    const rows = await db
+      .delete(playerInningsStats)
+      .where(eq(playerInningsStats.id, id))
+      .returning({
+        id: playerInningsStats.id,
       });
     return rows.length > 0;
   },
 };
 
 export const playerTournamentStatsCrudService = {
-  list: (): Promise<PlayerTournamentStats[]> => db.select().from(playerTournamentStats),
+  list: (): Promise<PlayerTournamentStats[]> =>
+    db.select().from(playerTournamentStats),
   async getById(id: number): Promise<PlayerTournamentStats | null> {
     const rows = await db
       .select()
@@ -373,7 +471,10 @@ export const playerTournamentStatsCrudService = {
   async create(
     payload: CreatePlayerTournamentStatsInput
   ): Promise<PlayerTournamentStats | null> {
-    const rows = await db.insert(playerTournamentStats).values(payload).returning();
+    const rows = await db
+      .insert(playerTournamentStats)
+      .values(payload)
+      .returning();
     return rows[0] ?? null;
   },
   async update(
@@ -408,7 +509,9 @@ export const playerCareerStatsCrudService = {
       .limit(1);
     return rows[0] ?? null;
   },
-  async create(payload: CreatePlayerCareerStatsInput): Promise<PlayerCareerStats | null> {
+  async create(
+    payload: CreatePlayerCareerStatsInput
+  ): Promise<PlayerCareerStats | null> {
     const rows = await db.insert(playerCareerStats).values(payload).returning();
     return rows[0] ?? null;
   },
@@ -433,3 +536,7 @@ export const playerCareerStatsCrudService = {
     return rows.length > 0;
   },
 };
+
+// Backward-compatible service aliases used by existing routes.
+export const ballCrudService = deliveryCrudService;
+export const playerMatchPerformanceCrudService = playerInningsStatsCrudService;

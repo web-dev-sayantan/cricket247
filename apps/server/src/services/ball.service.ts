@@ -1,32 +1,40 @@
-import { and, eq, gte, lte } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { balls } from "@/db/schema";
-import type { Ball, NewBall, Player } from "@/db/types";
+import { deliveries } from "@/db/schema";
+import type { Delivery, NewDelivery, Player } from "@/db/types";
 
 export async function getBallById(id: number) {
-  return await db.query.balls.findFirst({
-    where: eq(balls.id, id),
+  return await db.query.deliveries.findFirst({
+    where: {
+      id,
+    },
     with: {
       striker: true,
       nonStriker: true,
       bowler: true,
+      dismissedPlayer: true,
+      dismissedBy: true,
+      assistedBy: true,
     },
   });
 }
 
 export async function getBallByMatchAndTeamAndBallNumber(
   inningsId: number,
-  ballNumber: number
+  sequenceNo: number
 ) {
-  return await db.query.balls.findFirst({
-    where: and(
-      eq(balls.inningsId, inningsId),
-      eq(balls.ballNumber, ballNumber)
-    ),
+  return await db.query.deliveries.findFirst({
+    where: {
+      inningsId,
+      sequenceNo,
+    },
     with: {
       striker: true,
       nonStriker: true,
       bowler: true,
+      dismissedPlayer: true,
+      dismissedBy: true,
+      assistedBy: true,
     },
   });
 }
@@ -35,109 +43,105 @@ export async function getBallsOfSameOver(
   inningsId: number,
   ballNumber: number
 ) {
-  const firstBallNumber =
-    ballNumber % 6 === 0 ? ballNumber - 5 : Math.floor(ballNumber / 6) * 6 + 1;
-  const lastBallNumber = Math.ceil(ballNumber / 6) * 6;
-  return await db.query.balls.findMany({
-    where: and(
-      eq(balls.inningsId, inningsId),
-      gte(balls.ballNumber, firstBallNumber),
-      lte(balls.ballNumber, lastBallNumber)
-    ),
+  const normalizedBallNumber = Math.max(1, ballNumber);
+  const overNumber = Math.floor((normalizedBallNumber - 1) / 6) + 1;
+
+  return await db.query.deliveries.findMany({
+    where: {
+      inningsId,
+      overNumber,
+    },
     with: {
       striker: true,
       nonStriker: true,
       bowler: true,
+      dismissedPlayer: true,
+      dismissedBy: true,
+      assistedBy: true,
+    },
+    orderBy: {
+      sequenceNo: "asc",
     },
   });
 }
 
-export async function createNewBallAction({
-  inningsId,
-  strikerId,
-  nonStrikerId,
-  bowlerId,
-  ballNumber,
-  runsScored,
-  isWicket,
-  wicketType,
-  assistPlayerId,
-  isWide,
-  isNoBall,
-  isBye,
-  isLegBye,
-}: NewBall) {
-  const newBall = await db
-    .insert(balls)
-    .values({
+export async function getDeliveriesByInningsId(inningsId: number) {
+  return await db.query.deliveries.findMany({
+    where: {
       inningsId,
-      strikerId,
-      nonStrikerId,
-      bowlerId,
-      ballNumber,
-      runsScored,
-      isWicket,
-      wicketType,
-      assistPlayerId,
-      isWide,
-      isNoBall,
-      isBye,
-      isLegBye,
-    })
-    .returning({ id: balls.id });
-  if (newBall.length === 0) {
-    return null;
-  }
-  return newBall[0].id;
+    },
+    with: {
+      striker: true,
+      nonStriker: true,
+      bowler: true,
+      dismissedPlayer: true,
+      dismissedBy: true,
+      assistedBy: true,
+    },
+    orderBy: {
+      sequenceNo: "asc",
+    },
+  });
 }
 
-export async function updateBallAction({
-  id,
-  ballNumber = 0,
-  strikerId,
-  nonStrikerId,
-  bowlerId,
-  runsScored = 0,
-  isWicket = false,
-  wicketType,
-  assistPlayerId,
-  dismissedPlayerId,
-  isBye = false,
-  isLegBye = false,
-  isWide = false,
-  isNoBall = false,
-}: NewBall) {
-  if (!id) {
-    throw new Error("Ball id is required");
-  }
-  // Update the current ball
-  const updatedBall = await db
-    .update(balls)
-    .set({
-      ballNumber,
-      strikerId,
-      nonStrikerId,
-      bowlerId,
-      runsScored,
-      isWicket,
-      wicketType,
-      assistPlayerId,
-      dismissedPlayerId,
-      isNoBall,
-      isWide,
-      isBye,
-      isLegBye,
-    })
-    .where(eq(balls.id, id))
-    .returning();
-  if (updatedBall.length === 0) {
-    return null;
-  }
-  return updatedBall[0].id;
+export async function createNewBallAction(payload: NewDelivery) {
+  const [newDelivery] = await db
+    .insert(deliveries)
+    .values(payload)
+    .returning({ id: deliveries.id });
+
+  return newDelivery?.id ?? null;
 }
 
-export type BallWithPlayers = Ball & {
+export async function updateBallAction(payload: NewDelivery) {
+  if (!payload.id) {
+    throw new Error("Delivery id is required");
+  }
+
+  const [updated] = await db
+    .update(deliveries)
+    .set(payload)
+    .where(eq(deliveries.id, payload.id))
+    .returning({ id: deliveries.id });
+
+  return updated?.id ?? null;
+}
+
+export async function getLatestDeliveryInInnings(inningsId: number) {
+  const rows = await db
+    .select()
+    .from(deliveries)
+    .where(eq(deliveries.inningsId, inningsId))
+    .orderBy(asc(deliveries.sequenceNo));
+
+  return rows.at(-1) ?? null;
+}
+
+export async function getDeliveryBySequence(
+  inningsId: number,
+  sequenceNo: number
+) {
+  const [row] = await db
+    .select()
+    .from(deliveries)
+    .where(
+      and(
+        eq(deliveries.inningsId, inningsId),
+        eq(deliveries.sequenceNo, sequenceNo)
+      )
+    )
+    .limit(1);
+  return row ?? null;
+}
+
+export type DeliveryWithPlayers = Delivery & {
   striker: Player;
   nonStriker: Player;
   bowler: Player;
+  dismissedPlayer?: Player | null;
+  dismissedBy?: Player | null;
+  assistedBy?: Player | null;
 };
+
+// Backward compatible export name.
+export type BallWithPlayers = DeliveryWithPlayers;

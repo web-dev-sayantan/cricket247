@@ -1,12 +1,12 @@
-import { Hono } from 'hono';
-import type { z } from 'zod';
+import { Hono } from "hono";
+import type { z } from "zod";
 import {
   errorResponse,
   requireAdmin,
   requireAuth,
   requireScorer,
   successResponse,
-} from '@/middleware';
+} from "@/middleware";
 import {
   createBallBodySchema,
   createInningsBodySchema,
@@ -27,7 +27,7 @@ import {
   updateTournamentBodySchema,
   updateTournamentTeamBodySchema,
   updateVenueBodySchema,
-} from '@/schemas/crud.schemas';
+} from "@/schemas/crud.schemas";
 import {
   ballCrudService,
   inningsCrudService,
@@ -38,24 +38,28 @@ import {
   tournamentCrudService,
   tournamentTeamCrudService,
   venueCrudService,
-} from '@/services/crud.service';
+} from "@/services/crud.service";
 
-type CrudService<TRecord, TCreate extends object, TUpdate extends object> = {
-  list: () => Promise<TRecord[]>;
-  getById: (id: number) => Promise<TRecord | null>;
+interface CrudService<TRecord, TCreate extends object, TUpdate extends object> {
   create: (payload: TCreate) => Promise<TRecord | null>;
-  update: (id: number, payload: TUpdate) => Promise<TRecord | null>;
+  getById: (id: number) => Promise<TRecord | null>;
+  list: () => Promise<TRecord[]>;
   remove: (id: number) => Promise<boolean>;
-};
+  update: (id: number, payload: TUpdate) => Promise<TRecord | null>;
+}
 
-type CrudRouteConfig<TRecord, TCreate extends object, TUpdate extends object> = {
-  path: `/${string}`;
-  entityLabel: string;
+interface CrudRouteConfig<
+  TRecord,
+  TCreate extends object,
+  TUpdate extends object,
+> {
   createSchema: z.ZodType<TCreate>;
-  updateSchema: z.ZodType<TUpdate>;
+  entityLabel: string;
+  path: `/${string}`;
   service: CrudService<TRecord, TCreate, TUpdate>;
-  writeAccess: 'admin' | 'scorer';
-};
+  updateSchema: z.ZodType<TUpdate>;
+  writeAccess: "admin" | "scorer";
+}
 
 const managementRoutes = new Hono();
 
@@ -70,7 +74,7 @@ const registerCrudRoutes = <
   const basePath = config.path as `/${string}`;
   const itemPath = `${basePath}/:id` as `/${string}`;
   const writeRoleMiddleware =
-    config.writeAccess === 'scorer' ? requireScorer : requireAdmin;
+    config.writeAccess === "scorer" ? requireScorer : requireAdmin;
 
   router.get(basePath, async (c) => {
     try {
@@ -82,7 +86,7 @@ const registerCrudRoutes = <
   });
 
   router.get(itemPath, async (c) => {
-    const parsedId = idRouteParamSchema.safeParse(c.req.param('id'));
+    const parsedId = idRouteParamSchema.safeParse(c.req.param("id"));
     if (!parsedId.success) {
       return errorResponse(c, `Invalid ${config.entityLabel} ID`);
     }
@@ -103,14 +107,15 @@ const registerCrudRoutes = <
     try {
       payload = await c.req.json();
     } catch (_error) {
-      return errorResponse(c, 'Invalid JSON payload');
+      return errorResponse(c, "Invalid JSON payload");
     }
     const parsedBody = config.createSchema.safeParse(payload);
 
     if (!parsedBody.success) {
       return errorResponse(
         c,
-        parsedBody.error.issues[0]?.message ?? `Invalid ${config.entityLabel} payload`
+        parsedBody.error.issues[0]?.message ??
+          `Invalid ${config.entityLabel} payload`
       );
     }
 
@@ -126,7 +131,7 @@ const registerCrudRoutes = <
   });
 
   router.patch(itemPath, requireAuth, writeRoleMiddleware, async (c) => {
-    const parsedId = idRouteParamSchema.safeParse(c.req.param('id'));
+    const parsedId = idRouteParamSchema.safeParse(c.req.param("id"));
     if (!parsedId.success) {
       return errorResponse(c, `Invalid ${config.entityLabel} ID`);
     }
@@ -135,23 +140,27 @@ const registerCrudRoutes = <
     try {
       payload = await c.req.json();
     } catch (_error) {
-      return errorResponse(c, 'Invalid JSON payload');
+      return errorResponse(c, "Invalid JSON payload");
     }
     const parsedBody = config.updateSchema.safeParse(payload);
 
     if (!parsedBody.success) {
       return errorResponse(
         c,
-        parsedBody.error.issues[0]?.message ?? `Invalid ${config.entityLabel} payload`
+        parsedBody.error.issues[0]?.message ??
+          `Invalid ${config.entityLabel} payload`
       );
     }
 
     if (Object.keys(parsedBody.data).length === 0) {
-      return errorResponse(c, 'At least one field is required for update');
+      return errorResponse(c, "At least one field is required for update");
     }
 
     try {
-      const updated = await config.service.update(parsedId.data, parsedBody.data);
+      const updated = await config.service.update(
+        parsedId.data,
+        parsedBody.data
+      );
       if (!updated) {
         return errorResponse(c, `${config.entityLabel} not found`, 404);
       }
@@ -162,7 +171,7 @@ const registerCrudRoutes = <
   });
 
   router.delete(itemPath, requireAuth, writeRoleMiddleware, async (c) => {
-    const parsedId = idRouteParamSchema.safeParse(c.req.param('id'));
+    const parsedId = idRouteParamSchema.safeParse(c.req.param("id"));
     if (!parsedId.success) {
       return errorResponse(c, `Invalid ${config.entityLabel} ID`);
     }
@@ -172,7 +181,11 @@ const registerCrudRoutes = <
       if (!deleted) {
         return errorResponse(c, `${config.entityLabel} not found`, 404);
       }
-      return successResponse(c, { id: parsedId.data }, `${config.entityLabel} deleted`);
+      return successResponse(
+        c,
+        { id: parsedId.data },
+        `${config.entityLabel} deleted`
+      );
     } catch (_error) {
       return errorResponse(c, `Failed to delete ${config.entityLabel}`, 500);
     }
@@ -180,84 +193,84 @@ const registerCrudRoutes = <
 };
 
 registerCrudRoutes(managementRoutes, {
-  path: '/tournaments',
-  entityLabel: 'Tournament',
+  path: "/tournaments",
+  entityLabel: "Tournament",
   createSchema: createTournamentBodySchema,
   updateSchema: updateTournamentBodySchema,
   service: tournamentCrudService,
-  writeAccess: 'admin',
+  writeAccess: "admin",
 });
 
 registerCrudRoutes(managementRoutes, {
-  path: '/venues',
-  entityLabel: 'Venue',
+  path: "/venues",
+  entityLabel: "Venue",
   createSchema: createVenueBodySchema,
   updateSchema: updateVenueBodySchema,
   service: venueCrudService,
-  writeAccess: 'admin',
+  writeAccess: "admin",
 });
 
 registerCrudRoutes(managementRoutes, {
-  path: '/team-players',
-  entityLabel: 'Team player',
+  path: "/team-players",
+  entityLabel: "Team player",
   createSchema: createTeamPlayerBodySchema,
   updateSchema: updateTeamPlayerBodySchema,
   service: teamPlayerCrudService,
-  writeAccess: 'admin',
+  writeAccess: "admin",
 });
 
 registerCrudRoutes(managementRoutes, {
-  path: '/tournament-teams',
-  entityLabel: 'Tournament team',
+  path: "/tournament-teams",
+  entityLabel: "Tournament team",
   createSchema: createTournamentTeamBodySchema,
   updateSchema: updateTournamentTeamBodySchema,
   service: tournamentTeamCrudService,
-  writeAccess: 'admin',
+  writeAccess: "admin",
 });
 
 registerCrudRoutes(managementRoutes, {
-  path: '/innings',
-  entityLabel: 'Innings',
+  path: "/innings",
+  entityLabel: "Innings",
   createSchema: createInningsBodySchema,
   updateSchema: updateInningsBodySchema,
   service: inningsCrudService,
-  writeAccess: 'scorer',
+  writeAccess: "scorer",
 });
 
 registerCrudRoutes(managementRoutes, {
-  path: '/balls',
-  entityLabel: 'Ball',
+  path: "/balls",
+  entityLabel: "Ball",
   createSchema: createBallBodySchema,
   updateSchema: updateBallBodySchema,
   service: ballCrudService,
-  writeAccess: 'scorer',
+  writeAccess: "scorer",
 });
 
 registerCrudRoutes(managementRoutes, {
-  path: '/player-match-performances',
-  entityLabel: 'Player match performance',
+  path: "/player-match-performances",
+  entityLabel: "Player match performance",
   createSchema: createPlayerMatchPerformanceBodySchema,
   updateSchema: updatePlayerMatchPerformanceBodySchema,
   service: playerMatchPerformanceCrudService,
-  writeAccess: 'scorer',
+  writeAccess: "scorer",
 });
 
 registerCrudRoutes(managementRoutes, {
-  path: '/player-tournament-stats',
-  entityLabel: 'Player tournament stats',
+  path: "/player-tournament-stats",
+  entityLabel: "Player tournament stats",
   createSchema: createPlayerTournamentStatsBodySchema,
   updateSchema: updatePlayerTournamentStatsBodySchema,
   service: playerTournamentStatsCrudService,
-  writeAccess: 'admin',
+  writeAccess: "admin",
 });
 
 registerCrudRoutes(managementRoutes, {
-  path: '/player-career-stats',
-  entityLabel: 'Player career stats',
+  path: "/player-career-stats",
+  entityLabel: "Player career stats",
   createSchema: createPlayerCareerStatsBodySchema,
   updateSchema: updatePlayerCareerStatsBodySchema,
   service: playerCareerStatsCrudService,
-  writeAccess: 'admin',
+  writeAccess: "admin",
 });
 
 export default managementRoutes;

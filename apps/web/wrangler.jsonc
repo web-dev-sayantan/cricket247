@@ -1,8 +1,21 @@
 {
 	"$schema": "./node_modules/wrangler/config-schema.json",
-	"name": "cricket247",
+	"name": "cricket247-web",
+	"main": "./src/worker.ts",
 	"compatibility_date": "2025-04-03",
+	"services": [
+		{
+			"binding": "API",
+			"service": "cricket247-api"
+		}
+	],
+	"observability": {
+		"enabled": true
+	},
 	"assets": {
+		"binding": "ASSETS",
+		"directory": "./dist/client",
+		"run_worker_first": ["/api/*", "/rpc/*"],
 		"not_found_handling": "single-page-application"
 	}
 }

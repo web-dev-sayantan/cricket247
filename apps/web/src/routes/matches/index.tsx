@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PlusIcon, HistoryIcon, Activity } from "lucide-react";
+import { Activity, HistoryIcon, PlusIcon } from "lucide-react";
 import { MatchCard } from "@/components/match-card";
 import { Button } from "@/components/ui/button";
 import { orpc } from "@/utils/orpc";
@@ -17,61 +17,71 @@ function RouteComponent() {
   return (
     <div className="min-h-screen bg-background pb-24 selection:bg-primary/20">
       {/* Header */}
-      <header className="px-4 py-8 md:px-8 md:py-10 animate-in fade-in slide-in-from-top-4 duration-500 ease-out">
-        <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">Live Matches</h1>
-        <p className="mt-2 text-lg text-muted-foreground/80 font-medium tracking-tight">
+      <header className="fade-in slide-in-from-top-4 animate-in px-4 py-8 duration-500 ease-out md:px-8 md:py-10">
+        <h1 className="font-extrabold text-4xl tracking-tight lg:text-5xl">
+          Live Matches
+        </h1>
+        <p className="mt-2 font-medium text-lg text-muted-foreground/80 tracking-tight">
           Watch cricket matches in real-time
         </p>
       </header>
 
       {/* Content */}
-      <main className="px-4 md:px-8 space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700 ease-out fill-mode-both">
-        
+      <main className="fade-in slide-in-from-bottom-8 animate-in space-y-12 fill-mode-both px-4 duration-700 ease-out md:px-8">
         {/* Top Actions */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Link to="/matches/create-match" className="group">
-             <div className="flex h-24 flex-col items-center justify-center gap-2 rounded-3xl border border-primary/20 bg-primary/5 p-4 text-primary transition-all duration-300 ease-out hover:-translate-y-1 hover:border-primary/40 hover:bg-primary/10 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background backdrop-blur-sm">
-                 <div className="flex items-center gap-3">
-                     <div className="rounded-full bg-primary p-2.5 text-primary-foreground transition-transform duration-300 group-hover:scale-110 group-hover:bg-primary/90">
-                        <PlusIcon className="size-5 relative z-10" />
-                     </div>
-                    <span className="text-base font-bold tracking-wide">Create Match</span>
-                 </div>
-             </div>
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Link className="group" to="/matches/create-match">
+            <div className="flex h-24 flex-col items-center justify-center gap-2 rounded-3xl border border-primary/20 bg-primary/5 p-4 text-primary backdrop-blur-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:border-primary/40 hover:bg-primary/10 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background">
+              <div className="flex items-center gap-3">
+                <div className="rounded-full bg-primary p-2.5 text-primary-foreground transition-transform duration-300 group-hover:scale-110 group-hover:bg-primary/90">
+                  <PlusIcon className="relative z-10 size-5" />
+                </div>
+                <span className="font-bold text-base tracking-wide">
+                  Create Match
+                </span>
+              </div>
+            </div>
           </Link>
-          <Link to="/matches/completed" className="group">
-             <div className="flex h-24 flex-col items-center justify-center gap-2 rounded-3xl border border-border/50 bg-card/50 p-4 transition-all duration-300 ease-out hover:-translate-y-1 hover:border-border/80 hover:bg-card hover:shadow-lg backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                     <div className="rounded-full bg-secondary p-2.5 text-secondary-foreground transition-transform duration-300 group-hover:scale-110 group-hover:bg-secondary/80">
-                        <HistoryIcon className="size-5 relative z-10" />
-                     </div>
-                    <span className="text-base font-bold tracking-wide text-foreground">Completed Matches</span>
-                 </div>
-             </div>
+          <Link className="group" to="/matches/completed">
+            <div className="flex h-24 flex-col items-center justify-center gap-2 rounded-3xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:border-border/80 hover:bg-card hover:shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="rounded-full bg-secondary p-2.5 text-secondary-foreground transition-transform duration-300 group-hover:scale-110 group-hover:bg-secondary/80">
+                  <HistoryIcon className="relative z-10 size-5" />
+                </div>
+                <span className="font-bold text-base text-foreground tracking-wide">
+                  Completed Matches
+                </span>
+              </div>
+            </div>
           </Link>
         </section>
 
         <section>
           {isLoading && (
-            <div className="flex flex-col items-center justify-center py-24 gap-4">
-              <div className="size-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-              <p className="text-muted-foreground font-medium animate-pulse">Loading matches...</p>
+            <div className="flex flex-col items-center justify-center gap-4 py-24">
+              <div className="size-10 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+              <p className="animate-pulse font-medium text-muted-foreground">
+                Loading matches...
+              </p>
             </div>
           )}
 
           {!isLoading && liveMatches.length === 0 && (
-            <div className="flex flex-col items-center justify-center gap-6 py-20 px-4 text-center rounded-3xl border border-dashed border-border/60 bg-muted/10 mx-auto max-w-2xl mt-4">
-              <div className="rounded-full bg-primary/10 p-6 ring-8 ring-primary/5 mb-2">
+            <div className="mx-auto mt-4 flex max-w-2xl flex-col items-center justify-center gap-6 rounded-3xl border border-border/60 border-dashed bg-muted/10 px-4 py-20 text-center">
+              <div className="mb-2 rounded-full bg-primary/10 p-6 ring-8 ring-primary/5">
                 <Activity className="size-10 text-primary opacity-80" />
               </div>
               <div className="space-y-2">
-                <p className="font-bold text-2xl tracking-tight">No Live Matches</p>
-                <p className="text-muted-foreground text-base max-w-sm mx-auto">
-                  You don't have any ongoing matches right now. Create a new one to get started.
+                <p className="font-bold text-2xl tracking-tight">
+                  No Live Matches
+                </p>
+                <p className="mx-auto max-w-sm text-base text-muted-foreground">
+                  You don't have any ongoing matches right now. Create a new one
+                  to get started.
                 </p>
               </div>
-              <Link to="/matches/create-match" className="mt-4 inline-block">
-                <Button className="rounded-full px-8 h-12 shadow-sm hover:shadow-md active:scale-95 transition-all text-base font-semibold">
+              <Link className="mt-4 inline-block" to="/matches/create-match">
+                <Button className="h-12 rounded-full px-8 font-semibold text-base shadow-sm transition-all hover:shadow-md active:scale-95">
                   <PlusIcon className="mr-2 size-5" />
                   Start a Match
                 </Button>
@@ -81,18 +91,20 @@ function RouteComponent() {
 
           {!isLoading && liveMatches.length > 0 && (
             <div className="flex flex-col gap-6">
-              <div className="flex items-center gap-3 pb-2 animate-in fade-in slide-in-from-left-4 duration-500 delay-150 fill-mode-both">
-                  <span className="relative flex h-3 w-3">
-                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                     <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                  </span>
-                  <h2 className="text-2xl font-bold tracking-tight">Happening Now</h2>
+              <div className="fade-in slide-in-from-left-4 flex animate-in items-center gap-3 fill-mode-both pb-2 delay-150 duration-500">
+                <span className="relative flex h-3 w-3">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+                  <span className="relative inline-flex h-3 w-3 rounded-full bg-red-500" />
+                </span>
+                <h2 className="font-bold text-2xl tracking-tight">
+                  Happening Now
+                </h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
                 {liveMatches.map((match, index) => (
-                  <div 
+                  <div
+                    className="fade-in zoom-in-95 animate-in fill-mode-both duration-500"
                     key={match.id}
-                    className="animate-in fade-in zoom-in-95 duration-500 fill-mode-both"
                     style={{ animationDelay: `${(index + 1) * 150}ms` }}
                   >
                     <MatchCard match={match} />

@@ -13,6 +13,14 @@
     "check-types": {
       "dependsOn": ["^check-types"]
     },
+    "deploy": {
+      "dependsOn": ["build"],
+      "cache": false
+    },
+    "deploy:dry-run": {
+      "dependsOn": ["build"],
+      "cache": false
+    },
     "dev": {
       "cache": false,
       "persistent": true

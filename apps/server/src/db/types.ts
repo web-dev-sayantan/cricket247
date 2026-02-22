@@ -1,41 +1,35 @@
 /**
  * Database Types - Single Source of Truth
- *
- * All types are derived from Drizzle schema using InferSelectModel/InferInsertModel.
- * These types automatically update when the schema changes.
  */
 
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import type {
-  account,
-  balls,
+  accounts,
+  deliveries,
   innings,
   matches,
-  passkey,
+  matchLineup,
+  passkeys,
   playerCareerStats,
-  playerMatchPerformance,
+  playerInningsStats,
   players,
   playerTournamentStats,
-  session,
+  sessions,
   teamPlayers,
   teams,
   tournaments,
   tournamentTeams,
-  user,
+  users,
   venues,
-  verification,
+  verifications,
 } from "./schema";
 
-// ============================================================================
-// Entity Types (Select - for reading data)
-// ============================================================================
-
 // Auth entities
-export type User = InferSelectModel<typeof user>;
-export type Session = InferSelectModel<typeof session>;
-export type Account = InferSelectModel<typeof account>;
-export type Verification = InferSelectModel<typeof verification>;
-export type Passkey = InferSelectModel<typeof passkey>;
+export type User = InferSelectModel<typeof users>;
+export type Session = InferSelectModel<typeof sessions>;
+export type Account = InferSelectModel<typeof accounts>;
+export type Verification = InferSelectModel<typeof verifications>;
+export type Passkey = InferSelectModel<typeof passkeys>;
 
 // Domain entities
 export type Player = InferSelectModel<typeof players>;
@@ -46,27 +40,25 @@ export type TournamentTeam = InferSelectModel<typeof tournamentTeams>;
 export type Venue = InferSelectModel<typeof venues>;
 export type Match = InferSelectModel<typeof matches>;
 export type Innings = InferSelectModel<typeof innings>;
-export type Ball = InferSelectModel<typeof balls>;
-export type PlayerMatchPerformance = InferSelectModel<
-  typeof playerMatchPerformance
->;
+export type Delivery = InferSelectModel<typeof deliveries>;
+export type MatchLineup = InferSelectModel<typeof matchLineup>;
+export type PlayerInningsStats = InferSelectModel<typeof playerInningsStats>;
 export type PlayerTournamentStats = InferSelectModel<
   typeof playerTournamentStats
 >;
 export type PlayerCareerStats = InferSelectModel<typeof playerCareerStats>;
 
-// ============================================================================
-// Insert Types (for creating new records)
-// ============================================================================
+// Backward-compatible aliases in code (schema is clean slate)
+export type Ball = Delivery;
+export type PlayerMatchPerformance = PlayerInningsStats;
 
-// Auth inserts
-export type NewUser = InferInsertModel<typeof user>;
-export type NewSession = InferInsertModel<typeof session>;
-export type NewAccount = InferInsertModel<typeof account>;
-export type NewVerification = InferInsertModel<typeof verification>;
-export type NewPasskey = InferInsertModel<typeof passkey>;
+// Insert types
+export type NewUser = InferInsertModel<typeof users>;
+export type NewSession = InferInsertModel<typeof sessions>;
+export type NewAccount = InferInsertModel<typeof accounts>;
+export type NewVerification = InferInsertModel<typeof verifications>;
+export type NewPasskey = InferInsertModel<typeof passkeys>;
 
-// Domain inserts
 export type NewPlayer = InferInsertModel<typeof players>;
 export type NewTeam = InferInsertModel<typeof teams>;
 export type NewTeamPlayer = InferInsertModel<typeof teamPlayers>;
@@ -75,22 +67,17 @@ export type NewTournamentTeam = InferInsertModel<typeof tournamentTeams>;
 export type NewVenue = InferInsertModel<typeof venues>;
 export type NewMatch = InferInsertModel<typeof matches>;
 export type NewInnings = InferInsertModel<typeof innings>;
-export type NewBall = InferInsertModel<typeof balls>;
-export type NewPlayerMatchPerformance = InferInsertModel<
-  typeof playerMatchPerformance
->;
+export type NewDelivery = InferInsertModel<typeof deliveries>;
+export type NewMatchLineup = InferInsertModel<typeof matchLineup>;
+export type NewPlayerInningsStats = InferInsertModel<typeof playerInningsStats>;
 export type NewPlayerTournamentStats = InferInsertModel<
   typeof playerTournamentStats
 >;
 export type NewPlayerCareerStats = InferInsertModel<typeof playerCareerStats>;
 
-// ============================================================================
-// Domain Enums and Literal Types
-// ============================================================================
+export type NewBall = NewDelivery;
+export type NewPlayerMatchPerformance = NewPlayerInningsStats;
 
-/**
- * Supported cricket match formats.
- */
 export type MatchFormat =
   | "T5"
   | "T6"
@@ -103,20 +90,18 @@ export type MatchFormat =
   | "Test"
   | "Custom";
 
-/**
- * Toss decision options.
- */
 export type TossDecision = "bat" | "bowl";
 
-/**
- * Types of extras in cricket.
- */
-export type ExtrasType = "no" | "wide" | "bye" | "leg-bye" | "penalty";
+export type ExtrasType =
+  | "wide"
+  | "no-ball"
+  | "bye"
+  | "leg-bye"
+  | "penalty"
+  | "other";
 
-/**
- * Types of dismissals in cricket.
- */
 export type WicketType =
+  | "bowled"
   | "bold"
   | "caught"
   | "run out"
@@ -132,13 +117,6 @@ export type WicketType =
   | "retired out"
   | "others";
 
-// ============================================================================
-// Composite Types (for queries with relations)
-// ============================================================================
-
-/**
- * Team player with player details included.
- */
 export interface TeamPlayerType {
   id: number;
   isCaptain: boolean;
@@ -147,16 +125,10 @@ export interface TeamPlayerType {
   teamId: number;
 }
 
-/**
- * Team with its players.
- */
 export interface TeamWithPlayers extends Team {
   players: TeamPlayerType[];
 }
 
-/**
- * Match with related team data for display.
- */
 export interface MatchWithTeams extends Match {
   playerOfTheMatch?: Player | null;
   team1: Team;
@@ -167,47 +139,65 @@ export interface MatchWithTeams extends Match {
   winner?: Team | null;
 }
 
-/**
- * Innings with team details.
- */
 export interface InningsWithDetails extends Innings {
   battingTeam: Team;
   bowlingTeam: Team;
 }
 
-/**
- * Ball with player information for display.
- */
-export interface BallWithPlayers extends Ball {
+export interface DeliveryWithPlayers extends Delivery {
+  assistedBy?: Player | null;
   bowler: Player;
-  fielder?: Player;
+  dismissedBy?: Player | null;
+  dismissedPlayer?: Player | null;
   nonStriker: Player;
   striker: Player;
 }
 
-// ============================================================================
-// API Request/Response Types
-// ============================================================================
+// Backward-compatible type name for existing web scorer component.
+export type BallWithPlayers = DeliveryWithPlayers & {
+  runsScored: number;
+  isWide: boolean;
+  isNoBall: boolean;
+  isBye: boolean;
+  isLegBye: boolean;
+  assistPlayerId?: number | null;
+};
 
-/**
- * Represents extras information in scoring UI.
- */
 export interface Extras {
   type: ExtrasType;
   value: boolean;
 }
 
-/**
- * Represents dismissal information in scoring UI.
- */
 export interface Dismissed {
   type: WicketType;
   value: boolean;
 }
 
-/**
- * Data for updating a ball.
- */
+export interface UpdateDeliveryData {
+  assistedById?: number | null;
+  ballInOver: number;
+  batterRuns: number;
+  bowlerId: number;
+  byeRuns?: number;
+  dismissedById?: number | null;
+  dismissedPlayerId?: number | null;
+  id: number;
+  inningsId: number;
+  isLegalDelivery: boolean;
+  isWicket?: boolean;
+  legByeRuns?: number;
+  noBallRuns?: number;
+  nonStrikerId: number;
+  overNumber: number;
+  penaltyRuns?: number;
+  sequenceNo: number;
+  strikerId: number;
+  totalRuns: number;
+  wicketType?: WicketType;
+  wideRuns?: number;
+}
+
+// Backward-compatible type name for existing scorer component.
 export interface UpdateBallData {
   assistPlayerId?: number | null;
   ballNumber: number;
@@ -226,25 +216,12 @@ export interface UpdateBallData {
   wicketType?: WicketType;
 }
 
-// ============================================================================
-// Utility Types
-// ============================================================================
-
-/**
- * Makes all properties of T optional recursively.
- */
 export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
 
-/**
- * Creates a branded type for nominal typing.
- */
 export type Brand<T, B> = T & { readonly __brand: B };
 
-/**
- * Branded ID types for type-safe entity references.
- */
 export type PlayerId = Brand<number, "PlayerId">;
 export type TeamId = Brand<number, "TeamId">;
 export type MatchId = Brand<number, "MatchId">;
@@ -252,9 +229,6 @@ export type InningsId = Brand<number, "InningsId">;
 export type TournamentId = Brand<number, "TournamentId">;
 export type VenueId = Brand<number, "VenueId">;
 
-/**
- * Represents the state of an async operation.
- */
 export type AsyncState<T, E = Error> =
   | { readonly status: "idle" }
   | { readonly status: "loading" }

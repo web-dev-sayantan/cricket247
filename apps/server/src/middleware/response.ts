@@ -1,12 +1,12 @@
 import type { Context } from "hono";
 
-export type ApiResponse<T = unknown> = {
-  success: boolean;
+export interface ApiResponse<T = unknown> {
   data?: T;
   error?: string;
   message?: string;
+  success: boolean;
   timestamp: string;
-};
+}
 
 export function successResponse<T>(
   c: Context,

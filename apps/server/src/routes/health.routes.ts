@@ -13,7 +13,7 @@ healthRoutes.get("/", (c) =>
 );
 
 // Protected health check with DB status
-healthRoutes.get("/detailed", requireAuth, async (c) => {
+healthRoutes.get("/detailed", requireAuth, (c) => {
   try {
     // You can add DB ping here if needed
     return successResponse(c, {
@@ -22,7 +22,7 @@ healthRoutes.get("/detailed", requireAuth, async (c) => {
       timestamp: Date.now(),
       database: "connected",
     });
-  } catch (error) {
+  } catch (_error) {
     return errorResponse(c, "Health check failed", 503);
   }
 });

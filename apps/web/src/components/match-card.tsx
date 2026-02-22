@@ -85,7 +85,7 @@ export const MatchCard = ({ match }: MatchCardProps) => {
             })}
           </div>
 
-          <div className="flex flex-col md:flex-row gap-4 md:gap-2 pt-2">
+          <div className="flex flex-col gap-4 pt-2 md:flex-row md:gap-2">
             <Link
               className="flex-1"
               params={{ matchId: String(match.id) }}

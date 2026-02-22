@@ -26,6 +26,7 @@
     "deploy": "bunx wrangler deploy --config wrangler.jsonc",
     "deploy:dry-run": "bunx wrangler deploy --dry-run --config wrangler.jsonc",
     "db:local": "turso dev --db-file local.db",
+    "db:kit": "drizzle-kit",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:generate": "drizzle-kit generate",

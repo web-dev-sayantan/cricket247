@@ -1,13 +1,47 @@
 import { passkey } from "@better-auth/passkey";
-import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { type BetterAuthOptions, betterAuth } from "better-auth/minimal";
 import { emailOTP } from "better-auth/plugins";
+import {
+  accounts,
+  passkeys,
+  sessions,
+  users,
+  verifications,
+} from "@/db/schema";
 import { sendEmailOtp } from "@/services/email.service";
 import { db } from "../db";
+
+const SECONDS_PER_MINUTE = 60;
+const MINUTES_PER_HOUR = 60;
+const HOURS_PER_DAY = 24;
+const DAYS_PER_WEEK = 7;
+
+const SESSION_COOKIE_CACHE_MAX_AGE = 15 * SECONDS_PER_MINUTE;
+const SESSION_UPDATE_AGE =
+  HOURS_PER_DAY * MINUTES_PER_HOUR * SECONDS_PER_MINUTE;
+const SESSION_EXPIRES_IN =
+  DAYS_PER_WEEK * HOURS_PER_DAY * MINUTES_PER_HOUR * SECONDS_PER_MINUTE;
+
+function getRequiredEnv(key: string): string {
+  const value = process.env[key];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${key}`);
+  }
+  return value;
+}
 
 export const auth = betterAuth<BetterAuthOptions>({
   database: drizzleAdapter(db, {
     provider: "sqlite",
+    usePlural: true,
+    schema: {
+      users,
+      accounts,
+      sessions,
+      verifications,
+      passkeys,
+    },
   }),
   trustedOrigins: [process.env.CORS_ORIGIN || ""],
   emailAndPassword: {
@@ -20,6 +54,14 @@ export const auth = betterAuth<BetterAuthOptions>({
       httpOnly: true,
     },
     database: { generateId: false },
+  },
+  session: {
+    expiresIn: SESSION_EXPIRES_IN,
+    updateAge: SESSION_UPDATE_AGE,
+    cookieCache: {
+      enabled: true,
+      maxAge: SESSION_COOKIE_CACHE_MAX_AGE,
+    },
   },
   user: {
     additionalFields: {
@@ -34,13 +76,13 @@ export const auth = betterAuth<BetterAuthOptions>({
   socialProviders: {
     google: {
       prompt: "select_account",
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      redirectURI: `${process.env.BETTER_AUTH_APP_URL}/api/auth/callback/google`,
+      clientId: getRequiredEnv("GOOGLE_CLIENT_ID"),
+      clientSecret: getRequiredEnv("GOOGLE_CLIENT_SECRET"),
+      redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/callback/google`,
     },
     facebook: {
-      clientId: process.env.FACEBOOK_CLIENT_ID!,
-      clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
+      clientId: getRequiredEnv("FACEBOOK_CLIENT_ID"),
+      clientSecret: getRequiredEnv("FACEBOOK_CLIENT_SECRET"),
     },
   },
   plugins: [

@@ -1,66 +1,73 @@
-import type { Player } from '@cricket247/server/types';
+import type { Player } from "@cricket247/server/types";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { FilterX, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { FilterX, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
-import { authClient } from '@/lib/auth-client';
-import { client, orpc } from '@/utils/orpc';
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { authClient } from "@/lib/auth-client";
+import { cn } from "@/lib/utils";
+import { client, orpc } from "@/utils/orpc";
 
-const DEFAULT_BATTING_FILTER = 'all';
-const DEFAULT_WICKET_KEEPER_FILTER = 'all';
-const DEFAULT_SORT = 'name-asc';
+import { Route as createPlayerRoute } from "./create";
+
+const DEFAULT_BATTING_FILTER = "all";
+const DEFAULT_WICKET_KEEPER_FILTER = "all";
+const DEFAULT_SORT = "name-asc";
 const DESKTOP_SKELETON_ROWS = 8;
 const MOBILE_SKELETON_CARDS = 5;
 
-const DESKTOP_ROW_BASE = 'grid items-center gap-4 px-5 py-3';
+const DESKTOP_ROW_BASE = "grid items-center gap-4 px-5 py-3";
 const DESKTOP_ROW_WITH_ACTIONS = `${DESKTOP_ROW_BASE} grid-cols-[minmax(0,2.25fr)_90px_150px_minmax(0,1.6fr)_120px_180px]`;
 const DESKTOP_ROW_NO_ACTIONS = `${DESKTOP_ROW_BASE} grid-cols-[minmax(0,2.75fr)_90px_170px_minmax(0,1.7fr)_120px]`;
 
-type SortOption = 'name-asc' | 'name-desc' | 'age-asc' | 'age-desc';
+type SortOption = "name-asc" | "name-desc" | "age-asc" | "age-desc";
 
-type PlayerDraft = {
-  name: string;
+interface PlayerDraft {
   age: string;
   battingStance: string;
   bowlingStance: string;
-  isWicketKeeper: 'yes' | 'no';
-};
-
-type UpdatePlayerPayload = {
+  isWicketKeeper: "yes" | "no";
   name: string;
+}
+
+interface UpdatePlayerPayload {
   age: number;
   battingStance: string;
   bowlingStance: string | null;
   isWicketKeeper: boolean;
-};
+  name: string;
+}
 
-export const Route = createFileRoute('/players/')({
+export const Route = createFileRoute("/players/")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
   const queryClient = useQueryClient();
   const { data: session } = authClient.useSession();
-  const isAdmin = (session?.user as { role?: string } | undefined)?.role === 'admin';
+  const isAdmin =
+    (session?.user as { role?: string } | undefined)?.role === "admin";
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [battingFilter, setBattingFilter] = useState(DEFAULT_BATTING_FILTER);
   const [wicketKeeperFilter, setWicketKeeperFilter] = useState(
     DEFAULT_WICKET_KEEPER_FILTER
@@ -70,8 +77,13 @@ function RouteComponent() {
   const [editingDraft, setEditingDraft] = useState<PlayerDraft | null>(null);
   const [activeDeleteId, setActiveDeleteId] = useState<number | null>(null);
   const [activeUpdateId, setActiveUpdateId] = useState<number | null>(null);
+  const [pendingDeletePlayer, setPendingDeletePlayer] = useState<Player | null>(
+    null
+  );
 
-  const { data: players = [], isLoading } = useQuery(orpc.players.queryOptions());
+  const { data: players = [], isLoading } = useQuery(
+    orpc.players.queryOptions()
+  );
 
   const updatePlayerMutation = useMutation({
     mutationFn: async (input: { id: number; data: UpdatePlayerPayload }) =>
@@ -80,13 +92,13 @@ function RouteComponent() {
       setActiveUpdateId(id);
     },
     onSuccess: async () => {
-      toast.success('Player updated');
+      toast.success("Player updated");
       setEditingPlayerId(null);
       setEditingDraft(null);
       await queryClient.invalidateQueries();
     },
     onError: () => {
-      toast.error('Failed to update player');
+      toast.error("Failed to update player");
     },
     onSettled: () => {
       setActiveUpdateId(null);
@@ -99,13 +111,14 @@ function RouteComponent() {
       setActiveDeleteId(id);
     },
     onSuccess: async () => {
-      toast.success('Player deleted');
+      toast.success("Player deleted");
       setEditingPlayerId(null);
       setEditingDraft(null);
+      setPendingDeletePlayer(null);
       await queryClient.invalidateQueries();
     },
     onError: () => {
-      toast.error('Failed to delete player');
+      toast.error("Failed to delete player");
     },
     onSettled: () => {
       setActiveDeleteId(null);
@@ -113,9 +126,9 @@ function RouteComponent() {
   });
 
   const battingStanceOptions = useMemo(() => {
-    return Array.from(new Set(players.map((player) => player.battingStance))).sort(
-      (first, second) => first.localeCompare(second)
-    );
+    return Array.from(
+      new Set(players.map((player) => player.battingStance))
+    ).sort((first, second) => first.localeCompare(second));
   }, [players]);
 
   const filteredPlayers = useMemo(() => {
@@ -126,17 +139,17 @@ function RouteComponent() {
         normalizedSearch.length === 0 ||
         player.name.toLowerCase().includes(normalizedSearch) ||
         player.battingStance.toLowerCase().includes(normalizedSearch) ||
-        (player.bowlingStance ?? '').toLowerCase().includes(normalizedSearch);
+        (player.bowlingStance ?? "").toLowerCase().includes(normalizedSearch);
 
       const matchesBattingFilter =
         battingFilter === DEFAULT_BATTING_FILTER ||
         player.battingStance === battingFilter;
 
       let matchesWicketKeeperFilter = true;
-      if (wicketKeeperFilter === 'yes') {
+      if (wicketKeeperFilter === "yes") {
         matchesWicketKeeperFilter = player.isWicketKeeper;
       }
-      if (wicketKeeperFilter === 'no') {
+      if (wicketKeeperFilter === "no") {
         matchesWicketKeeperFilter = !player.isWicketKeeper;
       }
 
@@ -144,16 +157,16 @@ function RouteComponent() {
     });
 
     const sorted = [...filtered];
-    if (sortBy === 'name-asc') {
+    if (sortBy === "name-asc") {
       sorted.sort((first, second) => first.name.localeCompare(second.name));
     }
-    if (sortBy === 'name-desc') {
+    if (sortBy === "name-desc") {
       sorted.sort((first, second) => second.name.localeCompare(first.name));
     }
-    if (sortBy === 'age-asc') {
+    if (sortBy === "age-asc") {
       sorted.sort((first, second) => first.age - second.age);
     }
-    if (sortBy === 'age-desc') {
+    if (sortBy === "age-desc") {
       sorted.sort((first, second) => second.age - first.age);
     }
 
@@ -166,10 +179,12 @@ function RouteComponent() {
     wicketKeeperFilter !== DEFAULT_WICKET_KEEPER_FILTER ||
     sortBy !== DEFAULT_SORT;
 
-  const desktopRowClass = isAdmin ? DESKTOP_ROW_WITH_ACTIONS : DESKTOP_ROW_NO_ACTIONS;
+  const desktopRowClass = isAdmin
+    ? DESKTOP_ROW_WITH_ACTIONS
+    : DESKTOP_ROW_NO_ACTIONS;
 
   const handleResetFilters = () => {
-    setSearchQuery('');
+    setSearchQuery("");
     setBattingFilter(DEFAULT_BATTING_FILTER);
     setWicketKeeperFilter(DEFAULT_WICKET_KEEPER_FILTER);
     setSortBy(DEFAULT_SORT);
@@ -181,8 +196,8 @@ function RouteComponent() {
       name: player.name,
       age: String(player.age),
       battingStance: player.battingStance,
-      bowlingStance: player.bowlingStance ?? '',
-      isWicketKeeper: player.isWicketKeeper ? 'yes' : 'no',
+      bowlingStance: player.bowlingStance ?? "",
+      isWicketKeeper: player.isWicketKeeper ? "yes" : "no",
     });
   };
 
@@ -202,19 +217,19 @@ function RouteComponent() {
 
     const normalizedName = editingDraft.name.trim();
     if (normalizedName.length === 0) {
-      toast.error('Player name is required');
+      toast.error("Player name is required");
       return;
     }
 
     const parsedAge = Number.parseInt(editingDraft.age, 10);
     if (!Number.isFinite(parsedAge) || parsedAge <= 0) {
-      toast.error('Age must be a positive number');
+      toast.error("Age must be a positive number");
       return;
     }
 
     const normalizedBattingStance = editingDraft.battingStance.trim();
     if (normalizedBattingStance.length === 0) {
-      toast.error('Batting stance is required');
+      toast.error("Batting stance is required");
       return;
     }
 
@@ -227,22 +242,26 @@ function RouteComponent() {
         battingStance: normalizedBattingStance,
         bowlingStance:
           normalizedBowlingStance.length > 0 ? normalizedBowlingStance : null,
-        isWicketKeeper: editingDraft.isWicketKeeper === 'yes',
+        isWicketKeeper: editingDraft.isWicketKeeper === "yes",
       },
     });
   };
 
   const handleDelete = (player: Player) => {
-    const shouldDelete = window.confirm(
-      `Delete ${player.name}? This action cannot be undone.`
-    );
+    setPendingDeletePlayer(player);
+  };
 
-    if (!shouldDelete) {
+  const handleConfirmDelete = () => {
+    if (!pendingDeletePlayer) {
       return;
     }
 
-    deletePlayerMutation.mutate(player.id);
+    deletePlayerMutation.mutate(pendingDeletePlayer.id);
   };
+
+  const isDeleteDialogOpen = pendingDeletePlayer !== null;
+  const isConfirmDeletePending =
+    pendingDeletePlayer !== null && activeDeleteId === pendingDeletePlayer.id;
 
   const isEditing = (playerId: number) =>
     editingPlayerId === playerId && editingDraft !== null;
@@ -264,12 +283,10 @@ function RouteComponent() {
               </p>
             </div>
             {isAdmin ? (
-              <Button asChild>
-                <Link to="/players/create">
-                  <Plus />
-                  Add Player
-                </Link>
-              </Button>
+              <Link className={buttonVariants()} to="/players/create">
+                <Plus />
+                Add Player
+              </Link>
             ) : null}
           </div>
         </header>
@@ -277,7 +294,7 @@ function RouteComponent() {
         <section className="space-y-4 rounded-xl border bg-card p-4 shadow-sm md:p-5">
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_210px_200px_190px_auto]">
             <div className="relative">
-              <Search className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-2.5 size-4 text-muted-foreground" />
+              <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 aria-label="Search players"
                 className="pl-8"
@@ -295,11 +312,16 @@ function RouteComponent() {
               }}
               value={battingFilter}
             >
-              <SelectTrigger aria-label="Filter by batting stance" className="w-full">
+              <SelectTrigger
+                aria-label="Filter by batting stance"
+                className="w-full"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={DEFAULT_BATTING_FILTER}>All batting</SelectItem>
+                <SelectItem value={DEFAULT_BATTING_FILTER}>
+                  All batting
+                </SelectItem>
                 {battingStanceOptions.map((stance) => (
                   <SelectItem key={stance} value={stance}>
                     {stance}
@@ -316,7 +338,10 @@ function RouteComponent() {
               }}
               value={wicketKeeperFilter}
             >
-              <SelectTrigger aria-label="Filter by wicket keeper" className="w-full">
+              <SelectTrigger
+                aria-label="Filter by wicket keeper"
+                className="w-full"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -375,14 +400,15 @@ function RouteComponent() {
           </>
         ) : null}
 
-        {!isLoading && !hasPlayers ? (
+        {isLoading || hasPlayers ? null : (
           <section className="rounded-xl border border-dashed bg-card p-10 text-center">
             <h2 className="font-medium text-lg">No players found</h2>
             <p className="mt-1 text-muted-foreground text-sm">
-              Add players to start building your squad.
+              <Link to={createPlayerRoute.to}>Add players</Link> to start
+              building your squad.
             </p>
           </section>
-        ) : null}
+        )}
 
         {!isLoading && hasPlayers && !hasFilteredPlayers ? (
           <section className="rounded-xl border border-dashed bg-card p-10 text-center">
@@ -402,7 +428,9 @@ function RouteComponent() {
         {!isLoading && hasFilteredPlayers ? (
           <>
             <section className="hidden overflow-hidden rounded-xl border bg-card md:block">
-              <div className={cn(desktopRowClass, 'border-b bg-muted/30 py-2.5')}>
+              <div
+                className={cn(desktopRowClass, "border-b bg-muted/30 py-2.5")}
+              >
                 <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
                   Name
                 </span>
@@ -425,6 +453,7 @@ function RouteComponent() {
                 ) : null}
               </div>
 
+              {/* biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Player row render path handles edit/display states inline. */}
               {filteredPlayers.map((player, index) => {
                 const isRowEditing = isEditing(player.id);
                 const isRowPending =
@@ -436,8 +465,8 @@ function RouteComponent() {
                     <div
                       className={cn(
                         desktopRowClass,
-                        'bg-muted/10',
-                        hasBottomBorder ? 'border-b' : null
+                        "bg-muted/10",
+                        hasBottomBorder ? "border-b" : null
                       )}
                       key={player.id}
                     >
@@ -511,7 +540,7 @@ function RouteComponent() {
                       />
                       <Select
                         onValueChange={(value) => {
-                          if (value === 'yes' || value === 'no') {
+                          if (value === "yes" || value === "no") {
                             setEditingDraft((draft) =>
                               draft
                                 ? {
@@ -559,9 +588,9 @@ function RouteComponent() {
                   <div
                     className={cn(
                       desktopRowClass,
-                      'min-h-16',
-                      isRowPending ? 'opacity-60' : null,
-                      hasBottomBorder ? 'border-b' : null
+                      "min-h-16",
+                      isRowPending ? "opacity-60" : null,
+                      hasBottomBorder ? "border-b" : null
                     )}
                     key={player.id}
                   >
@@ -569,7 +598,7 @@ function RouteComponent() {
                     <div>{player.age}</div>
                     <div className="truncate">{player.battingStance}</div>
                     <div className="truncate text-muted-foreground">
-                      {player.bowlingStance ?? '-'}
+                      {player.bowlingStance ?? "-"}
                     </div>
                     <div>
                       {player.isWicketKeeper ? (
@@ -691,7 +720,7 @@ function RouteComponent() {
                         />
                         <Select
                           onValueChange={(value) => {
-                            if (value === 'yes' || value === 'no') {
+                            if (value === "yes" || value === "no") {
                               setEditingDraft((draft) =>
                                 draft
                                   ? {
@@ -739,11 +768,19 @@ function RouteComponent() {
                 }
 
                 return (
-                  <Card className={cn('gap-4 py-4', isCardPending ? 'opacity-60' : null)} key={player.id}>
+                  <Card
+                    className={cn(
+                      "gap-4 py-4",
+                      isCardPending ? "opacity-60" : null
+                    )}
+                    key={player.id}
+                  >
                     <CardContent className="space-y-4 px-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <h3 className="font-medium text-base">{player.name}</h3>
+                          <h3 className="font-medium text-base">
+                            {player.name}
+                          </h3>
                           <p className="text-muted-foreground text-xs">
                             Player #{player.id}
                           </p>
@@ -761,12 +798,16 @@ function RouteComponent() {
                           <dd>{player.age}</dd>
                         </div>
                         <div className="space-y-1">
-                          <dt className="text-muted-foreground text-xs">Batting</dt>
+                          <dt className="text-muted-foreground text-xs">
+                            Batting
+                          </dt>
                           <dd>{player.battingStance}</dd>
                         </div>
                         <div className="col-span-2 space-y-1">
-                          <dt className="text-muted-foreground text-xs">Bowling</dt>
-                          <dd>{player.bowlingStance ?? '-'}</dd>
+                          <dt className="text-muted-foreground text-xs">
+                            Bowling
+                          </dt>
+                          <dd>{player.bowlingStance ?? "-"}</dd>
                         </div>
                       </dl>
 
@@ -804,17 +845,57 @@ function RouteComponent() {
           </>
         ) : null}
       </div>
+
+      <Dialog
+        onOpenChange={(open) => {
+          if (!(open || isConfirmDeletePending)) {
+            setPendingDeletePlayer(null);
+          }
+        }}
+        open={isDeleteDialogOpen}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete player?</DialogTitle>
+            <DialogDescription>
+              {pendingDeletePlayer
+                ? `This will permanently delete ${pendingDeletePlayer.name}. This action cannot be undone.`
+                : "This action cannot be undone."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              disabled={isConfirmDeletePending}
+              onClick={() => setPendingDeletePlayer(null)}
+              type="button"
+              variant="outline"
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={isConfirmDeletePending}
+              onClick={handleConfirmDelete}
+              type="button"
+              variant="destructive"
+            >
+              {isConfirmDeletePending ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
 function DesktopSkeletonList({ showActions }: { showActions: boolean }) {
-  const rowClass = showActions ? DESKTOP_ROW_WITH_ACTIONS : DESKTOP_ROW_NO_ACTIONS;
+  const rowClass = showActions
+    ? DESKTOP_ROW_WITH_ACTIONS
+    : DESKTOP_ROW_NO_ACTIONS;
   const rows = Array.from({ length: DESKTOP_SKELETON_ROWS });
 
   return (
     <section className="hidden overflow-hidden rounded-xl border bg-card md:block">
-      <div className={cn(rowClass, 'border-b bg-muted/30 py-2.5')}>
+      <div className={cn(rowClass, "border-b bg-muted/30 py-2.5")}>
         <Skeleton className="h-3 w-20" />
         <Skeleton className="h-3 w-12" />
         <Skeleton className="h-3 w-20" />
@@ -824,7 +905,7 @@ function DesktopSkeletonList({ showActions }: { showActions: boolean }) {
       </div>
       {rows.map((_, index) => (
         <div
-          className={cn(rowClass, index < rows.length - 1 ? 'border-b' : null)}
+          className={cn(rowClass, index < rows.length - 1 ? "border-b" : null)}
           key={`desktop-skeleton-row-${String(index)}`}
         >
           <Skeleton className="h-4 w-3/4" />
@@ -850,7 +931,10 @@ function MobileSkeletonCards() {
   return (
     <section className="space-y-4 md:hidden">
       {cards.map((_, index) => (
-        <Card className="gap-4 py-4" key={`mobile-skeleton-card-${String(index)}`}>
+        <Card
+          className="gap-4 py-4"
+          key={`mobile-skeleton-card-${String(index)}`}
+        >
           <CardContent className="space-y-4 px-4">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
