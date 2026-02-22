@@ -1,11 +1,19 @@
 import type { Player } from "@cricket247/server/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { FilterX, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import {
+  ChevronDown,
+  FilterX,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +22,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -24,6 +38,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { authClient } from "@/lib/auth-client";
+import { COUNTRIES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { client, orpc } from "@/utils/orpc";
 
@@ -32,30 +47,223 @@ import { Route as createPlayerRoute } from "./create";
 const DEFAULT_BATTING_FILTER = "all";
 const DEFAULT_WICKET_KEEPER_FILTER = "all";
 const DEFAULT_SORT = "name-asc";
-const DESKTOP_SKELETON_ROWS = 8;
-const MOBILE_SKELETON_CARDS = 5;
+const UNSPECIFIED_NATIONALITY = "unspecified";
+const DATE_FROM_SECONDS_THRESHOLD = 1_000_000_000_000;
+const SECONDS_TO_MILLISECONDS = 1000;
+const EXPANDED_SKELETON_ROWS = 6;
 
-const DESKTOP_ROW_BASE = "grid items-center gap-4 px-5 py-3";
-const DESKTOP_ROW_WITH_ACTIONS = `${DESKTOP_ROW_BASE} grid-cols-[minmax(0,2.25fr)_90px_150px_minmax(0,1.6fr)_120px_180px]`;
-const DESKTOP_ROW_NO_ACTIONS = `${DESKTOP_ROW_BASE} grid-cols-[minmax(0,2.75fr)_90px_170px_minmax(0,1.7fr)_120px]`;
+const battingStanceValues = ["Right handed", "Left handed"] as const;
+const playerSexValues = [
+  "Male",
+  "Female",
+  "Other",
+  "Prefer not to say",
+] as const;
+const playerRoleValues = [
+  "Batter",
+  "Bowler",
+  "All-rounder",
+  "Wicket Keeper",
+] as const;
+
+const dateFormatter = new Intl.DateTimeFormat("en", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+});
 
 type SortOption = "name-asc" | "name-desc" | "age-asc" | "age-desc";
+type PlayerSex = (typeof playerSexValues)[number];
+type PlayerRole = (typeof playerRoleValues)[number];
+type BattingStance = (typeof battingStanceValues)[number];
+type Country = (typeof COUNTRIES)[number];
 
-interface PlayerDraft {
-  age: string;
-  battingStance: string;
-  bowlingStance: string;
-  isWicketKeeper: "yes" | "no";
-  name: string;
-}
+const getDefaultDob = () => {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() - 18);
+  return date;
+};
 
-interface UpdatePlayerPayload {
-  age: number;
-  battingStance: string;
-  bowlingStance: string | null;
-  isWicketKeeper: boolean;
-  name: string;
-}
+const formatDateInputValue = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const parseDateInputValue = (value: string) => {
+  const parsedDate = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return null;
+  }
+
+  return parsedDate;
+};
+
+const parseOptionalInteger = (value: string) => {
+  if (value.trim().length === 0) {
+    return undefined;
+  }
+
+  const parsedValue = Number.parseInt(value, 10);
+  if (Number.isNaN(parsedValue)) {
+    return undefined;
+  }
+
+  return parsedValue;
+};
+
+const calculateAgeFromDob = (dob: Date) => {
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const monthDifference = today.getMonth() - dob.getMonth();
+  const hasNotHadBirthdayYet =
+    monthDifference < 0 ||
+    (monthDifference === 0 && today.getDate() < dob.getDate());
+
+  if (hasNotHadBirthdayYet) {
+    age -= 1;
+  }
+
+  return Math.max(age, 0);
+};
+
+const isValidUrl = (value: string) => {
+  try {
+    new URL(value);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const isCountry = (value: string): value is Country =>
+  COUNTRIES.includes(value as Country);
+
+const normalizeSex = (value: string | null | undefined): PlayerSex => {
+  const resolved = playerSexValues.find((item) => item === value);
+  return resolved ?? "Prefer not to say";
+};
+
+const normalizeRole = (value: string | null | undefined): PlayerRole => {
+  const resolved = playerRoleValues.find((item) => item === value);
+  return resolved ?? "Batter";
+};
+
+const normalizeBattingStance = (
+  value: string | null | undefined
+): BattingStance => {
+  const resolved = battingStanceValues.find((item) => item === value);
+  return resolved ?? "Right handed";
+};
+
+const resolveNumberTimestamp = (value: number) => {
+  const normalizedValue =
+    value < DATE_FROM_SECONDS_THRESHOLD
+      ? value * SECONDS_TO_MILLISECONDS
+      : value;
+  return new Date(normalizedValue);
+};
+
+const resolvePlayerDob = (value: Player["dob"]) => {
+  if (value instanceof Date) {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    const parsed = resolveNumberTimestamp(value);
+    return Number.isNaN(parsed.getTime()) ? getDefaultDob() : parsed;
+  }
+
+  if (typeof value === "string") {
+    const numericValue = Number(value);
+    if (!Number.isNaN(numericValue)) {
+      const parsedNumericDate = resolveNumberTimestamp(numericValue);
+      if (!Number.isNaN(parsedNumericDate.getTime())) {
+        return parsedNumericDate;
+      }
+    }
+
+    const parsedDate = new Date(value);
+    if (!Number.isNaN(parsedDate.getTime())) {
+      return parsedDate;
+    }
+  }
+
+  return getDefaultDob();
+};
+
+const formatDateDisplay = (value: Player["dob"]) => {
+  const resolvedDate = resolvePlayerDob(value);
+  return dateFormatter.format(resolvedDate);
+};
+
+const getNationalityLabel = (value: string | null | undefined) => {
+  return value?.trim().length ? value : "Not specified";
+};
+
+const playerEditSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "Player name must be at least 2 characters")
+    .max(100, "Player name must be at most 100 characters"),
+  dob: z.date().max(new Date(), "Date of birth cannot be in the future"),
+  sex: z.enum(playerSexValues),
+  nationality: z.enum(COUNTRIES).optional(),
+  height: z
+    .number()
+    .int("Height must be a whole number")
+    .min(1, "Height must be at least 1 cm")
+    .max(300, "Height must be at most 300 cm")
+    .optional(),
+  weight: z
+    .number()
+    .int("Weight must be a whole number")
+    .min(1, "Weight must be at least 1 kg")
+    .max(250, "Weight must be at most 250 kg")
+    .optional(),
+  image: z
+    .string()
+    .trim()
+    .max(2048, "Image URL is too long")
+    .optional()
+    .refine(
+      (value) => value === undefined || value.length === 0 || isValidUrl(value),
+      "Image must be a valid URL"
+    ),
+  role: z.enum(playerRoleValues),
+  battingStance: z.enum(battingStanceValues),
+  bowlingStance: z
+    .string()
+    .trim()
+    .max(100, "Bowling stance must be at most 100 characters")
+    .optional(),
+});
+
+type PlayerDraft = z.infer<typeof playerEditSchema>;
+type UpdatePlayerInput = Parameters<typeof client.updatePlayer>[0];
+
+const createPlayerDraft = (player: Player): PlayerDraft => {
+  const nationality =
+    typeof player.nationality === "string" && isCountry(player.nationality)
+      ? player.nationality
+      : undefined;
+
+  return {
+    name: player.name,
+    dob: resolvePlayerDob(player.dob),
+    sex: normalizeSex(player.sex),
+    nationality,
+    height: typeof player.height === "number" ? player.height : undefined,
+    weight: typeof player.weight === "number" ? player.weight : undefined,
+    image: player.image ?? "",
+    role: normalizeRole(player.role),
+    battingStance: normalizeBattingStance(player.battingStance),
+    bowlingStance: player.bowlingStance ?? "",
+  };
+};
 
 export const Route = createFileRoute("/players/")({
   component: RouteComponent,
@@ -73,6 +281,7 @@ function RouteComponent() {
     DEFAULT_WICKET_KEEPER_FILTER
   );
   const [sortBy, setSortBy] = useState<SortOption>(DEFAULT_SORT);
+  const [expandedPlayerId, setExpandedPlayerId] = useState<number | null>(null);
   const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
   const [editingDraft, setEditingDraft] = useState<PlayerDraft | null>(null);
   const [activeDeleteId, setActiveDeleteId] = useState<number | null>(null);
@@ -86,8 +295,7 @@ function RouteComponent() {
   );
 
   const updatePlayerMutation = useMutation({
-    mutationFn: async (input: { id: number; data: UpdatePlayerPayload }) =>
-      client.updatePlayer(input),
+    mutationFn: async (input: UpdatePlayerInput) => client.updatePlayer(input),
     onMutate: ({ id }) => {
       setActiveUpdateId(id);
     },
@@ -110,11 +318,19 @@ function RouteComponent() {
     onMutate: (id) => {
       setActiveDeleteId(id);
     },
-    onSuccess: async () => {
+    onSuccess: async (_, deletedId) => {
       toast.success("Player deleted");
-      setEditingPlayerId(null);
-      setEditingDraft(null);
       setPendingDeletePlayer(null);
+
+      if (expandedPlayerId === deletedId) {
+        setExpandedPlayerId(null);
+      }
+
+      if (editingPlayerId === deletedId) {
+        setEditingPlayerId(null);
+        setEditingDraft(null);
+      }
+
       await queryClient.invalidateQueries();
     },
     onError: () => {
@@ -138,8 +354,10 @@ function RouteComponent() {
       const matchesSearch =
         normalizedSearch.length === 0 ||
         player.name.toLowerCase().includes(normalizedSearch) ||
+        player.role.toLowerCase().includes(normalizedSearch) ||
         player.battingStance.toLowerCase().includes(normalizedSearch) ||
-        (player.bowlingStance ?? "").toLowerCase().includes(normalizedSearch);
+        (player.bowlingStance ?? "").toLowerCase().includes(normalizedSearch) ||
+        (player.nationality ?? "").toLowerCase().includes(normalizedSearch);
 
       const matchesBattingFilter =
         battingFilter === DEFAULT_BATTING_FILTER ||
@@ -179,10 +397,6 @@ function RouteComponent() {
     wicketKeeperFilter !== DEFAULT_WICKET_KEEPER_FILTER ||
     sortBy !== DEFAULT_SORT;
 
-  const desktopRowClass = isAdmin
-    ? DESKTOP_ROW_WITH_ACTIONS
-    : DESKTOP_ROW_NO_ACTIONS;
-
   const handleResetFilters = () => {
     setSearchQuery("");
     setBattingFilter(DEFAULT_BATTING_FILTER);
@@ -190,15 +404,23 @@ function RouteComponent() {
     setSortBy(DEFAULT_SORT);
   };
 
+  const handleToggleExpand = (playerId: number) => {
+    if (editingPlayerId === playerId && editingDraft) {
+      return;
+    }
+
+    if (editingPlayerId !== null && editingPlayerId !== playerId) {
+      setEditingPlayerId(null);
+      setEditingDraft(null);
+    }
+
+    setExpandedPlayerId((current) => (current === playerId ? null : playerId));
+  };
+
   const handleEditStart = (player: Player) => {
     setEditingPlayerId(player.id);
-    setEditingDraft({
-      name: player.name,
-      age: String(player.age),
-      battingStance: player.battingStance,
-      bowlingStance: player.bowlingStance ?? "",
-      isWicketKeeper: player.isWicketKeeper ? "yes" : "no",
-    });
+    setExpandedPlayerId(player.id);
+    setEditingDraft(createPlayerDraft(player));
   };
 
   const handleEditCancel = () => {
@@ -215,36 +437,45 @@ function RouteComponent() {
       return;
     }
 
-    const normalizedName = editingDraft.name.trim();
-    if (normalizedName.length === 0) {
-      toast.error("Player name is required");
+    const parsedDraft = playerEditSchema.safeParse(editingDraft);
+    if (!parsedDraft.success) {
+      const firstIssue = parsedDraft.error.issues.at(0);
+      toast.error(firstIssue?.message ?? "Please review form fields");
       return;
     }
 
-    const parsedAge = Number.parseInt(editingDraft.age, 10);
-    if (!Number.isFinite(parsedAge) || parsedAge <= 0) {
-      toast.error("Age must be a positive number");
-      return;
-    }
+    const normalizedBowlingStance =
+      parsedDraft.data.bowlingStance?.trim() ?? "";
+    const normalizedImage = parsedDraft.data.image?.trim() ?? "";
 
-    const normalizedBattingStance = editingDraft.battingStance.trim();
-    if (normalizedBattingStance.length === 0) {
-      toast.error("Batting stance is required");
-      return;
-    }
-
-    const normalizedBowlingStance = editingDraft.bowlingStance.trim();
     updatePlayerMutation.mutate({
       id: editingPlayerId,
       data: {
-        name: normalizedName,
-        age: parsedAge,
-        battingStance: normalizedBattingStance,
+        ...parsedDraft.data,
+        age: calculateAgeFromDob(parsedDraft.data.dob),
+        isWicketKeeper: parsedDraft.data.role === "Wicket Keeper",
+        name: parsedDraft.data.name.trim(),
         bowlingStance:
-          normalizedBowlingStance.length > 0 ? normalizedBowlingStance : null,
-        isWicketKeeper: editingDraft.isWicketKeeper === "yes",
+          normalizedBowlingStance.length > 0
+            ? normalizedBowlingStance
+            : undefined,
+        image: normalizedImage.length > 0 ? normalizedImage : undefined,
       },
     });
+  };
+
+  const handleDraftChange = <K extends keyof PlayerDraft>(
+    key: K,
+    value: PlayerDraft[K]
+  ) => {
+    setEditingDraft((draft) =>
+      draft
+        ? {
+            ...draft,
+            [key]: value,
+          }
+        : draft
+    );
   };
 
   const handleDelete = (player: Player) => {
@@ -262,9 +493,6 @@ function RouteComponent() {
   const isDeleteDialogOpen = pendingDeletePlayer !== null;
   const isConfirmDeletePending =
     pendingDeletePlayer !== null && activeDeleteId === pendingDeletePlayer.id;
-
-  const isEditing = (playerId: number) =>
-    editingPlayerId === playerId && editingDraft !== null;
 
   const hasPlayers = players.length > 0;
   const hasFilteredPlayers = filteredPlayers.length > 0;
@@ -393,12 +621,7 @@ function RouteComponent() {
           </div>
         </section>
 
-        {isLoading ? (
-          <>
-            <DesktopSkeletonList showActions={isAdmin} />
-            <MobileSkeletonCards />
-          </>
-        ) : null}
+        {isLoading ? <AccordionSkeletonList /> : null}
 
         {isLoading || hasPlayers ? null : (
           <section className="rounded-xl border border-dashed bg-card p-10 text-center">
@@ -426,423 +649,43 @@ function RouteComponent() {
         ) : null}
 
         {!isLoading && hasFilteredPlayers ? (
-          <>
-            <section className="hidden overflow-hidden rounded-xl border bg-card md:block">
-              <div
-                className={cn(desktopRowClass, "border-b bg-muted/30 py-2.5")}
-              >
-                <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                  Name
-                </span>
-                <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                  Age
-                </span>
-                <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                  Batting
-                </span>
-                <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                  Bowling
-                </span>
-                <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                  Keeper
-                </span>
-                {isAdmin ? (
-                  <span className="text-right font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                    Actions
-                  </span>
-                ) : null}
-              </div>
+          <section className="overflow-hidden rounded-xl border bg-card">
+            <div className="hidden grid-cols-[minmax(0,2.2fr)_170px_160px_minmax(0,1.8fr)_36px] items-center gap-4 border-b bg-muted/30 px-5 py-2.5 md:grid">
+              <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                Name
+              </span>
+              <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                Role
+              </span>
+              <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                Age
+              </span>
+              <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                Nationality
+              </span>
+              <span className="sr-only">Toggle details</span>
+            </div>
 
-              {/* biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Player row render path handles edit/display states inline. */}
-              {filteredPlayers.map((player, index) => {
-                const isRowEditing = isEditing(player.id);
-                const isRowPending =
-                  activeDeleteId === player.id || activeUpdateId === player.id;
-                const hasBottomBorder = index < filteredPlayers.length - 1;
-
-                if (isRowEditing && editingDraft) {
-                  return (
-                    <div
-                      className={cn(
-                        desktopRowClass,
-                        "bg-muted/10",
-                        hasBottomBorder ? "border-b" : null
-                      )}
-                      key={player.id}
-                    >
-                      <Input
-                        onChange={(event) =>
-                          setEditingDraft((draft) =>
-                            draft
-                              ? {
-                                  ...draft,
-                                  name: event.target.value,
-                                }
-                              : draft
-                          )
-                        }
-                        value={editingDraft.name}
-                      />
-                      <Input
-                        min={1}
-                        onChange={(event) =>
-                          setEditingDraft((draft) =>
-                            draft
-                              ? {
-                                  ...draft,
-                                  age: event.target.value,
-                                }
-                              : draft
-                          )
-                        }
-                        type="number"
-                        value={editingDraft.age}
-                      />
-                      <Select
-                        onValueChange={(value) => {
-                          if (value) {
-                            setEditingDraft((draft) =>
-                              draft
-                                ? {
-                                    ...draft,
-                                    battingStance: value,
-                                  }
-                                : draft
-                            );
-                          }
-                        }}
-                        value={editingDraft.battingStance}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {battingStanceOptions.map((stance) => (
-                            <SelectItem key={stance} value={stance}>
-                              {stance}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Input
-                        onChange={(event) =>
-                          setEditingDraft((draft) =>
-                            draft
-                              ? {
-                                  ...draft,
-                                  bowlingStance: event.target.value,
-                                }
-                              : draft
-                          )
-                        }
-                        placeholder="Optional"
-                        value={editingDraft.bowlingStance}
-                      />
-                      <Select
-                        onValueChange={(value) => {
-                          if (value === "yes" || value === "no") {
-                            setEditingDraft((draft) =>
-                              draft
-                                ? {
-                                    ...draft,
-                                    isWicketKeeper: value,
-                                  }
-                                : draft
-                            );
-                          }
-                        }}
-                        value={editingDraft.isWicketKeeper}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="yes">Yes</SelectItem>
-                          <SelectItem value="no">No</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          disabled={isRowPending}
-                          onClick={handleSaveEdit}
-                          size="sm"
-                          type="button"
-                        >
-                          Save
-                        </Button>
-                        <Button
-                          disabled={isRowPending}
-                          onClick={handleEditCancel}
-                          size="sm"
-                          type="button"
-                          variant="ghost"
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  );
+            {filteredPlayers.map((player, index) => (
+              <PlayerAccordionRow
+                draft={editingPlayerId === player.id ? editingDraft : null}
+                hasBottomBorder={index < filteredPlayers.length - 1}
+                isAdmin={isAdmin}
+                isExpanded={expandedPlayerId === player.id}
+                isPending={
+                  activeDeleteId === player.id || activeUpdateId === player.id
                 }
-
-                return (
-                  <div
-                    className={cn(
-                      desktopRowClass,
-                      "min-h-16",
-                      isRowPending ? "opacity-60" : null,
-                      hasBottomBorder ? "border-b" : null
-                    )}
-                    key={player.id}
-                  >
-                    <div className="truncate font-medium">{player.name}</div>
-                    <div>{player.age}</div>
-                    <div className="truncate">{player.battingStance}</div>
-                    <div className="truncate text-muted-foreground">
-                      {player.bowlingStance ?? "-"}
-                    </div>
-                    <div>
-                      {player.isWicketKeeper ? (
-                        <span className="rounded-full bg-primary/10 px-2.5 py-1 font-medium text-primary text-xs">
-                          Yes
-                        </span>
-                      ) : (
-                        <span className="rounded-full bg-muted px-2.5 py-1 font-medium text-muted-foreground text-xs">
-                          No
-                        </span>
-                      )}
-                    </div>
-                    {isAdmin ? (
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          disabled={isRowPending}
-                          onClick={() => handleEditStart(player)}
-                          size="sm"
-                          type="button"
-                          variant="outline"
-                        >
-                          <Pencil />
-                          Edit
-                        </Button>
-                        <Button
-                          disabled={isRowPending}
-                          onClick={() => handleDelete(player)}
-                          size="sm"
-                          type="button"
-                          variant="destructive"
-                        >
-                          <Trash2 />
-                          Delete
-                        </Button>
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </section>
-
-            <section className="space-y-4 md:hidden">
-              {filteredPlayers.map((player) => {
-                const isCardEditing = isEditing(player.id);
-                const isCardPending =
-                  activeDeleteId === player.id || activeUpdateId === player.id;
-
-                if (isCardEditing && editingDraft) {
-                  return (
-                    <Card className="gap-4 py-4" key={player.id}>
-                      <CardContent className="space-y-3 px-4">
-                        <Input
-                          onChange={(event) =>
-                            setEditingDraft((draft) =>
-                              draft
-                                ? {
-                                    ...draft,
-                                    name: event.target.value,
-                                  }
-                                : draft
-                            )
-                          }
-                          value={editingDraft.name}
-                        />
-                        <Input
-                          min={1}
-                          onChange={(event) =>
-                            setEditingDraft((draft) =>
-                              draft
-                                ? {
-                                    ...draft,
-                                    age: event.target.value,
-                                  }
-                                : draft
-                            )
-                          }
-                          type="number"
-                          value={editingDraft.age}
-                        />
-                        <Select
-                          onValueChange={(value) => {
-                            if (value) {
-                              setEditingDraft((draft) =>
-                                draft
-                                  ? {
-                                      ...draft,
-                                      battingStance: value,
-                                    }
-                                  : draft
-                              );
-                            }
-                          }}
-                          value={editingDraft.battingStance}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {battingStanceOptions.map((stance) => (
-                              <SelectItem key={stance} value={stance}>
-                                {stance}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Input
-                          onChange={(event) =>
-                            setEditingDraft((draft) =>
-                              draft
-                                ? {
-                                    ...draft,
-                                    bowlingStance: event.target.value,
-                                  }
-                                : draft
-                            )
-                          }
-                          placeholder="Bowling stance (optional)"
-                          value={editingDraft.bowlingStance}
-                        />
-                        <Select
-                          onValueChange={(value) => {
-                            if (value === "yes" || value === "no") {
-                              setEditingDraft((draft) =>
-                                draft
-                                  ? {
-                                      ...draft,
-                                      isWicketKeeper: value,
-                                    }
-                                  : draft
-                              );
-                            }
-                          }}
-                          value={editingDraft.isWicketKeeper}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="yes">Wicket keeper</SelectItem>
-                            <SelectItem value="no">Not a keeper</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <div className="flex gap-2 pt-1">
-                          <Button
-                            className="flex-1"
-                            disabled={isCardPending}
-                            onClick={handleSaveEdit}
-                            size="sm"
-                            type="button"
-                          >
-                            Save
-                          </Button>
-                          <Button
-                            className="flex-1"
-                            disabled={isCardPending}
-                            onClick={handleEditCancel}
-                            size="sm"
-                            type="button"
-                            variant="ghost"
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                }
-
-                return (
-                  <Card
-                    className={cn(
-                      "gap-4 py-4",
-                      isCardPending ? "opacity-60" : null
-                    )}
-                    key={player.id}
-                  >
-                    <CardContent className="space-y-4 px-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="font-medium text-base">
-                            {player.name}
-                          </h3>
-                          <p className="text-muted-foreground text-xs">
-                            Player #{player.id}
-                          </p>
-                        </div>
-                        {player.isWicketKeeper ? (
-                          <span className="rounded-full bg-primary/10 px-2.5 py-1 font-medium text-primary text-xs">
-                            Keeper
-                          </span>
-                        ) : null}
-                      </div>
-
-                      <dl className="grid grid-cols-2 gap-3 text-sm">
-                        <div className="space-y-1">
-                          <dt className="text-muted-foreground text-xs">Age</dt>
-                          <dd>{player.age}</dd>
-                        </div>
-                        <div className="space-y-1">
-                          <dt className="text-muted-foreground text-xs">
-                            Batting
-                          </dt>
-                          <dd>{player.battingStance}</dd>
-                        </div>
-                        <div className="col-span-2 space-y-1">
-                          <dt className="text-muted-foreground text-xs">
-                            Bowling
-                          </dt>
-                          <dd>{player.bowlingStance ?? "-"}</dd>
-                        </div>
-                      </dl>
-
-                      {isAdmin ? (
-                        <div className="flex gap-2 border-t pt-3">
-                          <Button
-                            className="flex-1"
-                            disabled={isCardPending}
-                            onClick={() => handleEditStart(player)}
-                            size="sm"
-                            type="button"
-                            variant="outline"
-                          >
-                            <Pencil />
-                            Edit
-                          </Button>
-                          <Button
-                            className="flex-1"
-                            disabled={isCardPending}
-                            onClick={() => handleDelete(player)}
-                            size="sm"
-                            type="button"
-                            variant="destructive"
-                          >
-                            <Trash2 />
-                            Delete
-                          </Button>
-                        </div>
-                      ) : null}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </section>
-          </>
+                key={player.id}
+                onCancelEdit={handleEditCancel}
+                onDelete={() => handleDelete(player)}
+                onDraftChange={handleDraftChange}
+                onEditStart={() => handleEditStart(player)}
+                onSaveEdit={handleSaveEdit}
+                onToggleExpand={() => handleToggleExpand(player.id)}
+                player={player}
+              />
+            ))}
+          </section>
         ) : null}
       </div>
 
@@ -887,73 +730,527 @@ function RouteComponent() {
   );
 }
 
-function DesktopSkeletonList({ showActions }: { showActions: boolean }) {
-  const rowClass = showActions
-    ? DESKTOP_ROW_WITH_ACTIONS
-    : DESKTOP_ROW_NO_ACTIONS;
-  const rows = Array.from({ length: DESKTOP_SKELETON_ROWS });
+interface PlayerDetailsPanelProps {
+  isAdmin: boolean;
+  isPending: boolean;
+  onDelete: () => void;
+  onEdit: () => void;
+  player: Player;
+}
 
+interface PlayerAccordionRowProps {
+  draft: PlayerDraft | null;
+  hasBottomBorder: boolean;
+  isAdmin: boolean;
+  isExpanded: boolean;
+  isPending: boolean;
+  onCancelEdit: () => void;
+  onDelete: () => void;
+  onDraftChange: <K extends keyof PlayerDraft>(
+    key: K,
+    value: PlayerDraft[K]
+  ) => void;
+  onEditStart: () => void;
+  onSaveEdit: () => void;
+  onToggleExpand: () => void;
+  player: Player;
+}
+
+function PlayerAccordionRow({
+  draft,
+  hasBottomBorder,
+  isAdmin,
+  isExpanded,
+  isPending,
+  onCancelEdit,
+  onDelete,
+  onDraftChange,
+  onEditStart,
+  onSaveEdit,
+  onToggleExpand,
+  player,
+}: PlayerAccordionRowProps) {
   return (
-    <section className="hidden overflow-hidden rounded-xl border bg-card md:block">
-      <div className={cn(rowClass, "border-b bg-muted/30 py-2.5")}>
-        <Skeleton className="h-3 w-20" />
-        <Skeleton className="h-3 w-12" />
-        <Skeleton className="h-3 w-20" />
-        <Skeleton className="h-3 w-20" />
-        <Skeleton className="h-3 w-16" />
-        {showActions ? <Skeleton className="ml-auto h-3 w-16" /> : null}
-      </div>
-      {rows.map((_, index) => (
-        <div
-          className={cn(rowClass, index < rows.length - 1 ? "border-b" : null)}
-          key={`desktop-skeleton-row-${String(index)}`}
-        >
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-4 w-10" />
-          <Skeleton className="h-4 w-4/5" />
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-6 w-14 rounded-full" />
-          {showActions ? (
-            <div className="ml-auto flex gap-2">
-              <Skeleton className="h-8 w-16" />
-              <Skeleton className="h-8 w-16" />
-            </div>
-          ) : null}
+    <article className={cn(hasBottomBorder ? "border-b" : null)}>
+      <button
+        aria-controls={`player-panel-${String(player.id)}`}
+        aria-expanded={isExpanded}
+        className={cn(
+          "w-full px-4 py-3 text-left transition-colors md:px-5",
+          isPending ? "opacity-60" : null,
+          isExpanded ? "bg-muted/20" : "hover:bg-muted/10"
+        )}
+        onClick={onToggleExpand}
+        type="button"
+      >
+        <div className="hidden grid-cols-[minmax(0,2.2fr)_170px_160px_minmax(0,1.8fr)_36px] items-center gap-4 md:grid">
+          <span className="truncate font-medium">{player.name}</span>
+          <span className="truncate">{normalizeRole(player.role)}</span>
+          <span>{player.age}</span>
+          <span className="truncate">
+            {getNationalityLabel(player.nationality)}
+          </span>
+          <ChevronDown
+            className={cn(
+              "ml-auto size-4 transition-transform",
+              isExpanded ? "rotate-180" : null
+            )}
+          />
         </div>
-      ))}
-    </section>
+
+        <div className="space-y-2 md:hidden">
+          <div className="flex items-center justify-between gap-2">
+            <span className="truncate font-medium text-base">
+              {player.name}
+            </span>
+            <ChevronDown
+              className={cn(
+                "size-4 shrink-0 transition-transform",
+                isExpanded ? "rotate-180" : null
+              )}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <span className="text-muted-foreground text-xs">Role</span>
+              <p className="truncate">{normalizeRole(player.role)}</p>
+            </div>
+            <div>
+              <span className="text-muted-foreground text-xs">Age</span>
+              <p>{player.age}</p>
+            </div>
+            <div className="col-span-2">
+              <span className="text-muted-foreground text-xs">Nationality</span>
+              <p className="truncate">
+                {getNationalityLabel(player.nationality)}
+              </p>
+            </div>
+          </div>
+        </div>
+      </button>
+
+      {isExpanded ? (
+        <div
+          className="border-t bg-muted/10 px-4 py-4 md:px-5"
+          id={`player-panel-${String(player.id)}`}
+        >
+          {draft ? (
+            <PlayerEditPanel
+              draft={draft}
+              isPending={isPending}
+              onCancel={onCancelEdit}
+              onDraftChange={onDraftChange}
+              onSave={onSaveEdit}
+            />
+          ) : (
+            <PlayerDetailsPanel
+              isAdmin={isAdmin}
+              isPending={isPending}
+              onDelete={onDelete}
+              onEdit={onEditStart}
+              player={player}
+            />
+          )}
+        </div>
+      ) : null}
+    </article>
   );
 }
 
-function MobileSkeletonCards() {
-  const cards = Array.from({ length: MOBILE_SKELETON_CARDS });
+function PlayerDetailsPanel({
+  isAdmin,
+  isPending,
+  onDelete,
+  onEdit,
+  player,
+}: PlayerDetailsPanelProps) {
+  return (
+    <div className="space-y-4">
+      <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+        <DetailItem label="Player Name" value={player.name} />
+        <DetailItem label="Role" value={normalizeRole(player.role)} />
+        <DetailItem
+          label="Date of Birth"
+          value={formatDateDisplay(player.dob)}
+        />
+        <DetailItem label="Age" value={String(player.age)} />
+        <DetailItem label="Sex" value={normalizeSex(player.sex)} />
+        <DetailItem
+          label="Nationality"
+          value={getNationalityLabel(player.nationality)}
+        />
+        <DetailItem label="Batting Stance" value={player.battingStance} />
+        <DetailItem
+          label="Bowling Stance"
+          value={player.bowlingStance ?? "Not specified"}
+        />
+        <DetailItem
+          label="Wicket Keeper"
+          value={player.isWicketKeeper ? "Yes" : "No"}
+        />
+        <DetailItem
+          label="Height (cm)"
+          value={
+            typeof player.height === "number"
+              ? String(player.height)
+              : "Not specified"
+          }
+        />
+        <DetailItem
+          label="Weight (kg)"
+          value={
+            typeof player.weight === "number"
+              ? String(player.weight)
+              : "Not specified"
+          }
+        />
+        <DetailItem label="Image URL" value={player.image ?? "Not specified"} />
+      </dl>
+
+      {isAdmin ? (
+        <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-3">
+          <Button
+            disabled={isPending}
+            onClick={onDelete}
+            type="button"
+            variant="destructive"
+          >
+            <Trash2 />
+            Delete
+          </Button>
+          <Button
+            className="flex-1 md:flex-none"
+            disabled={isPending}
+            onClick={onEdit}
+            type="button"
+            variant="outline"
+          >
+            <Pencil />
+            Edit
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+interface DetailItemProps {
+  label: string;
+  value: string;
+}
+
+function DetailItem({ label, value }: DetailItemProps) {
+  return (
+    <div className="space-y-1 rounded-md border bg-background p-3">
+      <dt className="text-muted-foreground text-xs">{label}</dt>
+      <dd className="break-words font-medium text-sm">{value}</dd>
+    </div>
+  );
+}
+
+interface PlayerEditPanelProps {
+  draft: PlayerDraft;
+  isPending: boolean;
+  onCancel: () => void;
+  onDraftChange: <K extends keyof PlayerDraft>(
+    key: K,
+    value: PlayerDraft[K]
+  ) => void;
+  onSave: () => void;
+}
+
+function PlayerEditPanel({
+  draft,
+  isPending,
+  onCancel,
+  onDraftChange,
+  onSave,
+}: PlayerEditPanelProps) {
+  return (
+    <form
+      className="space-y-5"
+      onSubmit={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onSave();
+      }}
+    >
+      <FieldGroup>
+        <Field>
+          <FieldLabel htmlFor="edit-player-name">Player Name</FieldLabel>
+          <Input
+            autoComplete="name"
+            id="edit-player-name"
+            onChange={(event) => onDraftChange("name", event.target.value)}
+            placeholder="e.g. Virat Kohli"
+            value={draft.name}
+          />
+        </Field>
+      </FieldGroup>
+
+      <FieldGroup>
+        <Field>
+          <FieldLabel htmlFor="edit-player-dob">Date of Birth</FieldLabel>
+          <Input
+            id="edit-player-dob"
+            onChange={(event) => {
+              const parsedDate = parseDateInputValue(event.target.value);
+              if (parsedDate) {
+                onDraftChange("dob", parsedDate);
+              }
+            }}
+            type="date"
+            value={formatDateInputValue(draft.dob)}
+          />
+        </Field>
+      </FieldGroup>
+
+      <div className="grid gap-5 md:grid-cols-2">
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor="edit-player-sex">Sex</FieldLabel>
+            <Select
+              onValueChange={(value) => {
+                if (value) {
+                  onDraftChange("sex", value as PlayerSex);
+                }
+              }}
+              value={draft.sex}
+            >
+              <SelectTrigger className="w-full" id="edit-player-sex">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {playerSexValues.map((sex) => (
+                  <SelectItem key={sex} value={sex}>
+                    {sex}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        </FieldGroup>
+
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor="edit-player-role">Role</FieldLabel>
+            <Select
+              onValueChange={(value) => {
+                if (value) {
+                  onDraftChange("role", value as PlayerRole);
+                }
+              }}
+              value={draft.role}
+            >
+              <SelectTrigger className="w-full" id="edit-player-role">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {playerRoleValues.map((role) => (
+                  <SelectItem key={role} value={role}>
+                    {role}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        </FieldGroup>
+      </div>
+
+      <div className="grid gap-5 md:grid-cols-2">
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor="edit-player-batting-stance">
+              Batting Stance
+            </FieldLabel>
+            <Select
+              onValueChange={(value) => {
+                if (value) {
+                  onDraftChange("battingStance", value as BattingStance);
+                }
+              }}
+              value={draft.battingStance}
+            >
+              <SelectTrigger className="w-full" id="edit-player-batting-stance">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {battingStanceValues.map((stance) => (
+                  <SelectItem key={stance} value={stance}>
+                    {stance}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        </FieldGroup>
+
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor="edit-player-bowling-stance">
+              Bowling Stance
+            </FieldLabel>
+            <Input
+              id="edit-player-bowling-stance"
+              onChange={(event) =>
+                onDraftChange("bowlingStance", event.target.value)
+              }
+              placeholder="e.g. Right arm fast"
+              value={draft.bowlingStance ?? ""}
+            />
+            <FieldDescription>
+              Leave empty if the player does not bowl.
+            </FieldDescription>
+          </Field>
+        </FieldGroup>
+      </div>
+
+      <FieldGroup>
+        <Field>
+          <FieldLabel htmlFor="edit-player-nationality">Nationality</FieldLabel>
+          <Select
+            onValueChange={(value) => {
+              if (value && value !== UNSPECIFIED_NATIONALITY) {
+                onDraftChange("nationality", value as Country);
+                return;
+              }
+
+              onDraftChange("nationality", undefined);
+            }}
+            value={draft.nationality ?? UNSPECIFIED_NATIONALITY}
+          >
+            <SelectTrigger className="w-full" id="edit-player-nationality">
+              <SelectValue placeholder="Select nationality" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={UNSPECIFIED_NATIONALITY}>
+                Not specified
+              </SelectItem>
+              {COUNTRIES.map((country) => (
+                <SelectItem key={country} value={country}>
+                  {country}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FieldDescription>
+            Choose a country from the global country list.
+          </FieldDescription>
+        </Field>
+      </FieldGroup>
+
+      <div className="grid gap-5 md:grid-cols-2">
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor="edit-player-height">Height (cm)</FieldLabel>
+            <Input
+              id="edit-player-height"
+              min={1}
+              onChange={(event) =>
+                onDraftChange(
+                  "height",
+                  parseOptionalInteger(event.target.value)
+                )
+              }
+              placeholder="e.g. 175"
+              type="number"
+              value={draft.height ?? ""}
+            />
+            <FieldDescription>Optional</FieldDescription>
+          </Field>
+        </FieldGroup>
+
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor="edit-player-weight">Weight (kg)</FieldLabel>
+            <Input
+              id="edit-player-weight"
+              min={1}
+              onChange={(event) =>
+                onDraftChange(
+                  "weight",
+                  parseOptionalInteger(event.target.value)
+                )
+              }
+              placeholder="e.g. 72"
+              type="number"
+              value={draft.weight ?? ""}
+            />
+            <FieldDescription>Optional</FieldDescription>
+          </Field>
+        </FieldGroup>
+      </div>
+
+      <FieldGroup>
+        <Field>
+          <FieldLabel htmlFor="edit-player-image">Image URL</FieldLabel>
+          <Input
+            id="edit-player-image"
+            onChange={(event) => onDraftChange("image", event.target.value)}
+            placeholder="https://example.com/player.jpg"
+            type="url"
+            value={draft.image ?? ""}
+          />
+          <FieldDescription>Optional. Use a public image URL.</FieldDescription>
+        </Field>
+      </FieldGroup>
+
+      <div className="justify-end-safe flex flex-wrap items-center gap-2 border-t pt-4">
+        <Button
+          disabled={isPending}
+          onClick={onCancel}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          Cancel
+        </Button>
+        <Button
+          className="flex-1 md:flex-none"
+          disabled={isPending}
+          size="sm"
+          type="submit"
+        >
+          {isPending ? "Saving..." : "Save player"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function AccordionSkeletonList() {
+  const rows = Array.from({ length: EXPANDED_SKELETON_ROWS });
 
   return (
-    <section className="space-y-4 md:hidden">
-      {cards.map((_, index) => (
-        <Card
-          className="gap-4 py-4"
-          key={`mobile-skeleton-card-${String(index)}`}
+    <section className="overflow-hidden rounded-xl border bg-card">
+      <div className="hidden grid-cols-[minmax(0,2.2fr)_170px_160px_minmax(0,1.8fr)_36px] items-center gap-4 border-b bg-muted/30 px-5 py-2.5 md:grid">
+        <Skeleton className="h-3 w-20" />
+        <Skeleton className="h-3 w-16" />
+        <Skeleton className="h-3 w-14" />
+        <Skeleton className="h-3 w-20" />
+        <Skeleton className="ml-auto size-3 rounded-full" />
+      </div>
+      {rows.map((_, index) => (
+        <div
+          className={cn(
+            "space-y-3 px-4 py-4 md:px-5",
+            index < rows.length - 1 ? "border-b" : null
+          )}
+          key={`accordion-skeleton-row-${String(index)}`}
         >
-          <CardContent className="space-y-4 px-4">
-            <div className="flex items-start justify-between">
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-3 w-20" />
-              </div>
-              <Skeleton className="h-6 w-16 rounded-full" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="col-span-2 h-10 w-full" />
-            </div>
-            <div className="flex gap-2 border-t pt-3">
-              <Skeleton className="h-8 w-full" />
-              <Skeleton className="h-8 w-full" />
-            </div>
-          </CardContent>
-        </Card>
+          <div className="hidden grid-cols-[minmax(0,2.2fr)_170px_160px_minmax(0,1.8fr)_36px] items-center gap-4 md:grid">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="ml-auto size-4 rounded-full" />
+          </div>
+          <div className="space-y-2 md:hidden">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-4/5" />
+          </div>
+        </div>
       ))}
     </section>
   );
