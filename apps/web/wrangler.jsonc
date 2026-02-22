@@ -2,7 +2,7 @@
 	"$schema": "./node_modules/wrangler/config-schema.json",
 	"name": "cricket247-web",
 	"main": "./src/worker.ts",
-	"compatibility_date": "2025-04-03",
+	"compatibility_date": "2026-02-20",
 	"services": [
 		{
 			"binding": "API",

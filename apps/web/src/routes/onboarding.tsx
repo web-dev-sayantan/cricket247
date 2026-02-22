@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { authClient } from "@/lib/auth-client";
 import { COUNTRIES } from "@/lib/constants";
+import { uploadProfileImage } from "@/lib/profile-image-upload";
 import { client, orpc, queryClient } from "@/utils/orpc";
 
 const searchSchema = z.object({
@@ -80,6 +81,8 @@ function OnboardingRoute() {
   const [bowlingStance, setBowlingStance] = useState("");
   const [nationality, setNationality] = useState<string>("");
   const [image, setImage] = useState(session?.user.image ?? "");
+  const [uploadedImageName, setUploadedImageName] = useState<string>("");
+  const [imageUploadError, setImageUploadError] = useState<string>("");
   const [claimSearch, setClaimSearch] = useState("");
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [otp, setOtp] = useState("");
@@ -118,6 +121,18 @@ function OnboardingRoute() {
     onSuccess: async () => {
       await queryClient.invalidateQueries();
       navigate({ to: "/dashboard" });
+    },
+  });
+
+  const uploadImageMutation = useMutation({
+    mutationFn: async (file: File) => uploadProfileImage(file),
+    onSuccess: (result, file) => {
+      setImage(result.url);
+      setUploadedImageName(file.name);
+      setImageUploadError("");
+    },
+    onError: (error) => {
+      setImageUploadError(error.message);
     },
   });
 
@@ -279,16 +294,46 @@ function OnboardingRoute() {
                 </Select>
               </Field>
               <Field>
-                <FieldLabel htmlFor="image">Image URL</FieldLabel>
+                <FieldLabel htmlFor="image">Profile image</FieldLabel>
                 <Input
+                  accept="image/jpeg,image/png,image/webp"
                   id="image"
-                  onChange={(event) => setImage(event.target.value)}
-                  value={image ?? ""}
+                  onChange={async (event) => {
+                    const selectedFile = event.target.files?.[0];
+                    if (!selectedFile) {
+                      return;
+                    }
+
+                    try {
+                      await uploadImageMutation.mutateAsync(selectedFile);
+                    } catch {
+                      return;
+                    }
+                  }}
+                  type="file"
                 />
+                <p className="text-muted-foreground text-xs">
+                  JPEG, PNG, or WebP up to 5MB.
+                </p>
+                {uploadImageMutation.isPending ? (
+                  <p className="text-xs">Uploading image...</p>
+                ) : null}
+                {uploadedImageName.length > 0 && image.length > 0 ? (
+                  <p className="text-muted-foreground text-xs">
+                    Uploaded: {uploadedImageName}
+                  </p>
+                ) : null}
+                {imageUploadError.length > 0 ? (
+                  <p className="text-destructive text-xs">{imageUploadError}</p>
+                ) : null}
               </Field>
             </div>
             <Button
-              disabled={!canCreate || createProfileMutation.isPending}
+              disabled={
+                !canCreate ||
+                createProfileMutation.isPending ||
+                uploadImageMutation.isPending
+              }
               onClick={async () => {
                 const parsedDob = new Date(`${dob}T00:00:00`);
                 if (Number.isNaN(parsedDob.getTime())) {

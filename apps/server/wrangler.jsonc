@@ -2,9 +2,15 @@
 	"$schema": "../../node_modules/wrangler/config-schema.json",
 	"name": "cricket247-api",
 	"main": "./src/worker.ts",
-	"compatibility_date": "2025-04-03",
+	"compatibility_date": "2026-02-22",
 	"compatibility_flags": ["nodejs_compat"],
 	"workers_dev": false,
+	"r2_buckets": [
+		{
+			"binding": "PROFILE_IMAGES",
+			"bucket_name": "cricket247-profile-images"
+		}
+	],
 	"observability": {
 		"enabled": true
 	}

@@ -15,6 +15,13 @@ interface WorkerEnv {
   GOOGLE_CLIENT_SECRET?: string;
   NODE_ENV?: string;
   PORT?: string;
+  PROFILE_IMAGE_MAX_SIZE_BYTES?: string;
+  PROFILE_IMAGES?: object;
+  PROFILE_IMAGES_BUCKET_NAME?: string;
+  PROFILE_IMAGES_PUBLIC_BASE_URL?: string;
+  R2_ACCESS_KEY_ID?: string;
+  R2_ACCOUNT_ID?: string;
+  R2_SECRET_ACCESS_KEY?: string;
   RESEND_API_KEY?: string;
 }
 

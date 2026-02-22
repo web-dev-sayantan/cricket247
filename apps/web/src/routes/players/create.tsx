@@ -2,6 +2,7 @@ import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Plus } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { authClient } from "@/lib/auth-client";
 import { COUNTRIES } from "@/lib/constants";
+import { uploadProfileImage } from "@/lib/profile-image-upload";
 import { client } from "@/utils/orpc";
 
 const battingStanceValues = ["Right handed", "Left handed"] as const;
@@ -162,6 +164,7 @@ export const Route = createFileRoute("/players/create")({
 function RouteComponent() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [uploadedImageName, setUploadedImageName] = useState<string>("");
   const { data: session, isPending: isSessionPending } =
     authClient.useSession();
   const isAdmin =
@@ -177,6 +180,13 @@ function RouteComponent() {
     },
     onError: () => {
       toast.error("Failed to create player");
+    },
+  });
+
+  const uploadImageMutation = useMutation({
+    mutationFn: async (file: File) => uploadProfileImage(file),
+    onError: (error) => {
+      toast.error(error.message);
     },
   });
 
@@ -651,21 +661,44 @@ function RouteComponent() {
                       field.state.meta.isTouched && !field.state.meta.isValid;
                     return (
                       <Field data-invalid={isInvalid}>
-                        <FieldLabel htmlFor={field.name}>Image URL</FieldLabel>
+                        <FieldLabel htmlFor={field.name}>
+                          Profile image
+                        </FieldLabel>
                         <Input
+                          accept="image/jpeg,image/png,image/webp"
                           aria-invalid={isInvalid}
                           id={field.name}
-                          onBlur={field.handleBlur}
-                          onChange={(event) =>
-                            field.handleChange(event.target.value)
-                          }
-                          placeholder="https://example.com/player.jpg"
-                          type="url"
-                          value={field.state.value ?? ""}
+                          onChange={async (event) => {
+                            const selectedFile = event.target.files?.[0];
+                            if (!selectedFile) {
+                              return;
+                            }
+
+                            try {
+                              const result =
+                                await uploadImageMutation.mutateAsync(
+                                  selectedFile
+                                );
+                              field.handleChange(result.url);
+                              setUploadedImageName(selectedFile.name);
+                            } catch {
+                              return;
+                            }
+                          }}
+                          type="file"
                         />
                         <FieldDescription>
-                          Optional. Use a public image URL.
+                          Optional. JPEG, PNG, or WebP up to 5MB.
                         </FieldDescription>
+                        {uploadImageMutation.isPending ? (
+                          <p className="text-xs">Uploading image...</p>
+                        ) : null}
+                        {uploadedImageName.length > 0 &&
+                        (field.state.value ?? "").length > 0 ? (
+                          <p className="text-muted-foreground text-xs">
+                            Uploaded: {uploadedImageName}
+                          </p>
+                        ) : null}
                         {isInvalid ? (
                           <FieldError errors={field.state.meta.errors} />
                         ) : null}
@@ -691,7 +724,8 @@ function RouteComponent() {
                       disabled={
                         !state.canSubmit ||
                         state.isSubmitting ||
-                        createPlayerMutation.isPending
+                        createPlayerMutation.isPending ||
+                        uploadImageMutation.isPending
                       }
                       size="sm"
                       type="submit"

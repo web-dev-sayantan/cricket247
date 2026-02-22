@@ -28,6 +28,24 @@ Set these as Worker secrets/vars:
 - `FACEBOOK_CLIENT_ID`
 - `FACEBOOK_CLIENT_SECRET`
 - `FACEBOOK_CLIENT_TOKEN` (optional)
+- `PROFILE_IMAGES_PUBLIC_BASE_URL`
+- `PROFILE_IMAGES_BUCKET_NAME`
+- `R2_ACCOUNT_ID`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- `PROFILE_IMAGE_MAX_SIZE_BYTES` (optional, defaults to `5242880`)
+
+Also configure an R2 bucket binding in `apps/server/wrangler.jsonc`:
+
+- Binding: `PROFILE_IMAGES`
+- Bucket: `cricket247-profile-images` (or your chosen bucket)
+
+For direct browser uploads with presigned PUT URLs, add R2 CORS rules allowing:
+
+- Origins: your web app origins (for example, `https://<your-web-domain>`)
+- Methods: `PUT`, `GET`, `HEAD`
+- Allowed headers: `Content-Type`
+- Exposed headers: `ETag`
 
 ### Web worker (`apps/web/wrangler.jsonc`)
 

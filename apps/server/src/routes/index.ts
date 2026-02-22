@@ -6,6 +6,7 @@ import matchRoutes from "./match.routes";
 import playerRoutes from "./player.routes";
 import scoringRoutes from "./scoring.routes";
 import teamRoutes from "./team.routes";
+import uploadRoutes from "./upload.routes";
 
 const apiRoutes = new Hono();
 
@@ -15,6 +16,7 @@ apiRoutes.route("/matches", matchRoutes);
 apiRoutes.route("/teams", teamRoutes);
 apiRoutes.route("/players", playerRoutes);
 apiRoutes.route("/scoring", scoringRoutes);
+apiRoutes.route("/uploads", uploadRoutes);
 apiRoutes.route("/", managementRoutes);
 
 // Create main API router with version prefix
