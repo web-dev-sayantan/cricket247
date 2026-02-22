@@ -1,12 +1,15 @@
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, like, lte } from "drizzle-orm";
 import { db } from "@/db";
 import {
   organizations,
   playerInningsStats,
   players,
+  playerVerification,
   teamPlayers,
   teams,
   tournaments,
+  user,
+  verification,
 } from "@/db/schema";
 import type {
   CurrentTeamRegistration,
@@ -14,6 +17,337 @@ import type {
   Player,
   PlayerWithCurrentTeams,
 } from "@/db/types";
+import { sendEmailOtp } from "./email.service";
+
+const CLAIM_OTP_LENGTH = 6;
+const CLAIM_OTP_EXPIRY_MINUTES = 10;
+const CLAIM_OTP_VERIFICATION_TYPE = "claim-email-otp";
+
+const padOtp = (value: number) =>
+  value.toString().padStart(CLAIM_OTP_LENGTH, "0");
+
+function generateClaimOtp(): string {
+  const randomValues = new Uint32Array(1);
+  crypto.getRandomValues(randomValues);
+  const maxOtpValue = 10 ** CLAIM_OTP_LENGTH;
+  return padOtp(randomValues[0] % maxOtpValue);
+}
+
+function calculateAgeFromDob(dob: Date) {
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const monthDifference = today.getMonth() - dob.getMonth();
+  const hasNotHadBirthdayYet =
+    monthDifference < 0 ||
+    (monthDifference === 0 && today.getDate() < dob.getDate());
+
+  if (hasNotHadBirthdayYet) {
+    age -= 1;
+  }
+
+  return Math.max(age, 0);
+}
+
+function getClaimOtpIdentifier(userId: number, playerId: number) {
+  return `player-claim:${userId}:${playerId}`;
+}
+
+async function getUserByEmail(email: string) {
+  const rows = await db
+    .select({
+      id: user.id,
+      email: user.email,
+      emailVerified: user.emailVerified,
+      onboardingCompletedAt: user.onboardingCompletedAt,
+      onboardingSeenAt: user.onboardingSeenAt,
+      name: user.name,
+      image: user.image,
+    })
+    .from(user)
+    .where(eq(user.email, email))
+    .limit(1);
+
+  return rows[0] ?? null;
+}
+
+async function getPlayerLinkedToUser(userId: number) {
+  const rows = await db
+    .select({
+      id: players.id,
+      name: players.name,
+    })
+    .from(players)
+    .where(eq(players.userId, userId))
+    .limit(1);
+
+  return rows[0] ?? null;
+}
+
+async function requireUnclaimedPlayer(playerId: number) {
+  const rows = await db
+    .select({
+      id: players.id,
+      name: players.name,
+      userId: players.userId,
+    })
+    .from(players)
+    .where(eq(players.id, playerId))
+    .limit(1);
+
+  const playerRecord = rows[0] ?? null;
+  if (!playerRecord) {
+    throw new Error("Player not found");
+  }
+
+  if (typeof playerRecord.userId === "number") {
+    throw new Error("Player is already claimed");
+  }
+
+  return playerRecord;
+}
+
+export async function getOnboardingStatusByEmail(email: string) {
+  const userRecord = await getUserByEmail(email);
+  if (!userRecord) {
+    throw new Error("User not found");
+  }
+
+  const linkedPlayer = await getPlayerLinkedToUser(userRecord.id);
+
+  return {
+    email: userRecord.email,
+    emailVerified: userRecord.emailVerified,
+    hasLinkedPlayer: linkedPlayer !== null,
+    linkedPlayer,
+    onboardingCompletedAt: userRecord.onboardingCompletedAt,
+    onboardingSeenAt: userRecord.onboardingSeenAt,
+    shouldPrompt: userRecord.onboardingSeenAt === null,
+  };
+}
+
+export async function markOnboardingSeenByEmail(email: string) {
+  const updatedRows = await db
+    .update(user)
+    .set({ onboardingSeenAt: new Date() })
+    .where(eq(user.email, email))
+    .returning({
+      id: user.id,
+      onboardingSeenAt: user.onboardingSeenAt,
+    });
+
+  const updated = updatedRows[0] ?? null;
+  if (!updated) {
+    throw new Error("User not found");
+  }
+
+  return updated;
+}
+
+export async function createOwnPlayerProfileByEmail(
+  email: string,
+  input: {
+    name: string;
+    dob: Date;
+    sex: string;
+    nationality?: string;
+    height?: number;
+    weight?: number;
+    image?: string;
+    role: string;
+    battingStance: string;
+    bowlingStance?: string;
+    isWicketKeeper?: boolean;
+  }
+) {
+  const userRecord = await getUserByEmail(email);
+  if (!userRecord) {
+    throw new Error("User not found");
+  }
+
+  const existingLinkedPlayer = await getPlayerLinkedToUser(userRecord.id);
+  if (existingLinkedPlayer) {
+    throw new Error("User already linked to a player profile");
+  }
+
+  const [createdPlayer] = await db
+    .insert(players)
+    .values({
+      userId: userRecord.id,
+      age: calculateAgeFromDob(input.dob),
+      battingStance: input.battingStance,
+      bowlingStance: input.bowlingStance,
+      dob: input.dob,
+      height: input.height,
+      image: input.image ?? userRecord.image ?? undefined,
+      isWicketKeeper: input.isWicketKeeper ?? false,
+      name: input.name,
+      nationality: input.nationality,
+      role: input.role,
+      sex: input.sex,
+      weight: input.weight,
+    })
+    .returning();
+
+  if (!createdPlayer) {
+    throw new Error("Failed to create player profile");
+  }
+
+  await db
+    .update(user)
+    .set({ onboardingCompletedAt: new Date(), onboardingSeenAt: new Date() })
+    .where(eq(user.id, userRecord.id));
+
+  return createdPlayer;
+}
+
+export async function listClaimablePlayers(query?: string) {
+  const normalizedQuery = query?.trim() ?? "";
+
+  const rows = await db
+    .select({
+      id: players.id,
+      name: players.name,
+      role: players.role,
+      nationality: players.nationality,
+      image: players.image,
+    })
+    .from(players)
+    .where(
+      normalizedQuery.length > 0
+        ? and(
+            isNull(players.userId),
+            like(players.name, `%${normalizedQuery}%`)
+          )
+        : isNull(players.userId)
+    )
+    .orderBy(players.name)
+    .limit(25);
+
+  return rows;
+}
+
+export async function sendClaimOtpByEmail(email: string, playerId: number) {
+  const userRecord = await getUserByEmail(email);
+  if (!userRecord) {
+    throw new Error("User not found");
+  }
+
+  if (!userRecord.emailVerified) {
+    throw new Error("Verify your email before claiming a player profile");
+  }
+
+  await requireUnclaimedPlayer(playerId);
+
+  const existingLinkedPlayer = await getPlayerLinkedToUser(userRecord.id);
+  if (existingLinkedPlayer) {
+    throw new Error("User already linked to a player profile");
+  }
+
+  const otp = generateClaimOtp();
+  const identifier = getClaimOtpIdentifier(userRecord.id, playerId);
+  const expiresAt = new Date(Date.now() + CLAIM_OTP_EXPIRY_MINUTES * 60 * 1000);
+
+  await db.delete(verification).where(eq(verification.identifier, identifier));
+  await db.insert(verification).values({
+    identifier,
+    value: otp,
+    expiresAt,
+  });
+
+  await sendEmailOtp({
+    email,
+    otp,
+    subject: "is your OTP to claim your player profile",
+  });
+
+  return { success: true } as const;
+}
+
+export async function verifyClaimOtpAndLinkByEmail(params: {
+  email: string;
+  otp: string;
+  playerId: number;
+}) {
+  const userRecord = await getUserByEmail(params.email);
+  if (!userRecord) {
+    throw new Error("User not found");
+  }
+
+  await requireUnclaimedPlayer(params.playerId);
+
+  const existingLinkedPlayer = await getPlayerLinkedToUser(userRecord.id);
+  if (existingLinkedPlayer) {
+    throw new Error("User already linked to a player profile");
+  }
+
+  const identifier = getClaimOtpIdentifier(userRecord.id, params.playerId);
+
+  const otpRows = await db
+    .select({
+      expiresAt: verification.expiresAt,
+      id: verification.id,
+    })
+    .from(verification)
+    .where(
+      and(
+        eq(verification.identifier, identifier),
+        eq(verification.value, params.otp)
+      )
+    )
+    .orderBy(desc(verification.id))
+    .limit(1);
+
+  const otpRecord = otpRows[0] ?? null;
+  if (!otpRecord) {
+    throw new Error("Invalid OTP");
+  }
+
+  if (otpRecord.expiresAt.getTime() < Date.now()) {
+    throw new Error("OTP expired");
+  }
+
+  const linkedPlayer = await db.transaction(async (tx) => {
+    const linked = await tx
+      .update(players)
+      .set({ userId: userRecord.id })
+      .where(and(eq(players.id, params.playerId), isNull(players.userId)))
+      .returning({
+        id: players.id,
+        name: players.name,
+      });
+
+    const claimedPlayer = linked[0] ?? null;
+    if (!claimedPlayer) {
+      throw new Error("Player is already claimed");
+    }
+
+    if (userRecord.image) {
+      await tx
+        .update(players)
+        .set({ image: userRecord.image })
+        .where(and(eq(players.id, claimedPlayer.id), isNull(players.image)));
+    }
+
+    await tx.insert(playerVerification).values({
+      playerId: claimedPlayer.id,
+      verificationId: String(otpRecord.id),
+      verificationType: CLAIM_OTP_VERIFICATION_TYPE,
+    });
+
+    await tx
+      .update(user)
+      .set({ onboardingCompletedAt: new Date(), onboardingSeenAt: new Date() })
+      .where(eq(user.id, userRecord.id));
+
+    await tx
+      .delete(verification)
+      .where(eq(verification.identifier, identifier));
+
+    return claimedPlayer;
+  });
+
+  return linkedPlayer;
+}
 
 export const getAllPlayers: () => Promise<Player[]> = async () =>
   await db.select().from(players);

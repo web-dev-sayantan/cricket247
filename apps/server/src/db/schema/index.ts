@@ -21,13 +21,15 @@ const timestampCols = {
   updatedAt: timestampMs(),
 };
 
-export const users = sqliteTable("users", {
+export const user = sqliteTable("user", {
   id: integer().primaryKey().notNull(),
   name: text().notNull(),
   username: text().unique(),
   displayUsername: text().unique(),
   email: text().notNull().unique(),
   emailVerified: booleanFlag(),
+  onboardingSeenAt: integer({ mode: "timestamp_ms" }),
+  onboardingCompletedAt: integer({ mode: "timestamp_ms" }),
   image: text(),
   phoneNumber: text().unique(),
   phoneNumberVerified: booleanFlag(),
@@ -36,13 +38,13 @@ export const users = sqliteTable("users", {
   ...timestampCols,
 });
 
-export const sessions = sqliteTable(
-  "sessions",
+export const session = sqliteTable(
+  "session",
   {
     id: integer().primaryKey().notNull(),
     userId: integer()
       .notNull()
-      .references(() => users.id),
+      .references(() => user.id),
     token: text().notNull(),
     expiresAt: timestampMs().notNull(),
     ipAddress: text(),
@@ -57,11 +59,11 @@ export const sessions = sqliteTable(
   ]
 );
 
-export const accounts = sqliteTable("accounts", {
+export const account = sqliteTable("account", {
   id: integer().primaryKey().notNull(),
   userId: integer()
     .notNull()
-    .references(() => users.id),
+    .references(() => user.id),
   accountId: text().notNull(),
   providerId: text().notNull(),
   accessToken: text(),
@@ -74,7 +76,7 @@ export const accounts = sqliteTable("accounts", {
   ...timestampCols,
 });
 
-export const verifications = sqliteTable("verifications", {
+export const verification = sqliteTable("verification", {
   id: integer().primaryKey().notNull(),
   identifier: text().notNull(),
   value: text().notNull(),
@@ -82,15 +84,15 @@ export const verifications = sqliteTable("verifications", {
   ...timestampCols,
 });
 
-export const passkeys = sqliteTable(
-  "passkeys",
+export const passkey = sqliteTable(
+  "passkey",
   {
     id: integer().primaryKey().notNull(),
     name: text(),
     publicKey: text().notNull(),
     userId: integer()
       .notNull()
-      .references(() => users.id),
+      .references(() => user.id),
     credentialID: text().notNull(),
     counter: integer().notNull().default(0),
     deviceType: text().notNull(),
@@ -107,6 +109,7 @@ export const passkeys = sqliteTable(
 
 export const players = sqliteTable("players", {
   id: integer().primaryKey().notNull(),
+  userId: integer().references(() => user.id),
   name: text().notNull(),
   age: integer().notNull().default(0),
   dob: integer({ mode: "timestamp" }).default(sql`(unixepoch())`).notNull(),

@@ -9,8 +9,10 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TournamentsIndexRouteImport } from './routes/tournaments/index'
 import { Route as TeamsIndexRouteImport } from './routes/teams/index'
@@ -26,6 +28,11 @@ import { Route as MatchesMatchIdRouteImport } from './routes/matches/$matchId'
 import { Route as MatchesMatchIdScorecardRouteImport } from './routes/matches/$matchId/scorecard'
 import { Route as MatchesMatchIdScoreRouteImport } from './routes/matches/$matchId/score'
 
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -34,6 +41,11 @@ const LoginRoute = LoginRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -109,8 +121,10 @@ const MatchesMatchIdScoreRoute = MatchesMatchIdScoreRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
   '/matches/$matchId': typeof MatchesMatchIdRouteWithChildren
   '/matches/completed': typeof MatchesCompletedRoute
   '/matches/create': typeof MatchesCreateRoute
@@ -127,8 +141,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
   '/matches/$matchId': typeof MatchesMatchIdRouteWithChildren
   '/matches/completed': typeof MatchesCompletedRoute
   '/matches/create': typeof MatchesCreateRoute
@@ -146,8 +162,10 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
   '/matches/$matchId': typeof MatchesMatchIdRouteWithChildren
   '/matches/completed': typeof MatchesCompletedRoute
   '/matches/create': typeof MatchesCreateRoute
@@ -166,8 +184,10 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/account'
     | '/dashboard'
     | '/login'
+    | '/onboarding'
     | '/matches/$matchId'
     | '/matches/completed'
     | '/matches/create'
@@ -184,8 +204,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/account'
     | '/dashboard'
     | '/login'
+    | '/onboarding'
     | '/matches/$matchId'
     | '/matches/completed'
     | '/matches/create'
@@ -202,8 +224,10 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/account'
     | '/dashboard'
     | '/login'
+    | '/onboarding'
     | '/matches/$matchId'
     | '/matches/completed'
     | '/matches/create'
@@ -221,8 +245,10 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountRoute: typeof AccountRoute
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
+  OnboardingRoute: typeof OnboardingRoute
   MatchesMatchIdRoute: typeof MatchesMatchIdRouteWithChildren
   MatchesCompletedRoute: typeof MatchesCompletedRoute
   MatchesCreateRoute: typeof MatchesCreateRoute
@@ -238,6 +264,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -250,6 +283,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -369,8 +409,10 @@ const MatchesMatchIdRouteWithChildren = MatchesMatchIdRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountRoute: AccountRoute,
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
+  OnboardingRoute: OnboardingRoute,
   MatchesMatchIdRoute: MatchesMatchIdRouteWithChildren,
   MatchesCompletedRoute: MatchesCompletedRoute,
   MatchesCreateRoute: MatchesCreateRoute,

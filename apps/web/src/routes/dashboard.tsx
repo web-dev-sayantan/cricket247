@@ -7,7 +7,7 @@ import { SectionScroll } from "@/components/dashboard/section-scroll";
 import { TournamentCard } from "@/components/dashboard/tournament-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { authClient } from "@/lib/auth-client";
-import { orpc } from "@/utils/orpc";
+import { client, orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/dashboard")({
   component: DashboardComponent,
@@ -17,6 +17,20 @@ export const Route = createFileRoute("/dashboard")({
     if (!session.data) {
       redirect({
         to: "/login",
+        throw: true,
+      });
+    }
+
+    const onboardingStatus = await client.onboardingStatus();
+    if (
+      onboardingStatus.shouldPrompt &&
+      onboardingStatus.onboardingCompletedAt === null
+    ) {
+      redirect({
+        to: "/onboarding",
+        search: {
+          from: "/dashboard",
+        },
         throw: true,
       });
     }

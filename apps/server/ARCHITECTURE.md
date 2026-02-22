@@ -86,12 +86,12 @@
               │   (Turso)              │
               │                        │
               │  Tables:               │
-              │  • users               │
-              │  • sessions            │
-              │  • accounts            │
-              │  • matches             │
-              │  • teams               │
-              │  • players             │
+              │  • user                │
+              │  • session             │
+              │  • account             │
+              │  • match               │
+              │  • team                │
+              │  • player              │
               │  • innings             │
               │  • balls               │
               │  • venues              │

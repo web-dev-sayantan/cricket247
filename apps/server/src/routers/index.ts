@@ -2,7 +2,7 @@ import { ORPCError, type RouterClient } from "@orpc/server";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { tournamentTeams, users } from "@/db/schema";
+import { tournamentTeams, user } from "@/db/schema";
 import { getBallsOfSameOver } from "@/services/ball.service";
 import { playerCrudService, teamCrudService } from "@/services/crud.service";
 import {
@@ -13,8 +13,14 @@ import {
   getMatchScorecard,
 } from "@/services/match.service";
 import {
+  createOwnPlayerProfileByEmail,
   getAllPlayers,
+  getOnboardingStatusByEmail,
   getPlayersWithCurrentTeams,
+  listClaimablePlayers,
+  markOnboardingSeenByEmail,
+  sendClaimOtpByEmail,
+  verifyClaimOtpAndLinkByEmail,
 } from "@/services/player.service";
 import {
   getAllTeams,
@@ -32,8 +38,12 @@ import {
   sensitiveProcedure,
 } from "../lib/orpc";
 import {
+  claimPlayerOtpRequestSchema,
+  claimPlayerVerifySchema,
+  createOwnPlayerBodySchema,
   createPlayerBodySchema,
   createTeamBodySchema,
+  listClaimablePlayersQuerySchema,
 } from "../schemas/crud.schemas";
 
 // Match creation schema matching the frontend MatchFormSchema
@@ -95,9 +105,9 @@ const UpdateTeamInputSchema = z
 
 async function getUserRoleByEmail(email: string) {
   const rows = await db
-    .select({ role: users.role })
-    .from(users)
-    .where(eq(users.email, email))
+    .select({ role: user.role })
+    .from(user)
+    .where(eq(user.email, email))
     .limit(1);
 
   return rows[0]?.role ?? null;
@@ -127,6 +137,34 @@ export const appRouter = {
   playersWithCurrentTeams: publicProcedure.handler(() =>
     getPlayersWithCurrentTeams()
   ),
+  onboardingStatus: protectedProcedure.handler(async ({ context }) =>
+    getOnboardingStatusByEmail(context.session.user.email)
+  ),
+  markOnboardingSeen: protectedProcedure.handler(async ({ context }) =>
+    markOnboardingSeenByEmail(context.session.user.email)
+  ),
+  createOwnPlayerProfile: protectedProcedure
+    .input(createOwnPlayerBodySchema)
+    .handler(async ({ context, input }) =>
+      createOwnPlayerProfileByEmail(context.session.user.email, input)
+    ),
+  claimablePlayers: protectedProcedure
+    .input(listClaimablePlayersQuerySchema.optional())
+    .handler(({ input }) => listClaimablePlayers(input?.query)),
+  sendClaimOtp: protectedProcedure
+    .input(claimPlayerOtpRequestSchema)
+    .handler(({ context, input }) =>
+      sendClaimOtpByEmail(context.session.user.email, input.playerId)
+    ),
+  verifyClaimOtpAndLink: protectedProcedure
+    .input(claimPlayerVerifySchema)
+    .handler(({ context, input }) =>
+      verifyClaimOtpAndLinkByEmail({
+        email: context.session.user.email,
+        otp: input.otp,
+        playerId: input.playerId,
+      })
+    ),
   teams: publicProcedure.handler(() => getAllTeams()),
   searchTeamsByName: publicProcedure
     .input(z.string())

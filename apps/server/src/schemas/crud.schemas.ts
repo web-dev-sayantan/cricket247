@@ -21,6 +21,35 @@ export const idRouteParamSchema = z.coerce.number().int().positive();
 export const createPlayerBodySchema = insertPlayerSchema.omit({ id: true });
 export const updatePlayerBodySchema = createPlayerBodySchema.partial();
 
+export const createOwnPlayerBodySchema = z.object({
+  name: z.string().trim().min(2).max(100),
+  dob: z.coerce.date(),
+  sex: z.string().trim().min(1).max(30),
+  nationality: z.string().trim().min(1).max(100).optional(),
+  height: z.number().int().min(1).max(300).optional(),
+  weight: z.number().int().min(1).max(250).optional(),
+  image: z.url().optional(),
+  role: z.string().trim().min(1).max(50),
+  battingStance: z.string().trim().min(1).max(50),
+  bowlingStance: z.string().trim().min(1).max(100).optional(),
+  isWicketKeeper: z.boolean().optional(),
+});
+
+export const listClaimablePlayersQuerySchema = z.object({
+  query: z.string().trim().max(100).optional(),
+});
+
+export const claimPlayerOtpRequestSchema = z.object({
+  playerId: z.number().int().positive(),
+});
+
+export const claimPlayerVerifySchema = claimPlayerOtpRequestSchema.extend({
+  otp: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/),
+});
+
 export const createTeamBodySchema = insertTeamSchema.omit({ id: true });
 export const updateTeamBodySchema = createTeamBodySchema.partial();
 

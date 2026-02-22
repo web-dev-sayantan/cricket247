@@ -3,11 +3,11 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { type BetterAuthOptions, betterAuth } from "better-auth/minimal";
 import { emailOTP } from "better-auth/plugins";
 import {
-  accounts,
-  passkeys,
-  sessions,
-  users,
-  verifications,
+  account,
+  passkey as passkeyTable,
+  session,
+  user,
+  verification,
 } from "@/db/schema";
 import { sendEmailOtp } from "@/services/email.service";
 import { db } from "../db";
@@ -34,13 +34,12 @@ function getRequiredEnv(key: string): string {
 export const auth = betterAuth<BetterAuthOptions>({
   database: drizzleAdapter(db, {
     provider: "sqlite",
-    usePlural: true,
     schema: {
-      users,
-      accounts,
-      sessions,
-      verifications,
-      passkeys,
+      user,
+      account,
+      session,
+      verification,
+      passkey: passkeyTable,
     },
   }),
   trustedOrigins: [process.env.CORS_ORIGIN || ""],
@@ -69,6 +68,18 @@ export const auth = betterAuth<BetterAuthOptions>({
         type: "string",
         required: true,
         defaultValue: "user",
+        input: false,
+      },
+      onboardingSeenAt: {
+        type: "number",
+        required: false,
+        defaultValue: null,
+        input: false,
+      },
+      onboardingCompletedAt: {
+        type: "number",
+        required: false,
+        defaultValue: null,
         input: false,
       },
     },

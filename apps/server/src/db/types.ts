@@ -4,33 +4,33 @@
 
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import type {
-  accounts,
+  account,
   deliveries,
   innings,
   matches,
   matchLineup,
   organizations,
-  passkeys,
+  passkey,
   playerCareerStats,
   playerInningsStats,
   players,
   playerTournamentStats,
-  sessions,
+  session,
   teamPlayers,
   teams,
   tournaments,
   tournamentTeams,
-  users,
+  user,
   venues,
-  verifications,
+  verification,
 } from "./schema";
 
 // Auth entities
-export type User = InferSelectModel<typeof users>;
-export type Session = InferSelectModel<typeof sessions>;
-export type Account = InferSelectModel<typeof accounts>;
-export type Verification = InferSelectModel<typeof verifications>;
-export type Passkey = InferSelectModel<typeof passkeys>;
+export type User = InferSelectModel<typeof user>;
+export type Session = InferSelectModel<typeof session>;
+export type Account = InferSelectModel<typeof account>;
+export type Verification = InferSelectModel<typeof verification>;
+export type Passkey = InferSelectModel<typeof passkey>;
 
 // Domain entities
 export type Player = InferSelectModel<typeof players>;
@@ -55,11 +55,11 @@ export type Ball = Delivery;
 export type PlayerMatchPerformance = PlayerInningsStats;
 
 // Insert types
-export type NewUser = InferInsertModel<typeof users>;
-export type NewSession = InferInsertModel<typeof sessions>;
-export type NewAccount = InferInsertModel<typeof accounts>;
-export type NewVerification = InferInsertModel<typeof verifications>;
-export type NewPasskey = InferInsertModel<typeof passkeys>;
+export type NewUser = InferInsertModel<typeof user>;
+export type NewSession = InferInsertModel<typeof session>;
+export type NewAccount = InferInsertModel<typeof account>;
+export type NewVerification = InferInsertModel<typeof verification>;
+export type NewPasskey = InferInsertModel<typeof passkey>;
 
 export type NewPlayer = InferInsertModel<typeof players>;
 export type NewTeam = InferInsertModel<typeof teams>;

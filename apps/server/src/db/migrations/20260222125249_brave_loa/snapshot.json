@@ -1,11 +1,11 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "fe463b2e-a75c-4106-a5a8-682a80c70730",
-  "prevIds": ["7c613097-f900-4f39-8497-a138fb086f66"],
+  "id": "e1edd981-b03d-4bae-a94a-cf0037c61645",
+  "prevIds": ["fe463b2e-a75c-4106-a5a8-682a80c70730"],
   "ddl": [
     {
-      "name": "accounts",
+      "name": "account",
       "entityType": "tables"
     },
     {
@@ -29,7 +29,7 @@
       "entityType": "tables"
     },
     {
-      "name": "passkeys",
+      "name": "passkey",
       "entityType": "tables"
     },
     {
@@ -53,7 +53,7 @@
       "entityType": "tables"
     },
     {
-      "name": "sessions",
+      "name": "session",
       "entityType": "tables"
     },
     {
@@ -73,7 +73,7 @@
       "entityType": "tables"
     },
     {
-      "name": "users",
+      "name": "user",
       "entityType": "tables"
     },
     {
@@ -81,7 +81,7 @@
       "entityType": "tables"
     },
     {
-      "name": "verifications",
+      "name": "verification",
       "entityType": "tables"
     },
     {
@@ -92,7 +92,7 @@
       "generated": null,
       "name": "id",
       "entityType": "columns",
-      "table": "accounts"
+      "table": "account"
     },
     {
       "type": "integer",
@@ -102,7 +102,7 @@
       "generated": null,
       "name": "user_id",
       "entityType": "columns",
-      "table": "accounts"
+      "table": "account"
     },
     {
       "type": "text",
@@ -112,7 +112,7 @@
       "generated": null,
       "name": "account_id",
       "entityType": "columns",
-      "table": "accounts"
+      "table": "account"
     },
     {
       "type": "text",
@@ -122,7 +122,7 @@
       "generated": null,
       "name": "provider_id",
       "entityType": "columns",
-      "table": "accounts"
+      "table": "account"
     },
     {
       "type": "text",
@@ -132,7 +132,7 @@
       "generated": null,
       "name": "access_token",
       "entityType": "columns",
-      "table": "accounts"
+      "table": "account"
     },
     {
       "type": "text",
@@ -142,7 +142,7 @@
       "generated": null,
       "name": "refresh_token",
       "entityType": "columns",
-      "table": "accounts"
+      "table": "account"
     },
     {
       "type": "integer",
@@ -152,7 +152,7 @@
       "generated": null,
       "name": "access_token_expires_at",
       "entityType": "columns",
-      "table": "accounts"
+      "table": "account"
     },
     {
       "type": "integer",
@@ -162,7 +162,7 @@
       "generated": null,
       "name": "refresh_token_expires_at",
       "entityType": "columns",
-      "table": "accounts"
+      "table": "account"
     },
     {
       "type": "text",
@@ -172,7 +172,7 @@
       "generated": null,
       "name": "scope",
       "entityType": "columns",
-      "table": "accounts"
+      "table": "account"
     },
     {
       "type": "text",
@@ -182,7 +182,7 @@
       "generated": null,
       "name": "id_token",
       "entityType": "columns",
-      "table": "accounts"
+      "table": "account"
     },
     {
       "type": "text",
@@ -192,7 +192,7 @@
       "generated": null,
       "name": "password",
       "entityType": "columns",
-      "table": "accounts"
+      "table": "account"
     },
     {
       "type": "integer",
@@ -202,7 +202,7 @@
       "generated": null,
       "name": "created_at",
       "entityType": "columns",
-      "table": "accounts"
+      "table": "account"
     },
     {
       "type": "integer",
@@ -212,7 +212,7 @@
       "generated": null,
       "name": "updated_at",
       "entityType": "columns",
-      "table": "accounts"
+      "table": "account"
     },
     {
       "type": "integer",
@@ -1262,7 +1262,7 @@
       "generated": null,
       "name": "id",
       "entityType": "columns",
-      "table": "passkeys"
+      "table": "passkey"
     },
     {
       "type": "text",
@@ -1272,7 +1272,7 @@
       "generated": null,
       "name": "name",
       "entityType": "columns",
-      "table": "passkeys"
+      "table": "passkey"
     },
     {
       "type": "text",
@@ -1282,7 +1282,7 @@
       "generated": null,
       "name": "public_key",
       "entityType": "columns",
-      "table": "passkeys"
+      "table": "passkey"
     },
     {
       "type": "integer",
@@ -1292,7 +1292,7 @@
       "generated": null,
       "name": "user_id",
       "entityType": "columns",
-      "table": "passkeys"
+      "table": "passkey"
     },
     {
       "type": "text",
@@ -1302,7 +1302,7 @@
       "generated": null,
       "name": "credential_id",
       "entityType": "columns",
-      "table": "passkeys"
+      "table": "passkey"
     },
     {
       "type": "integer",
@@ -1312,7 +1312,7 @@
       "generated": null,
       "name": "counter",
       "entityType": "columns",
-      "table": "passkeys"
+      "table": "passkey"
     },
     {
       "type": "text",
@@ -1322,7 +1322,7 @@
       "generated": null,
       "name": "device_type",
       "entityType": "columns",
-      "table": "passkeys"
+      "table": "passkey"
     },
     {
       "type": "integer",
@@ -1332,7 +1332,7 @@
       "generated": null,
       "name": "backed_up",
       "entityType": "columns",
-      "table": "passkeys"
+      "table": "passkey"
     },
     {
       "type": "text",
@@ -1342,7 +1342,7 @@
       "generated": null,
       "name": "transports",
       "entityType": "columns",
-      "table": "passkeys"
+      "table": "passkey"
     },
     {
       "type": "text",
@@ -1352,7 +1352,7 @@
       "generated": null,
       "name": "aaguid",
       "entityType": "columns",
-      "table": "passkeys"
+      "table": "passkey"
     },
     {
       "type": "integer",
@@ -1362,7 +1362,7 @@
       "generated": null,
       "name": "created_at",
       "entityType": "columns",
-      "table": "passkeys"
+      "table": "passkey"
     },
     {
       "type": "integer",
@@ -1372,7 +1372,7 @@
       "generated": null,
       "name": "updated_at",
       "entityType": "columns",
-      "table": "passkeys"
+      "table": "passkey"
     },
     {
       "type": "integer",
@@ -2175,6 +2175,16 @@
       "table": "players"
     },
     {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "table": "players"
+    },
+    {
       "type": "text",
       "notNull": true,
       "autoincrement": false,
@@ -2322,7 +2332,7 @@
       "generated": null,
       "name": "id",
       "entityType": "columns",
-      "table": "sessions"
+      "table": "session"
     },
     {
       "type": "integer",
@@ -2332,7 +2342,7 @@
       "generated": null,
       "name": "user_id",
       "entityType": "columns",
-      "table": "sessions"
+      "table": "session"
     },
     {
       "type": "text",
@@ -2342,7 +2352,7 @@
       "generated": null,
       "name": "token",
       "entityType": "columns",
-      "table": "sessions"
+      "table": "session"
     },
     {
       "type": "integer",
@@ -2352,7 +2362,7 @@
       "generated": null,
       "name": "expires_at",
       "entityType": "columns",
-      "table": "sessions"
+      "table": "session"
     },
     {
       "type": "text",
@@ -2362,7 +2372,7 @@
       "generated": null,
       "name": "ip_address",
       "entityType": "columns",
-      "table": "sessions"
+      "table": "session"
     },
     {
       "type": "text",
@@ -2372,7 +2382,7 @@
       "generated": null,
       "name": "user_agent",
       "entityType": "columns",
-      "table": "sessions"
+      "table": "session"
     },
     {
       "type": "text",
@@ -2382,7 +2392,7 @@
       "generated": null,
       "name": "factors",
       "entityType": "columns",
-      "table": "sessions"
+      "table": "session"
     },
     {
       "type": "integer",
@@ -2392,7 +2402,7 @@
       "generated": null,
       "name": "last_active_at",
       "entityType": "columns",
-      "table": "sessions"
+      "table": "session"
     },
     {
       "type": "integer",
@@ -2402,7 +2412,7 @@
       "generated": null,
       "name": "created_at",
       "entityType": "columns",
-      "table": "sessions"
+      "table": "session"
     },
     {
       "type": "integer",
@@ -2412,7 +2422,7 @@
       "generated": null,
       "name": "updated_at",
       "entityType": "columns",
-      "table": "sessions"
+      "table": "session"
     },
     {
       "type": "integer",
@@ -2772,7 +2782,7 @@
       "generated": null,
       "name": "id",
       "entityType": "columns",
-      "table": "users"
+      "table": "user"
     },
     {
       "type": "text",
@@ -2782,7 +2792,7 @@
       "generated": null,
       "name": "name",
       "entityType": "columns",
-      "table": "users"
+      "table": "user"
     },
     {
       "type": "text",
@@ -2792,7 +2802,7 @@
       "generated": null,
       "name": "username",
       "entityType": "columns",
-      "table": "users"
+      "table": "user"
     },
     {
       "type": "text",
@@ -2802,7 +2812,7 @@
       "generated": null,
       "name": "display_username",
       "entityType": "columns",
-      "table": "users"
+      "table": "user"
     },
     {
       "type": "text",
@@ -2812,7 +2822,7 @@
       "generated": null,
       "name": "email",
       "entityType": "columns",
-      "table": "users"
+      "table": "user"
     },
     {
       "type": "integer",
@@ -2822,7 +2832,7 @@
       "generated": null,
       "name": "email_verified",
       "entityType": "columns",
-      "table": "users"
+      "table": "user"
     },
     {
       "type": "text",
@@ -2832,7 +2842,7 @@
       "generated": null,
       "name": "image",
       "entityType": "columns",
-      "table": "users"
+      "table": "user"
     },
     {
       "type": "text",
@@ -2842,7 +2852,7 @@
       "generated": null,
       "name": "phone_number",
       "entityType": "columns",
-      "table": "users"
+      "table": "user"
     },
     {
       "type": "integer",
@@ -2852,7 +2862,7 @@
       "generated": null,
       "name": "phone_number_verified",
       "entityType": "columns",
-      "table": "users"
+      "table": "user"
     },
     {
       "type": "text",
@@ -2862,7 +2872,7 @@
       "generated": null,
       "name": "auth_provider",
       "entityType": "columns",
-      "table": "users"
+      "table": "user"
     },
     {
       "type": "text",
@@ -2872,7 +2882,7 @@
       "generated": null,
       "name": "role",
       "entityType": "columns",
-      "table": "users"
+      "table": "user"
     },
     {
       "type": "integer",
@@ -2882,7 +2892,7 @@
       "generated": null,
       "name": "created_at",
       "entityType": "columns",
-      "table": "users"
+      "table": "user"
     },
     {
       "type": "integer",
@@ -2892,7 +2902,7 @@
       "generated": null,
       "name": "updated_at",
       "entityType": "columns",
-      "table": "users"
+      "table": "user"
     },
     {
       "type": "integer",
@@ -3012,7 +3022,7 @@
       "generated": null,
       "name": "id",
       "entityType": "columns",
-      "table": "verifications"
+      "table": "verification"
     },
     {
       "type": "text",
@@ -3022,7 +3032,7 @@
       "generated": null,
       "name": "identifier",
       "entityType": "columns",
-      "table": "verifications"
+      "table": "verification"
     },
     {
       "type": "text",
@@ -3032,7 +3042,7 @@
       "generated": null,
       "name": "value",
       "entityType": "columns",
-      "table": "verifications"
+      "table": "verification"
     },
     {
       "type": "integer",
@@ -3042,7 +3052,7 @@
       "generated": null,
       "name": "expires_at",
       "entityType": "columns",
-      "table": "verifications"
+      "table": "verification"
     },
     {
       "type": "integer",
@@ -3052,7 +3062,7 @@
       "generated": null,
       "name": "created_at",
       "entityType": "columns",
-      "table": "verifications"
+      "table": "verification"
     },
     {
       "type": "integer",
@@ -3062,18 +3072,18 @@
       "generated": null,
       "name": "updated_at",
       "entityType": "columns",
-      "table": "verifications"
+      "table": "verification"
     },
     {
       "columns": ["user_id"],
-      "tableTo": "users",
+      "tableTo": "user",
       "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
       "name": "fk_accounts_user_id_users_id_fk",
       "entityType": "fks",
-      "table": "accounts"
+      "table": "account"
     },
     {
       "columns": ["innings_id"],
@@ -3308,14 +3318,14 @@
     },
     {
       "columns": ["user_id"],
-      "tableTo": "users",
+      "tableTo": "user",
       "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
       "name": "fk_passkeys_user_id_users_id_fk",
       "entityType": "fks",
-      "table": "passkeys"
+      "table": "passkey"
     },
     {
       "columns": ["player_id"],
@@ -3440,14 +3450,25 @@
     },
     {
       "columns": ["user_id"],
-      "tableTo": "users",
+      "tableTo": "user",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_players_user_id_user_id_fk",
+      "entityType": "fks",
+      "table": "players"
+    },
+    {
+      "columns": ["user_id"],
+      "tableTo": "user",
       "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
       "name": "fk_sessions_user_id_users_id_fk",
       "entityType": "fks",
-      "table": "sessions"
+      "table": "session"
     },
     {
       "columns": ["tournament_id"],
@@ -3530,7 +3551,7 @@
       "columns": ["id"],
       "nameExplicit": false,
       "name": "accounts_pk",
-      "table": "accounts",
+      "table": "account",
       "entityType": "pks"
     },
     {
@@ -3572,7 +3593,7 @@
       "columns": ["id"],
       "nameExplicit": false,
       "name": "passkeys_pk",
-      "table": "passkeys",
+      "table": "passkey",
       "entityType": "pks"
     },
     {
@@ -3614,7 +3635,7 @@
       "columns": ["id"],
       "nameExplicit": false,
       "name": "sessions_pk",
-      "table": "sessions",
+      "table": "session",
       "entityType": "pks"
     },
     {
@@ -3649,7 +3670,7 @@
       "columns": ["id"],
       "nameExplicit": false,
       "name": "users_pk",
-      "table": "users",
+      "table": "user",
       "entityType": "pks"
     },
     {
@@ -3663,7 +3684,7 @@
       "columns": ["id"],
       "nameExplicit": false,
       "name": "verifications_pk",
-      "table": "verifications",
+      "table": "verification",
       "entityType": "pks"
     },
     {
@@ -3942,7 +3963,7 @@
       "origin": "manual",
       "name": "passkey_user_idx",
       "entityType": "indexes",
-      "table": "passkeys"
+      "table": "passkey"
     },
     {
       "columns": [
@@ -3956,7 +3977,7 @@
       "origin": "manual",
       "name": "passkey_credential_idx",
       "entityType": "indexes",
-      "table": "passkeys"
+      "table": "passkey"
     },
     {
       "columns": [
@@ -4030,7 +4051,7 @@
       "origin": "manual",
       "name": "session_user_idx",
       "entityType": "indexes",
-      "table": "sessions"
+      "table": "session"
     },
     {
       "columns": [
@@ -4044,7 +4065,7 @@
       "origin": "manual",
       "name": "session_expires_idx",
       "entityType": "indexes",
-      "table": "sessions"
+      "table": "session"
     },
     {
       "columns": [
@@ -4101,29 +4122,35 @@
       "nameExplicit": false,
       "name": "users_username_unique",
       "entityType": "uniques",
-      "table": "users"
+      "table": "user"
     },
     {
       "columns": ["display_username"],
       "nameExplicit": false,
       "name": "users_display_username_unique",
       "entityType": "uniques",
-      "table": "users"
+      "table": "user"
     },
     {
       "columns": ["email"],
       "nameExplicit": false,
       "name": "users_email_unique",
       "entityType": "uniques",
-      "table": "users"
+      "table": "user"
     },
     {
       "columns": ["phone_number"],
       "nameExplicit": false,
       "name": "users_phone_number_unique",
       "entityType": "uniques",
-      "table": "users"
+      "table": "user"
     }
   ],
-  "renames": []
+  "renames": [
+    "accounts->account",
+    "passkeys->passkey",
+    "sessions->session",
+    "users->user",
+    "verifications->verification"
+  ]
 }

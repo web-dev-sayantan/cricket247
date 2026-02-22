@@ -145,12 +145,12 @@ type CreatePlayerFormValues = z.infer<typeof createPlayerSchema>;
 const defaultValues: CreatePlayerFormValues = {
   name: "",
   dob: getDefaultDob(),
-  sex: "Prefer not to say",
-  nationality: undefined,
+  sex: "Male",
+  nationality: "India",
   height: undefined,
   weight: undefined,
   image: "",
-  role: "Batter",
+  role: "All-rounder",
   battingStance: "Right handed",
   bowlingStance: "",
 };
