@@ -10,6 +10,7 @@ import {
 import {
   createBallBodySchema,
   createInningsBodySchema,
+  createOrganizationBodySchema,
   createPlayerCareerStatsBodySchema,
   createPlayerMatchPerformanceBodySchema,
   createPlayerTournamentStatsBodySchema,
@@ -20,6 +21,7 @@ import {
   idRouteParamSchema,
   updateBallBodySchema,
   updateInningsBodySchema,
+  updateOrganizationBodySchema,
   updatePlayerCareerStatsBodySchema,
   updatePlayerMatchPerformanceBodySchema,
   updatePlayerTournamentStatsBodySchema,
@@ -30,7 +32,9 @@ import {
 } from "@/schemas/crud.schemas";
 import {
   ballCrudService,
+  CrudServiceError,
   inningsCrudService,
+  organizationCrudService,
   playerCareerStatsCrudService,
   playerMatchPerformanceCrudService,
   playerTournamentStatsCrudService,
@@ -62,6 +66,44 @@ interface CrudRouteConfig<
 }
 
 const managementRoutes = new Hono();
+
+const getCrudServiceErrorResponse = (
+  error: unknown,
+  entityLabel: string,
+  operation: "create" | "update" | "delete"
+) => {
+  if (!(error instanceof CrudServiceError)) {
+    return null;
+  }
+
+  if (error.code === "ORGANIZATION_HAS_TOURNAMENTS") {
+    return {
+      message: "Cannot delete Organization while tournaments are linked to it",
+      status: 409,
+    };
+  }
+
+  if (error.code === "TOURNAMENT_ORGANIZATION_REQUIRED") {
+    return {
+      message: "organizationId is required for competitive tournaments",
+      status: 400,
+    };
+  }
+
+  if (
+    error.code === "ORGANIZATION_DELETE_SYSTEM_FORBIDDEN" ||
+    error.code === "ORGANIZATION_DEACTIVATE_SYSTEM_FORBIDDEN" ||
+    error.code === "ORGANIZATION_SYSTEM_FLAG_IMMUTABLE" ||
+    error.code === "ORGANIZATION_SYSTEM_IDENTITY_IMMUTABLE"
+  ) {
+    return {
+      message: `Invalid ${entityLabel} ${operation} operation`,
+      status: 400,
+    };
+  }
+
+  return null;
+};
 
 const registerCrudRoutes = <
   TRecord,
@@ -125,7 +167,16 @@ const registerCrudRoutes = <
         return errorResponse(c, `Failed to create ${config.entityLabel}`, 500);
       }
       return successResponse(c, created, `${config.entityLabel} created`, 201);
-    } catch (_error) {
+    } catch (error) {
+      const mappedError = getCrudServiceErrorResponse(
+        error,
+        config.entityLabel,
+        "create"
+      );
+      if (mappedError) {
+        return errorResponse(c, mappedError.message, mappedError.status);
+      }
+
       return errorResponse(c, `Failed to create ${config.entityLabel}`, 500);
     }
   });
@@ -165,7 +216,16 @@ const registerCrudRoutes = <
         return errorResponse(c, `${config.entityLabel} not found`, 404);
       }
       return successResponse(c, updated, `${config.entityLabel} updated`);
-    } catch (_error) {
+    } catch (error) {
+      const mappedError = getCrudServiceErrorResponse(
+        error,
+        config.entityLabel,
+        "update"
+      );
+      if (mappedError) {
+        return errorResponse(c, mappedError.message, mappedError.status);
+      }
+
       return errorResponse(c, `Failed to update ${config.entityLabel}`, 500);
     }
   });
@@ -186,11 +246,29 @@ const registerCrudRoutes = <
         { id: parsedId.data },
         `${config.entityLabel} deleted`
       );
-    } catch (_error) {
+    } catch (error) {
+      const mappedError = getCrudServiceErrorResponse(
+        error,
+        config.entityLabel,
+        "delete"
+      );
+      if (mappedError) {
+        return errorResponse(c, mappedError.message, mappedError.status);
+      }
+
       return errorResponse(c, `Failed to delete ${config.entityLabel}`, 500);
     }
   });
 };
+
+registerCrudRoutes(managementRoutes, {
+  path: "/organizations",
+  entityLabel: "Organization",
+  createSchema: createOrganizationBodySchema,
+  updateSchema: updateOrganizationBodySchema,
+  service: organizationCrudService,
+  writeAccess: "admin",
+});
 
 registerCrudRoutes(managementRoutes, {
   path: "/tournaments",

@@ -1,4 +1,4 @@
-import type { Player } from "@cricket247/server/types";
+import type { Player, PlayerWithCurrentTeams } from "@cricket247/server/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
@@ -203,6 +203,21 @@ const getNationalityLabel = (value: string | null | undefined) => {
   return value?.trim().length ? value : "Not specified";
 };
 
+const getCurrentTeamsSummary = (
+  currentTeams: PlayerWithCurrentTeams["currentTeams"]
+) => {
+  if (currentTeams.length === 0) {
+    return "Unregistered in live tournaments";
+  }
+
+  return currentTeams
+    .map(
+      (currentTeam) =>
+        `${currentTeam.teamShortName} • ${currentTeam.tournamentName}`
+    )
+    .join(", ");
+};
+
 const playerEditSchema = z.object({
   name: z
     .string()
@@ -245,7 +260,7 @@ const playerEditSchema = z.object({
 type PlayerDraft = z.infer<typeof playerEditSchema>;
 type UpdatePlayerInput = Parameters<typeof client.updatePlayer>[0];
 
-const createPlayerDraft = (player: Player): PlayerDraft => {
+const createPlayerDraft = (player: PlayerWithCurrentTeams): PlayerDraft => {
   const nationality =
     typeof player.nationality === "string" && isCountry(player.nationality)
       ? player.nationality
@@ -286,12 +301,11 @@ function RouteComponent() {
   const [editingDraft, setEditingDraft] = useState<PlayerDraft | null>(null);
   const [activeDeleteId, setActiveDeleteId] = useState<number | null>(null);
   const [activeUpdateId, setActiveUpdateId] = useState<number | null>(null);
-  const [pendingDeletePlayer, setPendingDeletePlayer] = useState<Player | null>(
-    null
-  );
+  const [pendingDeletePlayer, setPendingDeletePlayer] =
+    useState<PlayerWithCurrentTeams | null>(null);
 
   const { data: players = [], isLoading } = useQuery(
-    orpc.players.queryOptions()
+    orpc.playersWithCurrentTeams.queryOptions()
   );
 
   const updatePlayerMutation = useMutation({
@@ -417,7 +431,7 @@ function RouteComponent() {
     setExpandedPlayerId((current) => (current === playerId ? null : playerId));
   };
 
-  const handleEditStart = (player: Player) => {
+  const handleEditStart = (player: PlayerWithCurrentTeams) => {
     setEditingPlayerId(player.id);
     setExpandedPlayerId(player.id);
     setEditingDraft(createPlayerDraft(player));
@@ -478,7 +492,7 @@ function RouteComponent() {
     );
   };
 
-  const handleDelete = (player: Player) => {
+  const handleDelete = (player: PlayerWithCurrentTeams) => {
     setPendingDeletePlayer(player);
   };
 
@@ -650,7 +664,7 @@ function RouteComponent() {
 
         {!isLoading && hasFilteredPlayers ? (
           <section className="overflow-hidden rounded-xl border bg-card">
-            <div className="hidden grid-cols-[minmax(0,2.2fr)_170px_160px_minmax(0,1.8fr)_36px] items-center gap-4 border-b bg-muted/30 px-5 py-2.5 md:grid">
+            <div className="hidden grid-cols-[minmax(0,1.8fr)_150px_90px_minmax(0,1.3fr)_minmax(0,2fr)_36px] items-center gap-4 border-b bg-muted/30 px-5 py-2.5 md:grid">
               <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
                 Name
               </span>
@@ -662,6 +676,9 @@ function RouteComponent() {
               </span>
               <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
                 Nationality
+              </span>
+              <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                Current Teams
               </span>
               <span className="sr-only">Toggle details</span>
             </div>
@@ -735,7 +752,7 @@ interface PlayerDetailsPanelProps {
   isPending: boolean;
   onDelete: () => void;
   onEdit: () => void;
-  player: Player;
+  player: PlayerWithCurrentTeams;
 }
 
 interface PlayerAccordionRowProps {
@@ -753,7 +770,7 @@ interface PlayerAccordionRowProps {
   onEditStart: () => void;
   onSaveEdit: () => void;
   onToggleExpand: () => void;
-  player: Player;
+  player: PlayerWithCurrentTeams;
 }
 
 function PlayerAccordionRow({
@@ -783,12 +800,15 @@ function PlayerAccordionRow({
         onClick={onToggleExpand}
         type="button"
       >
-        <div className="hidden grid-cols-[minmax(0,2.2fr)_170px_160px_minmax(0,1.8fr)_36px] items-center gap-4 md:grid">
+        <div className="hidden grid-cols-[minmax(0,1.8fr)_150px_90px_minmax(0,1.3fr)_minmax(0,2fr)_36px] items-center gap-4 md:grid">
           <span className="truncate font-medium">{player.name}</span>
           <span className="truncate">{normalizeRole(player.role)}</span>
           <span>{player.age}</span>
           <span className="truncate">
             {getNationalityLabel(player.nationality)}
+          </span>
+          <span className="truncate text-muted-foreground text-sm">
+            {getCurrentTeamsSummary(player.currentTeams)}
           </span>
           <ChevronDown
             className={cn(
@@ -823,6 +843,14 @@ function PlayerAccordionRow({
               <span className="text-muted-foreground text-xs">Nationality</span>
               <p className="truncate">
                 {getNationalityLabel(player.nationality)}
+              </p>
+            </div>
+            <div className="col-span-2">
+              <span className="text-muted-foreground text-xs">
+                Current Teams
+              </span>
+              <p className="truncate">
+                {getCurrentTeamsSummary(player.currentTeams)}
               </p>
             </div>
           </div>
@@ -906,6 +934,28 @@ function PlayerDetailsPanel({
         />
         <DetailItem label="Image URL" value={player.image ?? "Not specified"} />
       </dl>
+
+      <section className="space-y-2">
+        <h3 className="font-medium text-sm">
+          Current Teams (Live Tournaments)
+        </h3>
+        {player.currentTeams.length > 0 ? (
+          <ul className="flex flex-wrap gap-2">
+            {player.currentTeams.map((currentTeam) => (
+              <li
+                className="rounded-full border bg-background px-3 py-1 text-xs"
+                key={`${String(currentTeam.tournamentId)}-${String(currentTeam.teamId)}`}
+              >
+                {currentTeam.teamShortName} • {currentTeam.tournamentName}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-muted-foreground text-sm">
+            Unregistered in live tournaments
+          </p>
+        )}
+      </section>
 
       {isAdmin ? (
         <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-3">

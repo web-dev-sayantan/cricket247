@@ -1,10 +1,10 @@
 import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { innings } from "@/db/schema";
+import { innings, matches } from "@/db/schema";
 
-export function getInningsById(id: number) {
-  return db.query.innings.findFirst({
+export async function getInningsById(id: number) {
+  const inningsRow = await db.query.innings.findFirst({
     where: {
       id,
     },
@@ -22,6 +22,30 @@ export function getInningsById(id: number) {
       },
     },
   });
+
+  if (!inningsRow) {
+    return null;
+  }
+
+  const [matchRow] = await db
+    .select({ tournamentId: matches.tournamentId })
+    .from(matches)
+    .where(eq(matches.id, inningsRow.matchId))
+    .limit(1);
+
+  if (!(matchRow && inningsRow.battingTeam)) {
+    return inningsRow;
+  }
+
+  return {
+    ...inningsRow,
+    battingTeam: {
+      ...inningsRow.battingTeam,
+      teamPlayers: inningsRow.battingTeam.teamPlayers.filter(
+        (teamPlayer) => teamPlayer.tournamentId === matchRow.tournamentId
+      ),
+    },
+  };
 }
 
 export function getInningsByMatchId(id: number) {
@@ -56,11 +80,14 @@ export function getInningsByMatchId(id: number) {
   });
 }
 
-export function getInningsByMatchIdAndTeamId(matchId: number, teamId?: number) {
+export async function getInningsByMatchIdAndTeamId(
+  matchId: number,
+  teamId?: number
+) {
   if (!teamId) {
     return;
   }
-  return db.query.innings.findFirst({
+  const inningsRow = await db.query.innings.findFirst({
     where: {
       matchId,
       battingTeamId: teamId,
@@ -81,6 +108,30 @@ export function getInningsByMatchIdAndTeamId(matchId: number, teamId?: number) {
       inningsNumber: "asc",
     },
   });
+
+  if (!inningsRow) {
+    return null;
+  }
+
+  const [matchRow] = await db
+    .select({ tournamentId: matches.tournamentId })
+    .from(matches)
+    .where(eq(matches.id, matchId))
+    .limit(1);
+
+  if (!(matchRow && inningsRow.battingTeam)) {
+    return inningsRow;
+  }
+
+  return {
+    ...inningsRow,
+    battingTeam: {
+      ...inningsRow.battingTeam,
+      teamPlayers: inningsRow.battingTeam.teamPlayers.filter(
+        (teamPlayer) => teamPlayer.tournamentId === matchRow.tournamentId
+      ),
+    },
+  };
 }
 
 export async function createInningsAction({

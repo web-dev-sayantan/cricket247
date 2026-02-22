@@ -1,8 +1,8 @@
 import { ORPCError, type RouterClient } from "@orpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { tournamentTeams, users } from "@/db/schema";
 import { getBallsOfSameOver } from "@/services/ball.service";
 import { playerCrudService, teamCrudService } from "@/services/crud.service";
 import {
@@ -12,8 +12,16 @@ import {
   getMatchById,
   getMatchScorecard,
 } from "@/services/match.service";
-import { getAllPlayers } from "@/services/player.service";
-import { getAllTeams, getTeamsByName } from "@/services/team.service";
+import {
+  getAllPlayers,
+  getPlayersWithCurrentTeams,
+} from "@/services/player.service";
+import {
+  getAllTeams,
+  getTeamsByName,
+  registerPlayerForTournamentTeam,
+  TeamPlayerRegistrationError,
+} from "@/services/team.service";
 import {
   getAllTournaments,
   getLiveTournaments,
@@ -30,6 +38,7 @@ import {
 
 // Match creation schema matching the frontend MatchFormSchema
 const CreateMatchInputSchema = z.object({
+  tournamentId: z.number().int().positive(),
   matchDate: z.date(),
   tossWinnerId: z.number(),
   tossDecision: z.string(),
@@ -54,6 +63,14 @@ const CreateMatchInputSchema = z.object({
   isTied: z.boolean().optional(),
   margin: z.string().optional(),
   playerOfTheMatchId: z.number().optional(),
+});
+
+const RegisterTournamentTeamPlayerInputSchema = z.object({
+  tournamentId: z.number().int().positive(),
+  teamId: z.number().int().positive(),
+  playerId: z.number().int().positive(),
+  isCaptain: z.boolean().optional(),
+  isViceCaptain: z.boolean().optional(),
 });
 
 const UpdatePlayerInputSchema = z
@@ -107,6 +124,9 @@ export const appRouter = {
   tournaments: publicProcedure.handler(() => getAllTournaments()),
   completedMatches: publicProcedure.handler(() => getCompletedMatches()),
   players: publicProcedure.handler(() => getAllPlayers()),
+  playersWithCurrentTeams: publicProcedure.handler(() =>
+    getPlayersWithCurrentTeams()
+  ),
   teams: publicProcedure.handler(() => getAllTeams()),
   searchTeamsByName: publicProcedure
     .input(z.string())
@@ -142,8 +162,43 @@ export const appRouter = {
   createMatch: sensitiveProcedure
     .input(CreateMatchInputSchema)
     .handler(async ({ input }) => {
+      const registeredTeams = await db
+        .select({ teamId: tournamentTeams.teamId })
+        .from(tournamentTeams)
+        .where(
+          and(
+            eq(tournamentTeams.tournamentId, input.tournamentId),
+            inArray(tournamentTeams.teamId, [input.team1Id, input.team2Id])
+          )
+        );
+
+      if (registeredTeams.length !== 2) {
+        throw new ORPCError("BAD_REQUEST");
+      }
+
       const result = await createMatchAction(input);
       return result;
+    }),
+  registerTournamentTeamPlayer: sensitiveProcedure
+    .input(RegisterTournamentTeamPlayerInputSchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      try {
+        return await registerPlayerForTournamentTeam(input);
+      } catch (error) {
+        if (error instanceof TeamPlayerRegistrationError) {
+          if (error.code === "PLAYER_ALREADY_REGISTERED_IN_TOURNAMENT") {
+            throw new ORPCError("CONFLICT");
+          }
+
+          if (error.code === "TEAM_NOT_IN_TOURNAMENT") {
+            throw new ORPCError("BAD_REQUEST");
+          }
+        }
+
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
+      }
     }),
   getMatchById: publicProcedure.input(z.number()).handler(async ({ input }) => {
     return await getMatchById(input);

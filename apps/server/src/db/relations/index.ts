@@ -4,6 +4,7 @@ import {
   innings,
   matches,
   matchLineup,
+  organizations,
   playerCareerStats,
   playerInningsStats,
   players,
@@ -20,6 +21,7 @@ export const relations = defineRelations(
     innings,
     matchLineup,
     matches,
+    organizations,
     playerCareerStats,
     playerInningsStats,
     players,
@@ -30,9 +32,28 @@ export const relations = defineRelations(
     tournamentTeams,
   },
   (r) => ({
+    organizations: {
+      tournaments: r.many.tournaments(),
+      parentOrganization: r.one.organizations({
+        from: r.organizations.parentOrganizationId,
+        to: r.organizations.id,
+        alias: "parentOrganization",
+      }),
+      childOrganizations: r.many.organizations({
+        from: r.organizations.id,
+        to: r.organizations.parentOrganizationId,
+        alias: "childOrganizations",
+      }),
+    },
     tournaments: {
+      organization: r.one.organizations({
+        from: r.tournaments.organizationId,
+        to: r.organizations.id,
+        optional: false,
+      }),
       matches: r.many.matches(),
       tournamentTeams: r.many.tournamentTeams(),
+      teamPlayers: r.many.teamPlayers(),
     },
     teams: {
       tournamentTeams: r.many.tournamentTeams(),
@@ -231,6 +252,10 @@ export const relations = defineRelations(
       }),
     },
     teamPlayers: {
+      tournament: r.one.tournaments({
+        from: r.teamPlayers.tournamentId,
+        to: r.tournaments.id,
+      }),
       team: r.one.teams({
         from: r.teamPlayers.teamId,
         to: r.teams.id,

@@ -1,8 +1,10 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "7c613097-f900-4f39-8497-a138fb086f66",
-  "prevIds": ["00000000-0000-0000-0000-000000000000"],
+  "id": "fe463b2e-a75c-4106-a5a8-682a80c70730",
+  "prevIds": [
+    "7c613097-f900-4f39-8497-a138fb086f66"
+  ],
   "ddl": [
     {
       "name": "accounts",
@@ -22,6 +24,10 @@
     },
     {
       "name": "matches",
+      "entityType": "tables"
+    },
+    {
+      "name": "organizations",
       "entityType": "tables"
     },
     {
@@ -752,7 +758,7 @@
     },
     {
       "type": "integer",
-      "notNull": false,
+      "notNull": true,
       "autoincrement": false,
       "default": null,
       "generated": null,
@@ -1089,6 +1095,166 @@
       "name": "updated_at",
       "entityType": "columns",
       "table": "matches"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "organizations"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "name",
+      "entityType": "columns",
+      "table": "organizations"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "short_name",
+      "entityType": "columns",
+      "table": "organizations"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "slug",
+      "entityType": "columns",
+      "table": "organizations"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "code",
+      "entityType": "columns",
+      "table": "organizations"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'association'",
+      "generated": null,
+      "name": "type",
+      "entityType": "columns",
+      "table": "organizations"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'local'",
+      "generated": null,
+      "name": "scope",
+      "entityType": "columns",
+      "table": "organizations"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "country",
+      "entityType": "columns",
+      "table": "organizations"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "website",
+      "entityType": "columns",
+      "table": "organizations"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "logo",
+      "entityType": "columns",
+      "table": "organizations"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "description",
+      "entityType": "columns",
+      "table": "organizations"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "name": "is_system",
+      "entityType": "columns",
+      "table": "organizations"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "true",
+      "generated": null,
+      "name": "is_active",
+      "entityType": "columns",
+      "table": "organizations"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "parent_organization_id",
+      "entityType": "columns",
+      "table": "organizations"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "organizations"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "organizations"
     },
     {
       "type": "integer",
@@ -2266,6 +2432,16 @@
       "autoincrement": false,
       "default": null,
       "generated": null,
+      "name": "tournament_id",
+      "entityType": "columns",
+      "table": "team_players"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
       "name": "team_id",
       "entityType": "columns",
       "table": "team_players"
@@ -2517,6 +2693,26 @@
       "default": null,
       "generated": null,
       "name": "name",
+      "entityType": "columns",
+      "table": "tournaments"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'competitive'",
+      "generated": null,
+      "name": "category",
+      "entityType": "columns",
+      "table": "tournaments"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "organization_id",
       "entityType": "columns",
       "table": "tournaments"
     },
@@ -2871,9 +3067,13 @@
       "table": "verifications"
     },
     {
-      "columns": ["user_id"],
+      "columns": [
+        "user_id"
+      ],
       "tableTo": "users",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -2882,9 +3082,13 @@
       "table": "accounts"
     },
     {
-      "columns": ["innings_id"],
+      "columns": [
+        "innings_id"
+      ],
       "tableTo": "innings",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -2893,9 +3097,13 @@
       "table": "deliveries"
     },
     {
-      "columns": ["striker_id"],
+      "columns": [
+        "striker_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -2904,9 +3112,13 @@
       "table": "deliveries"
     },
     {
-      "columns": ["non_striker_id"],
+      "columns": [
+        "non_striker_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -2915,9 +3127,13 @@
       "table": "deliveries"
     },
     {
-      "columns": ["bowler_id"],
+      "columns": [
+        "bowler_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -2926,9 +3142,13 @@
       "table": "deliveries"
     },
     {
-      "columns": ["dismissed_player_id"],
+      "columns": [
+        "dismissed_player_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -2937,9 +3157,13 @@
       "table": "deliveries"
     },
     {
-      "columns": ["dismissed_by_id"],
+      "columns": [
+        "dismissed_by_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -2948,9 +3172,13 @@
       "table": "deliveries"
     },
     {
-      "columns": ["assisted_by_id"],
+      "columns": [
+        "assisted_by_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -2959,9 +3187,13 @@
       "table": "deliveries"
     },
     {
-      "columns": ["match_id"],
+      "columns": [
+        "match_id"
+      ],
       "tableTo": "matches",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -2970,9 +3202,13 @@
       "table": "innings"
     },
     {
-      "columns": ["batting_team_id"],
+      "columns": [
+        "batting_team_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -2981,9 +3217,13 @@
       "table": "innings"
     },
     {
-      "columns": ["bowling_team_id"],
+      "columns": [
+        "bowling_team_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -2992,9 +3232,13 @@
       "table": "innings"
     },
     {
-      "columns": ["match_id"],
+      "columns": [
+        "match_id"
+      ],
       "tableTo": "matches",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3003,9 +3247,13 @@
       "table": "match_lineup"
     },
     {
-      "columns": ["team_id"],
+      "columns": [
+        "team_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3014,9 +3262,13 @@
       "table": "match_lineup"
     },
     {
-      "columns": ["player_id"],
+      "columns": [
+        "player_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3025,9 +3277,13 @@
       "table": "match_lineup"
     },
     {
-      "columns": ["tournament_id"],
+      "columns": [
+        "tournament_id"
+      ],
       "tableTo": "tournaments",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3036,9 +3292,13 @@
       "table": "matches"
     },
     {
-      "columns": ["toss_winner_id"],
+      "columns": [
+        "toss_winner_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3047,9 +3307,13 @@
       "table": "matches"
     },
     {
-      "columns": ["team1_id"],
+      "columns": [
+        "team1_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3058,9 +3322,13 @@
       "table": "matches"
     },
     {
-      "columns": ["team2_id"],
+      "columns": [
+        "team2_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3069,9 +3337,13 @@
       "table": "matches"
     },
     {
-      "columns": ["winner_id"],
+      "columns": [
+        "winner_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3080,9 +3352,13 @@
       "table": "matches"
     },
     {
-      "columns": ["player_of_the_match_id"],
+      "columns": [
+        "player_of_the_match_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3091,9 +3367,13 @@
       "table": "matches"
     },
     {
-      "columns": ["venue_id"],
+      "columns": [
+        "venue_id"
+      ],
       "tableTo": "venues",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3102,9 +3382,28 @@
       "table": "matches"
     },
     {
-      "columns": ["user_id"],
+      "columns": [
+        "parent_organization_id"
+      ],
+      "tableTo": "organizations",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": true,
+      "name": "fk_organizations_parent_organization",
+      "entityType": "fks",
+      "table": "organizations"
+    },
+    {
+      "columns": [
+        "user_id"
+      ],
       "tableTo": "users",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3113,9 +3412,13 @@
       "table": "passkeys"
     },
     {
-      "columns": ["player_id"],
+      "columns": [
+        "player_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3124,9 +3427,13 @@
       "table": "player_career_stats"
     },
     {
-      "columns": ["innings_id"],
+      "columns": [
+        "innings_id"
+      ],
       "tableTo": "innings",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3135,9 +3442,13 @@
       "table": "player_innings_stats"
     },
     {
-      "columns": ["match_id"],
+      "columns": [
+        "match_id"
+      ],
       "tableTo": "matches",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3146,9 +3457,13 @@
       "table": "player_innings_stats"
     },
     {
-      "columns": ["player_id"],
+      "columns": [
+        "player_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3157,9 +3472,13 @@
       "table": "player_innings_stats"
     },
     {
-      "columns": ["team_id"],
+      "columns": [
+        "team_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3168,9 +3487,13 @@
       "table": "player_innings_stats"
     },
     {
-      "columns": ["dismissed_by_id"],
+      "columns": [
+        "dismissed_by_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3179,9 +3502,13 @@
       "table": "player_innings_stats"
     },
     {
-      "columns": ["assisted_by_id"],
+      "columns": [
+        "assisted_by_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3190,9 +3517,13 @@
       "table": "player_innings_stats"
     },
     {
-      "columns": ["player_id"],
+      "columns": [
+        "player_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3201,9 +3532,13 @@
       "table": "player_tournament_stats"
     },
     {
-      "columns": ["tournament_id"],
+      "columns": [
+        "tournament_id"
+      ],
       "tableTo": "tournaments",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3212,9 +3547,13 @@
       "table": "player_tournament_stats"
     },
     {
-      "columns": ["team_id"],
+      "columns": [
+        "team_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3223,9 +3562,13 @@
       "table": "player_tournament_stats"
     },
     {
-      "columns": ["player_id"],
+      "columns": [
+        "player_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3234,9 +3577,13 @@
       "table": "player_verification"
     },
     {
-      "columns": ["user_id"],
+      "columns": [
+        "user_id"
+      ],
       "tableTo": "users",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3245,9 +3592,28 @@
       "table": "sessions"
     },
     {
-      "columns": ["team_id"],
+      "columns": [
+        "tournament_id"
+      ],
+      "tableTo": "tournaments",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_team_players_tournament_id_tournaments_id_fk",
+      "entityType": "fks",
+      "table": "team_players"
+    },
+    {
+      "columns": [
+        "team_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3256,9 +3622,13 @@
       "table": "team_players"
     },
     {
-      "columns": ["player_id"],
+      "columns": [
+        "player_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3267,9 +3637,30 @@
       "table": "team_players"
     },
     {
-      "columns": ["tournament_id"],
+      "columns": [
+        "tournament_id",
+        "team_id"
+      ],
+      "tableTo": "tournament_teams",
+      "columnsTo": [
+        "tournament_id",
+        "team_id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": true,
+      "name": "fk_team_players_tournament_team",
+      "entityType": "fks",
+      "table": "team_players"
+    },
+    {
+      "columns": [
+        "tournament_id"
+      ],
       "tableTo": "tournaments",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3278,9 +3669,13 @@
       "table": "tournament_teams"
     },
     {
-      "columns": ["team_id"],
+      "columns": [
+        "team_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -3289,133 +3684,195 @@
       "table": "tournament_teams"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "organization_id"
+      ],
+      "tableTo": "organizations",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_tournaments_organization_id_organizations_id_fk",
+      "entityType": "fks",
+      "table": "tournaments"
+    },
+    {
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "accounts_pk",
       "table": "accounts",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "deliveries_pk",
       "table": "deliveries",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "innings_pk",
       "table": "innings",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "match_lineup_pk",
       "table": "match_lineup",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "matches_pk",
       "table": "matches",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "organizations_pk",
+      "table": "organizations",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "passkeys_pk",
       "table": "passkeys",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "player_career_stats_pk",
       "table": "player_career_stats",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "player_innings_stats_pk",
       "table": "player_innings_stats",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "player_tournament_stats_pk",
       "table": "player_tournament_stats",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "player_verification_pk",
       "table": "player_verification",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "players_pk",
       "table": "players",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "sessions_pk",
       "table": "sessions",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "team_players_pk",
       "table": "team_players",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "teams_pk",
       "table": "teams",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "tournament_teams_pk",
       "table": "tournament_teams",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "tournaments_pk",
       "table": "tournaments",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "users_pk",
       "table": "users",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "venues_pk",
       "table": "venues",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "verifications_pk",
       "table": "verifications",
@@ -3632,6 +4089,62 @@
     {
       "columns": [
         {
+          "value": "slug",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "name": "organizations_slug_unique",
+      "entityType": "indexes",
+      "table": "organizations"
+    },
+    {
+      "columns": [
+        {
+          "value": "code",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "name": "organizations_code_unique",
+      "entityType": "indexes",
+      "table": "organizations"
+    },
+    {
+      "columns": [
+        {
+          "value": "parent_organization_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "organizations_parent_idx",
+      "entityType": "indexes",
+      "table": "organizations"
+    },
+    {
+      "columns": [
+        {
+          "value": "is_active",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "organizations_active_idx",
+      "entityType": "indexes",
+      "table": "organizations"
+    },
+    {
+      "columns": [
+        {
           "value": "user_id",
           "isExpression": false
         }
@@ -3748,7 +4261,7 @@
     {
       "columns": [
         {
-          "value": "team_id",
+          "value": "tournament_id",
           "isExpression": false
         },
         {
@@ -3759,33 +4272,73 @@
       "isUnique": true,
       "where": null,
       "origin": "manual",
-      "name": "unique_team_player",
+      "name": "unique_tournament_player",
       "entityType": "indexes",
       "table": "team_players"
     },
     {
-      "columns": ["username"],
+      "columns": [
+        {
+          "value": "tournament_id",
+          "isExpression": false
+        },
+        {
+          "value": "team_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "name": "unique_tournament_team",
+      "entityType": "indexes",
+      "table": "tournament_teams"
+    },
+    {
+      "columns": [
+        {
+          "value": "organization_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "tournament_organization_idx",
+      "entityType": "indexes",
+      "table": "tournaments"
+    },
+    {
+      "columns": [
+        "username"
+      ],
       "nameExplicit": false,
       "name": "users_username_unique",
       "entityType": "uniques",
       "table": "users"
     },
     {
-      "columns": ["display_username"],
+      "columns": [
+        "display_username"
+      ],
       "nameExplicit": false,
       "name": "users_display_username_unique",
       "entityType": "uniques",
       "table": "users"
     },
     {
-      "columns": ["email"],
+      "columns": [
+        "email"
+      ],
       "nameExplicit": false,
       "name": "users_email_unique",
       "entityType": "uniques",
       "table": "users"
     },
     {
-      "columns": ["phone_number"],
+      "columns": [
+        "phone_number"
+      ],
       "nameExplicit": false,
       "name": "users_phone_number_unique",
       "entityType": "uniques",

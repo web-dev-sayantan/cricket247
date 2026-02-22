@@ -85,7 +85,25 @@ export async function getMatchById(id: number) {
       },
     },
   });
-  return match;
+  if (!match) {
+    return null;
+  }
+
+  return {
+    ...match,
+    team1: {
+      ...match.team1,
+      teamPlayers: match.team1.teamPlayers.filter(
+        (teamPlayer) => teamPlayer.tournamentId === match.tournamentId
+      ),
+    },
+    team2: {
+      ...match.team2,
+      teamPlayers: match.team2.teamPlayers.filter(
+        (teamPlayer) => teamPlayer.tournamentId === match.tournamentId
+      ),
+    },
+  };
 }
 
 export async function createMatchAction({
@@ -109,7 +127,7 @@ export async function createMatchAction({
   notes,
 }: {
   matchDate?: Date;
-  tournamentId?: number;
+  tournamentId: number;
   tossWinnerId: number;
   tossDecision: string;
   team1Id: number;

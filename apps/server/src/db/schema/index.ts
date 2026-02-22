@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  foreignKey,
   index,
   integer,
   real,
@@ -140,10 +141,83 @@ export const teams = sqliteTable("teams", {
   ...timestampCols,
 });
 
+export const organizations = sqliteTable(
+  "organizations",
+  {
+    id: integer().primaryKey().notNull(),
+    name: text().notNull(),
+    shortName: text(),
+    slug: text().notNull(),
+    code: text(),
+    type: text().notNull().default("association"),
+    scope: text().notNull().default("local"),
+    country: text(),
+    website: text(),
+    logo: text(),
+    description: text(),
+    isSystem: booleanFlag(),
+    isActive: integer({ mode: "boolean" }).notNull().default(true),
+    parentOrganizationId: integer(),
+    ...timestampCols,
+  },
+  (t) => [
+    uniqueIndex("organizations_slug_unique").on(t.slug),
+    uniqueIndex("organizations_code_unique").on(t.code),
+    index("organizations_parent_idx").on(t.parentOrganizationId),
+    index("organizations_active_idx").on(t.isActive),
+    foreignKey({
+      columns: [t.parentOrganizationId],
+      foreignColumns: [t.id],
+      name: "fk_organizations_parent_organization",
+    }),
+  ]
+);
+
+export const tournaments = sqliteTable(
+  "tournaments",
+  {
+    id: integer().primaryKey().notNull(),
+    name: text().notNull(),
+    category: text().notNull().default("competitive"),
+    organizationId: integer()
+      .notNull()
+      .references(() => organizations.id),
+    startDate: integer({ mode: "timestamp" }).notNull(),
+    endDate: integer({ mode: "timestamp" }).notNull(),
+    format: text().notNull(),
+    ...timestampCols,
+  },
+  (t) => [index("tournament_organization_idx").on(t.organizationId)]
+);
+
+export const tournamentTeams = sqliteTable(
+  "tournament_teams",
+  {
+    id: integer().primaryKey(),
+    tournamentId: integer()
+      .notNull()
+      .references(() => tournaments.id),
+    teamId: integer()
+      .notNull()
+      .references(() => teams.id),
+    points: integer().default(0),
+    matchesPlayed: integer().default(0),
+    matchesWon: integer().default(0),
+    matchesLost: integer().default(0),
+    matchesTied: integer().default(0),
+    matchesDrawn: integer().default(0),
+    ...timestampCols,
+  },
+  (t) => [uniqueIndex("unique_tournament_team").on(t.tournamentId, t.teamId)]
+);
+
 export const teamPlayers = sqliteTable(
   "team_players",
   {
     id: integer().primaryKey().notNull(),
+    tournamentId: integer()
+      .notNull()
+      .references(() => tournaments.id),
     teamId: integer()
       .notNull()
       .references(() => teams.id),
@@ -154,34 +228,15 @@ export const teamPlayers = sqliteTable(
     isViceCaptain: booleanFlag(),
     ...timestampCols,
   },
-  (t) => [uniqueIndex("unique_team_player").on(t.teamId, t.playerId)]
+  (t) => [
+    uniqueIndex("unique_tournament_player").on(t.tournamentId, t.playerId),
+    foreignKey({
+      columns: [t.tournamentId, t.teamId],
+      foreignColumns: [tournamentTeams.tournamentId, tournamentTeams.teamId],
+      name: "fk_team_players_tournament_team",
+    }),
+  ]
 );
-
-export const tournaments = sqliteTable("tournaments", {
-  id: integer().primaryKey().notNull(),
-  name: text().notNull(),
-  startDate: integer({ mode: "timestamp" }).notNull(),
-  endDate: integer({ mode: "timestamp" }).notNull(),
-  format: text().notNull(),
-  ...timestampCols,
-});
-
-export const tournamentTeams = sqliteTable("tournament_teams", {
-  id: integer().primaryKey(),
-  tournamentId: integer()
-    .notNull()
-    .references(() => tournaments.id),
-  teamId: integer()
-    .notNull()
-    .references(() => teams.id),
-  points: integer().default(0),
-  matchesPlayed: integer().default(0),
-  matchesWon: integer().default(0),
-  matchesLost: integer().default(0),
-  matchesTied: integer().default(0),
-  matchesDrawn: integer().default(0),
-  ...timestampCols,
-});
 
 export const venues = sqliteTable("venues", {
   id: integer().primaryKey().notNull(),
@@ -200,7 +255,9 @@ export const matches = sqliteTable(
   "matches",
   {
     id: integer().primaryKey().notNull(),
-    tournamentId: integer().references(() => tournaments.id),
+    tournamentId: integer()
+      .notNull()
+      .references(() => tournaments.id),
     matchDate: integer({ mode: "timestamp" }).notNull(),
     tossWinnerId: integer()
       .notNull()

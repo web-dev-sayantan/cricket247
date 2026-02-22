@@ -9,6 +9,7 @@ import type {
   innings,
   matches,
   matchLineup,
+  organizations,
   passkeys,
   playerCareerStats,
   playerInningsStats,
@@ -35,6 +36,7 @@ export type Passkey = InferSelectModel<typeof passkeys>;
 export type Player = InferSelectModel<typeof players>;
 export type Team = InferSelectModel<typeof teams>;
 export type TeamPlayer = InferSelectModel<typeof teamPlayers>;
+export type Organization = InferSelectModel<typeof organizations>;
 export type Tournament = InferSelectModel<typeof tournaments>;
 export type TournamentTeam = InferSelectModel<typeof tournamentTeams>;
 export type Venue = InferSelectModel<typeof venues>;
@@ -62,6 +64,7 @@ export type NewPasskey = InferInsertModel<typeof passkeys>;
 export type NewPlayer = InferInsertModel<typeof players>;
 export type NewTeam = InferInsertModel<typeof teams>;
 export type NewTeamPlayer = InferInsertModel<typeof teamPlayers>;
+export type NewOrganization = InferInsertModel<typeof organizations>;
 export type NewTournament = InferInsertModel<typeof tournaments>;
 export type NewTournamentTeam = InferInsertModel<typeof tournamentTeams>;
 export type NewVenue = InferInsertModel<typeof venues>;
@@ -120,13 +123,33 @@ export type WicketType =
 export interface TeamPlayerType {
   id: number;
   isCaptain: boolean;
+  isViceCaptain: boolean;
   player: Player;
   playerId: number;
   teamId: number;
+  tournamentId: number;
 }
 
 export interface TeamWithPlayers extends Team {
   players: TeamPlayerType[];
+}
+
+export interface CurrentTeamRegistration {
+  isCaptain: boolean;
+  isViceCaptain: boolean;
+  organizationId: number;
+  organizationName: string;
+  organizationSlug: string;
+  teamId: number;
+  teamName: string;
+  teamShortName: string;
+  tournamentCategory: string;
+  tournamentId: number;
+  tournamentName: string;
+}
+
+export interface PlayerWithCurrentTeams extends Player {
+  currentTeams: CurrentTeamRegistration[];
 }
 
 export interface MatchWithTeams extends Match {

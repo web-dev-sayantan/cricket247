@@ -1,4 +1,5 @@
 import { useForm, useStore } from "@tanstack/react-form";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -17,7 +18,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { useTeamSearch } from "@/hooks/use-team-search";
 import { MatchFormSchema } from "@/lib/schema/match-schema";
-import { client } from "@/utils/orpc";
+import { client, orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/matches/create-match")({
   component: RouteComponent,
@@ -45,6 +46,11 @@ function RouteComponent() {
   const navigate = useNavigate();
   const [team1SearchInput, setTeam1SearchInput] = useState("");
   const [team2SearchInput, setTeam2SearchInput] = useState("");
+  const {
+    data: tournaments = [],
+    error: tournamentsError,
+    isLoading: isLoadingTournaments,
+  } = useQuery(orpc.tournaments.queryOptions());
 
   // Search teams using custom hook
   const {
@@ -72,9 +78,16 @@ function RouteComponent() {
     }
   }, [team2Error]);
 
+  useEffect(() => {
+    if (tournamentsError) {
+      toast.error("Failed to load tournaments");
+    }
+  }, [tournamentsError]);
+
   const loadingTeams = loadingTeam1 || loadingTeam2;
 
   const defaultValues: z.infer<typeof MatchFormSchema> = {
+    tournamentId: 0,
     matchDate: new Date(),
     tossWinnerId: 0,
     tossDecision: "bat",
@@ -124,6 +137,46 @@ function RouteComponent() {
             form.handleSubmit(e);
           }}
         >
+          <FieldGroup>
+            <form.Field name="tournamentId">
+              {(field) => (
+                <Field orientation="vertical">
+                  <FieldLabel htmlFor="tournamentId">Tournament</FieldLabel>
+                  <Select
+                    onValueChange={(value) =>
+                      value && field.handleChange(Number.parseInt(value, 10))
+                    }
+                    value={
+                      field.state.value > 0 ? field.state.value.toString() : ""
+                    }
+                  >
+                    <SelectTrigger
+                      disabled={isLoadingTournaments}
+                      id="tournamentId"
+                    >
+                      <SelectValue placeholder="Select tournament" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tournaments.map((tournament) => (
+                        <SelectItem
+                          key={tournament.id}
+                          value={tournament.id.toString()}
+                        >
+                          {tournament.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {field.state.meta.errors.length > 0 && (
+                    <span className="text-red-500 text-sm">
+                      {String(field.state.meta.errors[0])}
+                    </span>
+                  )}
+                </Field>
+              )}
+            </form.Field>
+          </FieldGroup>
+
           {/* Match Date */}
           <FieldGroup>
             <form.Field name="matchDate">

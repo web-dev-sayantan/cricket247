@@ -1,10 +1,81 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { db } from "@/db";
-import { playerInningsStats, players } from "@/db/schema";
-import type { NewPlayerInningsStats, Player } from "@/db/types";
+import {
+  organizations,
+  playerInningsStats,
+  players,
+  teamPlayers,
+  teams,
+  tournaments,
+} from "@/db/schema";
+import type {
+  CurrentTeamRegistration,
+  NewPlayerInningsStats,
+  Player,
+  PlayerWithCurrentTeams,
+} from "@/db/types";
 
 export const getAllPlayers: () => Promise<Player[]> = async () =>
   await db.select().from(players);
+
+export const getPlayersWithCurrentTeams: () => Promise<
+  PlayerWithCurrentTeams[]
+> = async () => {
+  const now = new Date();
+  const [allPlayers, liveTournamentMemberships] = await Promise.all([
+    db.select().from(players),
+    db
+      .select({
+        isCaptain: teamPlayers.isCaptain,
+        isViceCaptain: teamPlayers.isViceCaptain,
+        organizationId: organizations.id,
+        organizationName: organizations.name,
+        organizationSlug: organizations.slug,
+        playerId: teamPlayers.playerId,
+        teamId: teams.id,
+        teamName: teams.name,
+        teamShortName: teams.shortName,
+        tournamentCategory: tournaments.category,
+        tournamentId: tournaments.id,
+        tournamentName: tournaments.name,
+      })
+      .from(teamPlayers)
+      .innerJoin(teams, eq(teamPlayers.teamId, teams.id))
+      .innerJoin(tournaments, eq(teamPlayers.tournamentId, tournaments.id))
+      .innerJoin(
+        organizations,
+        eq(tournaments.organizationId, organizations.id)
+      )
+      .where(
+        and(lte(tournaments.startDate, now), gte(tournaments.endDate, now))
+      ),
+  ]);
+
+  const currentTeamsByPlayerId = new Map<number, CurrentTeamRegistration[]>();
+
+  for (const row of liveTournamentMemberships) {
+    const current = currentTeamsByPlayerId.get(row.playerId) ?? [];
+    current.push({
+      isCaptain: row.isCaptain,
+      isViceCaptain: row.isViceCaptain,
+      organizationId: row.organizationId,
+      organizationName: row.organizationName,
+      organizationSlug: row.organizationSlug,
+      teamId: row.teamId,
+      teamName: row.teamName,
+      teamShortName: row.teamShortName,
+      tournamentCategory: row.tournamentCategory,
+      tournamentId: row.tournamentId,
+      tournamentName: row.tournamentName,
+    });
+    currentTeamsByPlayerId.set(row.playerId, current);
+  }
+
+  return allPlayers.map((player) => ({
+    ...player,
+    currentTeams: currentTeamsByPlayerId.get(player.id) ?? [],
+  }));
+};
 
 export async function getPlayerById(id: number) {
   return await db.select().from(players).where(eq(players.id, id)).limit(1);

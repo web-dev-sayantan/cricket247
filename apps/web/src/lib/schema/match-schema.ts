@@ -12,6 +12,9 @@ const _stringBool = z
   .optional();
 
 export const MatchFormSchema = z.object({
+  tournamentId: z.number().int().positive({
+    message: "Tournament is required",
+  }),
   matchDate: z.date(),
   tossWinnerId: z.number(),
   tossDecision: z.string(),

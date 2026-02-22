@@ -5,6 +5,7 @@ import {
   innings,
   matches,
   matchLineup,
+  organizations,
   playerCareerStats,
   playerInningsStats,
   players,
@@ -24,6 +25,7 @@ import type {
   NewInnings,
   NewMatch,
   NewMatchLineup,
+  NewOrganization,
   NewPlayer,
   NewPlayerCareerStats,
   NewPlayerInningsStats,
@@ -33,6 +35,7 @@ import type {
   NewTournament,
   NewTournamentTeam,
   NewVenue,
+  Organization,
   Player,
   PlayerCareerStats,
   PlayerInningsStats,
@@ -53,7 +56,12 @@ type UpdateTeamInput = Partial<CreateTeamInput>;
 type CreateMatchInput = Omit<NewMatch, "id">;
 type UpdateMatchInput = Partial<CreateMatchInput>;
 
-type CreateTournamentInput = Omit<NewTournament, "id">;
+type CreateOrganizationInput = Omit<NewOrganization, "id">;
+type UpdateOrganizationInput = Partial<CreateOrganizationInput>;
+
+type CreateTournamentInput = Omit<NewTournament, "id" | "organizationId"> & {
+  organizationId?: number;
+};
 type UpdateTournamentInput = Partial<CreateTournamentInput>;
 
 type CreateVenueInput = Omit<NewVenue, "id">;
@@ -83,6 +91,49 @@ type UpdatePlayerTournamentStatsInput =
 
 type CreatePlayerCareerStatsInput = Omit<NewPlayerCareerStats, "id">;
 type UpdatePlayerCareerStatsInput = Partial<CreatePlayerCareerStatsInput>;
+
+const SYSTEM_ORGANIZATION_SLUG = "system";
+const SYSTEM_TOURNAMENT_CATEGORIES = new Set([
+  "practice",
+  "recreational",
+  "one_off",
+]);
+
+type CrudServiceErrorCode =
+  | "SYSTEM_ORGANIZATION_NOT_FOUND"
+  | "TOURNAMENT_ORGANIZATION_REQUIRED"
+  | "ORGANIZATION_HAS_TOURNAMENTS"
+  | "ORGANIZATION_DELETE_SYSTEM_FORBIDDEN"
+  | "ORGANIZATION_DEACTIVATE_SYSTEM_FORBIDDEN"
+  | "ORGANIZATION_SYSTEM_IDENTITY_IMMUTABLE"
+  | "ORGANIZATION_SYSTEM_FLAG_IMMUTABLE";
+
+export class CrudServiceError extends Error {
+  code: CrudServiceErrorCode;
+
+  constructor(code: CrudServiceErrorCode, message?: string) {
+    super(message ?? code);
+    this.code = code;
+  }
+}
+
+async function getSystemOrganization(): Promise<Organization | null> {
+  const rows = await db
+    .select()
+    .from(organizations)
+    .where(eq(organizations.slug, SYSTEM_ORGANIZATION_SLUG))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+async function getOrganizationById(id: number): Promise<Organization | null> {
+  const rows = await db
+    .select()
+    .from(organizations)
+    .where(eq(organizations.id, id))
+    .limit(1);
+  return rows[0] ?? null;
+}
 
 export const playerCrudService = {
   list: (): Promise<Player[]> => db.select().from(players),
@@ -170,6 +221,81 @@ export const matchCrudService = {
   },
 };
 
+export const organizationCrudService = {
+  list: (): Promise<Organization[]> => db.select().from(organizations),
+  getById: (id: number): Promise<Organization | null> =>
+    getOrganizationById(id),
+  async create(payload: CreateOrganizationInput): Promise<Organization | null> {
+    if (payload.isSystem === true) {
+      throw new CrudServiceError("ORGANIZATION_SYSTEM_FLAG_IMMUTABLE");
+    }
+
+    const rows = await db.insert(organizations).values(payload).returning();
+    return rows[0] ?? null;
+  },
+  async update(
+    id: number,
+    payload: UpdateOrganizationInput
+  ): Promise<Organization | null> {
+    const existing = await getOrganizationById(id);
+    if (!existing) {
+      return null;
+    }
+
+    if (existing.isSystem) {
+      if (payload.isActive === false) {
+        throw new CrudServiceError("ORGANIZATION_DEACTIVATE_SYSTEM_FORBIDDEN");
+      }
+
+      if (
+        (typeof payload.slug === "string" && payload.slug !== existing.slug) ||
+        (payload.code !== undefined && payload.code !== existing.code) ||
+        payload.isSystem === false
+      ) {
+        throw new CrudServiceError("ORGANIZATION_SYSTEM_IDENTITY_IMMUTABLE");
+      }
+    }
+
+    if (!existing.isSystem && payload.isSystem === true) {
+      throw new CrudServiceError("ORGANIZATION_SYSTEM_FLAG_IMMUTABLE");
+    }
+
+    const rows = await db
+      .update(organizations)
+      .set(payload)
+      .where(eq(organizations.id, id))
+      .returning();
+
+    return rows[0] ?? null;
+  },
+  async remove(id: number): Promise<boolean> {
+    const existing = await getOrganizationById(id);
+    if (!existing) {
+      return false;
+    }
+
+    if (existing.isSystem) {
+      throw new CrudServiceError("ORGANIZATION_DELETE_SYSTEM_FORBIDDEN");
+    }
+
+    const linkedTournaments = await db
+      .select({ id: tournaments.id })
+      .from(tournaments)
+      .where(eq(tournaments.organizationId, id))
+      .limit(1);
+    if (linkedTournaments.length > 0) {
+      throw new CrudServiceError("ORGANIZATION_HAS_TOURNAMENTS");
+    }
+
+    const rows = await db
+      .delete(organizations)
+      .where(eq(organizations.id, id))
+      .returning({ id: organizations.id });
+
+    return rows.length > 0;
+  },
+};
+
 export const tournamentCrudService = {
   list: (): Promise<Tournament[]> => db.select().from(tournaments),
   async getById(id: number): Promise<Tournament | null> {
@@ -181,7 +307,29 @@ export const tournamentCrudService = {
     return rows[0] ?? null;
   },
   async create(payload: CreateTournamentInput): Promise<Tournament | null> {
-    const rows = await db.insert(tournaments).values(payload).returning();
+    const category = payload.category ?? "competitive";
+    let organizationId = payload.organizationId;
+
+    if (typeof organizationId !== "number") {
+      if (!SYSTEM_TOURNAMENT_CATEGORIES.has(category)) {
+        throw new CrudServiceError("TOURNAMENT_ORGANIZATION_REQUIRED");
+      }
+
+      const systemOrganization = await getSystemOrganization();
+      if (!systemOrganization) {
+        throw new CrudServiceError("SYSTEM_ORGANIZATION_NOT_FOUND");
+      }
+
+      organizationId = systemOrganization.id;
+    }
+
+    const rows = await db
+      .insert(tournaments)
+      .values({
+        ...payload,
+        organizationId,
+      })
+      .returning();
     return rows[0] ?? null;
   },
   async update(
