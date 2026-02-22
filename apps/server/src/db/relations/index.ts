@@ -9,8 +9,10 @@ import {
   playerInningsStats,
   players,
   playerTournamentStats,
+  teamCareerStats,
   teamPlayers,
   teams,
+  teamTournamentStats,
   tournaments,
   tournamentTeams,
 } from "../schema";
@@ -22,12 +24,14 @@ export const relations = defineRelations(
     matchLineup,
     matches,
     organizations,
+    teamCareerStats,
     playerCareerStats,
     playerInningsStats,
     players,
     playerTournamentStats,
     teamPlayers,
     teams,
+    teamTournamentStats,
     tournaments,
     tournamentTeams,
   },
@@ -54,10 +58,20 @@ export const relations = defineRelations(
       matches: r.many.matches(),
       tournamentTeams: r.many.tournamentTeams(),
       teamPlayers: r.many.teamPlayers(),
+      championTeam: r.one.teams({
+        from: r.tournaments.championTeamId,
+        to: r.teams.id,
+      }),
+      teamTournamentStats: r.many.teamTournamentStats(),
     },
     teams: {
       tournamentTeams: r.many.tournamentTeams(),
       teamPlayers: r.many.teamPlayers(),
+      wonTournaments: r.many.tournaments({
+        from: r.teams.id,
+        to: r.tournaments.championTeamId,
+        alias: "championTeam",
+      }),
       homeMatches: r.many.matches({
         from: r.teams.id,
         to: r.matches.team1Id,
@@ -90,6 +104,8 @@ export const relations = defineRelations(
       }),
       lineup: r.many.matchLineup(),
       inningsStats: r.many.playerInningsStats(),
+      careerStats: r.many.teamCareerStats(),
+      tournamentStats: r.many.teamTournamentStats(),
     },
     players: {
       teamPlayers: r.many.teamPlayers(),
@@ -312,6 +328,22 @@ export const relations = defineRelations(
       player: r.one.players({
         from: r.playerCareerStats.playerId,
         to: r.players.id,
+      }),
+    },
+    teamCareerStats: {
+      team: r.one.teams({
+        from: r.teamCareerStats.teamId,
+        to: r.teams.id,
+      }),
+    },
+    teamTournamentStats: {
+      team: r.one.teams({
+        from: r.teamTournamentStats.teamId,
+        to: r.teams.id,
+      }),
+      tournament: r.one.tournaments({
+        from: r.teamTournamentStats.tournamentId,
+        to: r.tournaments.id,
       }),
     },
   })

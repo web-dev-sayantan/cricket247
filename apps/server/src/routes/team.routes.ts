@@ -12,6 +12,11 @@ import {
 } from "@/schemas/crud.schemas";
 import { teamCrudService } from "@/services/crud.service";
 import { getTeamsByName } from "@/services/team.service";
+import {
+  getTeamStatsById,
+  getTeamTournamentStats,
+  listTeamStats,
+} from "@/services/team-stats.service";
 
 const teamRoutes = new Hono();
 
@@ -31,6 +36,58 @@ teamRoutes.get("/search/name/:name", async (c) => {
     return successResponse(c, teams);
   } catch (_error) {
     return errorResponse(c, "Failed to fetch teams", 500);
+  }
+});
+
+teamRoutes.get("/stats", async (c) => {
+  try {
+    const stats = await listTeamStats();
+    return successResponse(c, stats);
+  } catch (_error) {
+    return errorResponse(c, "Failed to fetch team stats", 500);
+  }
+});
+
+teamRoutes.get("/:id/stats", async (c) => {
+  const parsedId = idRouteParamSchema.safeParse(c.req.param("id"));
+  if (!parsedId.success) {
+    return errorResponse(c, "Invalid team ID");
+  }
+
+  try {
+    const stats = await getTeamStatsById(parsedId.data);
+    if (!stats) {
+      return errorResponse(c, "Team not found", 404);
+    }
+
+    return successResponse(c, stats);
+  } catch (_error) {
+    return errorResponse(c, "Failed to fetch team stats", 500);
+  }
+});
+
+teamRoutes.get("/:id/stats/tournaments/:tournamentId", async (c) => {
+  const parsedId = idRouteParamSchema.safeParse(c.req.param("id"));
+  const parsedTournamentId = idRouteParamSchema.safeParse(
+    c.req.param("tournamentId")
+  );
+
+  if (!(parsedId.success && parsedTournamentId.success)) {
+    return errorResponse(c, "Invalid team or tournament ID");
+  }
+
+  try {
+    const stats = await getTeamTournamentStats(
+      parsedId.data,
+      parsedTournamentId.data
+    );
+    if (!stats) {
+      return errorResponse(c, "Team tournament stats not found", 404);
+    }
+
+    return successResponse(c, stats);
+  } catch (_error) {
+    return errorResponse(c, "Failed to fetch team tournament stats", 500);
   }
 });
 

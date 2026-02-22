@@ -141,6 +141,7 @@ export const teams = sqliteTable("teams", {
   shortName: text().notNull(),
   baseLocation: text(),
   country: text().notNull().default("Unknown"),
+  logo: text(),
   ...timestampCols,
 });
 
@@ -188,6 +189,7 @@ export const tournaments = sqliteTable(
     startDate: integer({ mode: "timestamp" }).notNull(),
     endDate: integer({ mode: "timestamp" }).notNull(),
     format: text().notNull(),
+    championTeamId: integer().references(() => teams.id),
     ...timestampCols,
   },
   (t) => [index("tournament_organization_idx").on(t.organizationId)]
@@ -519,3 +521,63 @@ export const playerCareerStats = sqliteTable("player_career_stats", {
   stumpings: integer().notNull().default(0),
   ...timestampCols,
 });
+
+export const teamCareerStats = sqliteTable(
+  "team_career_stats",
+  {
+    id: integer().primaryKey().notNull(),
+    teamId: integer()
+      .notNull()
+      .references(() => teams.id),
+    matchesPlayed: integer().notNull().default(0),
+    matchesWon: integer().notNull().default(0),
+    matchesLost: integer().notNull().default(0),
+    matchesTied: integer().notNull().default(0),
+    matchesDrawn: integer().notNull().default(0),
+    matchesAbandoned: integer().notNull().default(0),
+    points: integer().notNull().default(0),
+    winPercentage: real().notNull().default(0),
+    runsScored: integer().notNull().default(0),
+    runsConceded: integer().notNull().default(0),
+    ballsFaced: integer().notNull().default(0),
+    ballsBowled: integer().notNull().default(0),
+    netRunRate: real().notNull().default(0),
+    trophiesWon: integer().notNull().default(0),
+    recentForm: text().notNull().default("[]"),
+    ...timestampCols,
+  },
+  (t) => [uniqueIndex("team_career_stats_team_unique").on(t.teamId)]
+);
+
+export const teamTournamentStats = sqliteTable(
+  "team_tournament_stats",
+  {
+    id: integer().primaryKey().notNull(),
+    tournamentId: integer()
+      .notNull()
+      .references(() => tournaments.id),
+    teamId: integer()
+      .notNull()
+      .references(() => teams.id),
+    matchesPlayed: integer().notNull().default(0),
+    matchesWon: integer().notNull().default(0),
+    matchesLost: integer().notNull().default(0),
+    matchesTied: integer().notNull().default(0),
+    matchesDrawn: integer().notNull().default(0),
+    matchesAbandoned: integer().notNull().default(0),
+    points: integer().notNull().default(0),
+    winPercentage: real().notNull().default(0),
+    runsScored: integer().notNull().default(0),
+    runsConceded: integer().notNull().default(0),
+    ballsFaced: integer().notNull().default(0),
+    ballsBowled: integer().notNull().default(0),
+    netRunRate: real().notNull().default(0),
+    recentForm: text().notNull().default("[]"),
+    ...timestampCols,
+  },
+  (t) => [
+    uniqueIndex("team_tournament_stats_unique").on(t.tournamentId, t.teamId),
+    index("team_tournament_stats_team_idx").on(t.teamId),
+    index("team_tournament_stats_tournament_idx").on(t.tournamentId),
+  ]
+);

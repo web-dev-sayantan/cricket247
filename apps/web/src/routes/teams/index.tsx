@@ -33,8 +33,8 @@ const DESKTOP_SKELETON_ROWS = 8;
 const MOBILE_SKELETON_CARDS = 5;
 
 const DESKTOP_ROW_BASE = "grid items-center gap-4 px-5 py-3";
-const DESKTOP_ROW_WITH_ACTIONS = `${DESKTOP_ROW_BASE} grid-cols-[minmax(0,1fr)_120px_180px]`;
-const DESKTOP_ROW_NO_ACTIONS = `${DESKTOP_ROW_BASE} grid-cols-[minmax(0,1fr)_120px]`;
+const DESKTOP_ROW_WITH_ACTIONS = `${DESKTOP_ROW_BASE} grid-cols-[minmax(0,1fr)_120px_280px]`;
+const DESKTOP_ROW_NO_ACTIONS = `${DESKTOP_ROW_BASE} grid-cols-[minmax(0,1fr)_120px_120px]`;
 
 type SortOption = "name-asc" | "name-desc" | "short-asc" | "short-desc";
 
@@ -386,7 +386,11 @@ function RouteComponent() {
                   <span className="text-right font-medium text-muted-foreground text-xs uppercase tracking-wide">
                     Actions
                   </span>
-                ) : null}
+                ) : (
+                  <span className="text-right font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                    Stats
+                  </span>
+                )}
               </div>
 
               {filteredTeams.map((team, index) => {
@@ -477,6 +481,16 @@ function RouteComponent() {
                     </div>
                     {isAdmin ? (
                       <div className="flex justify-end gap-2">
+                        <Link
+                          className={buttonVariants({
+                            size: "sm",
+                            variant: "secondary",
+                          })}
+                          params={{ teamId: String(team.id) }}
+                          to="/teams/$teamId/stats"
+                        >
+                          Stats
+                        </Link>
                         <Button
                           disabled={isRowPending}
                           onClick={() => handleEditStart(team)}
@@ -498,7 +512,20 @@ function RouteComponent() {
                           Delete
                         </Button>
                       </div>
-                    ) : null}
+                    ) : (
+                      <div className="flex justify-end">
+                        <Link
+                          className={buttonVariants({
+                            size: "sm",
+                            variant: "secondary",
+                          })}
+                          params={{ teamId: String(team.id) }}
+                          to="/teams/$teamId/stats"
+                        >
+                          Stats
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -589,6 +616,17 @@ function RouteComponent() {
 
                       {isAdmin ? (
                         <div className="flex gap-2 border-t pt-3">
+                          <Link
+                            className={buttonVariants({
+                              className: "flex-1",
+                              size: "sm",
+                              variant: "secondary",
+                            })}
+                            params={{ teamId: String(team.id) }}
+                            to="/teams/$teamId/stats"
+                          >
+                            Stats
+                          </Link>
                           <Button
                             className="flex-1"
                             disabled={isCardPending}
@@ -612,7 +650,21 @@ function RouteComponent() {
                             Delete
                           </Button>
                         </div>
-                      ) : null}
+                      ) : (
+                        <div className="border-t pt-3">
+                          <Link
+                            className={buttonVariants({
+                              className: "w-full",
+                              size: "sm",
+                              variant: "secondary",
+                            })}
+                            params={{ teamId: String(team.id) }}
+                            to="/teams/$teamId/stats"
+                          >
+                            Stats
+                          </Link>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 );

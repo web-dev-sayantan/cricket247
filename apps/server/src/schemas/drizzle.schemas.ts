@@ -16,8 +16,10 @@ import {
   playerInningsStats,
   players,
   playerTournamentStats,
+  teamCareerStats,
   teamPlayers,
   teams,
+  teamTournamentStats,
   tournaments,
   tournamentTeams,
   venues,
@@ -30,6 +32,9 @@ import {
 export const selectPlayerSchema = createSelectSchema(players);
 export const selectTeamSchema = createSelectSchema(teams);
 export const selectTeamPlayerSchema = createSelectSchema(teamPlayers);
+export const selectTeamCareerStatsSchema = createSelectSchema(teamCareerStats);
+export const selectTeamTournamentStatsSchema =
+  createSelectSchema(teamTournamentStats);
 export const selectOrganizationSchema = createSelectSchema(organizations);
 export const selectTournamentSchema = createSelectSchema(tournaments);
 export const selectTournamentTeamSchema = createSelectSchema(tournamentTeams);
@@ -53,6 +58,9 @@ export const selectPlayerCareerStatsSchema =
 export const insertPlayerSchema = createInsertSchema(players);
 export const insertTeamSchema = createInsertSchema(teams);
 export const insertTeamPlayerSchema = createInsertSchema(teamPlayers);
+export const insertTeamCareerStatsSchema = createInsertSchema(teamCareerStats);
+export const insertTeamTournamentStatsSchema =
+  createInsertSchema(teamTournamentStats);
 export const insertOrganizationSchema = createInsertSchema(organizations);
 export const insertTournamentSchema = createInsertSchema(tournaments);
 export const insertTournamentTeamSchema = createInsertSchema(tournamentTeams);

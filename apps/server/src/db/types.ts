@@ -16,8 +16,10 @@ import type {
   players,
   playerTournamentStats,
   session,
+  teamCareerStats,
   teamPlayers,
   teams,
+  teamTournamentStats,
   tournaments,
   tournamentTeams,
   user,
@@ -36,6 +38,8 @@ export type Passkey = InferSelectModel<typeof passkey>;
 export type Player = InferSelectModel<typeof players>;
 export type Team = InferSelectModel<typeof teams>;
 export type TeamPlayer = InferSelectModel<typeof teamPlayers>;
+export type TeamCareerStats = InferSelectModel<typeof teamCareerStats>;
+export type TeamTournamentStats = InferSelectModel<typeof teamTournamentStats>;
 export type Organization = InferSelectModel<typeof organizations>;
 export type Tournament = InferSelectModel<typeof tournaments>;
 export type TournamentTeam = InferSelectModel<typeof tournamentTeams>;
@@ -64,6 +68,10 @@ export type NewPasskey = InferInsertModel<typeof passkey>;
 export type NewPlayer = InferInsertModel<typeof players>;
 export type NewTeam = InferInsertModel<typeof teams>;
 export type NewTeamPlayer = InferInsertModel<typeof teamPlayers>;
+export type NewTeamCareerStats = InferInsertModel<typeof teamCareerStats>;
+export type NewTeamTournamentStats = InferInsertModel<
+  typeof teamTournamentStats
+>;
 export type NewOrganization = InferInsertModel<typeof organizations>;
 export type NewTournament = InferInsertModel<typeof tournaments>;
 export type NewTournamentTeam = InferInsertModel<typeof tournamentTeams>;

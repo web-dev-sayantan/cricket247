@@ -24,10 +24,16 @@ import {
 } from "@/services/player.service";
 import {
   getAllTeams,
+  getTeamById,
   getTeamsByName,
   registerPlayerForTournamentTeam,
   TeamPlayerRegistrationError,
 } from "@/services/team.service";
+import {
+  getTeamStatsById,
+  getTeamTournamentStats,
+  listTeamStats,
+} from "@/services/team-stats.service";
 import {
   getAllTournaments,
   getLiveTournaments,
@@ -81,6 +87,11 @@ const RegisterTournamentTeamPlayerInputSchema = z.object({
   playerId: z.number().int().positive(),
   isCaptain: z.boolean().optional(),
   isViceCaptain: z.boolean().optional(),
+});
+
+const TeamTournamentStatsInputSchema = z.object({
+  teamId: z.number().int().positive(),
+  tournamentId: z.number().int().positive(),
 });
 
 const UpdatePlayerInputSchema = z
@@ -169,10 +180,18 @@ export const appRouter = {
   searchTeamsByName: publicProcedure
     .input(z.string())
     .handler(({ input }) => getTeamsByName(input)),
-  getTeamById: publicProcedure.input(z.number()).handler(async ({ input }) => {
-    const teams = await getAllTeams();
-    return teams.find((team) => team.id === input) || null;
-  }),
+  getTeamById: publicProcedure
+    .input(z.number().int().positive())
+    .handler(({ input }) => getTeamById(input)),
+  listTeamStats: publicProcedure.handler(() => listTeamStats()),
+  getTeamStatsById: publicProcedure
+    .input(z.number().int().positive())
+    .handler(({ input }) => getTeamStatsById(input)),
+  getTeamTournamentStats: publicProcedure
+    .input(TeamTournamentStatsInputSchema)
+    .handler(({ input }) =>
+      getTeamTournamentStats(input.teamId, input.tournamentId)
+    ),
   createPlayer: sensitiveProcedure
     .input(createPlayerBodySchema)
     .handler(async ({ context, input }) => {
