@@ -18,7 +18,13 @@
 				"CORS_ORIGIN": "https://cricket247-web.web-dev-sayantan.workers.dev",
 				"PROFILE_IMAGES_PUBLIC_BASE_URL": "https://pub-18e474120c2d40f19ed08a82f09d6671.r2.dev",
 				"PROFILE_IMAGES_BUCKET_NAME": "cricket247-profile-images"
-			}
+			},
+			"r2_buckets": [
+				{
+					"binding": "PROFILE_IMAGES",
+					"bucket_name": "cricket247-profile-images"
+				}
+			]
 		}
 	},
 	"r2_buckets": [
