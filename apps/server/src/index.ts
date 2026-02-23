@@ -15,7 +15,7 @@ import { appRouter } from "./routers/index";
 import routes from "./routes";
 import { getCurrentIsoTimestamp } from "./utils";
 
-const app = new Hono();
+export const app = new Hono();
 
 // Global middleware
 app.use(logger());

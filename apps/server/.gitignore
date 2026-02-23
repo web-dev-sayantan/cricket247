@@ -36,6 +36,7 @@ node_modules/
 
 # logs
 logs/
+.wrangler-out/
 *.log
 npm-debug.log*
 yarn-debug.log*

@@ -2,6 +2,11 @@ interface App {
   fetch: (request: Request) => Response | Promise<Response>;
 }
 
+interface AppModule {
+  app?: App;
+  default?: App;
+}
+
 interface WorkerEnv {
   BETTER_AUTH_SECRET?: string;
   BETTER_AUTH_URL?: string;
@@ -40,7 +45,18 @@ const loadApp = (env: WorkerEnv) => {
 
   if (!appPromise) {
     appPromise = import("./index")
-      .then((module) => module.default as App)
+      .then((module) => {
+        const appModule = module as AppModule;
+        const app = appModule.default ?? appModule.app;
+
+        if (!app || typeof app.fetch !== "function") {
+          throw new Error(
+            "Failed to initialize API app: expected default or named app export with fetch()"
+          );
+        }
+
+        return app;
+      })
       .catch((error) => {
         appPromise = null;
         throw error;
