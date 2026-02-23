@@ -80,10 +80,12 @@ export default function SignInForm({
   });
 
   async function signInWithSocial(provider: "facebook" | "google") {
+    const callbackBaseUrl =
+      typeof window === "undefined" ? "" : window.location.origin;
     const { data, error } = await authClient.signIn.social({
       provider,
-      callbackURL: `${import.meta.env.VITE_BASE_URL}/dashboard`,
-      errorCallbackURL: `${import.meta.env.VITE_BASE_URL}/error`,
+      callbackURL: `${callbackBaseUrl}/dashboard`,
+      errorCallbackURL: `${callbackBaseUrl}/error`,
     });
     if (error || !data) {
       setSigninError("Login Failed. Try Again");

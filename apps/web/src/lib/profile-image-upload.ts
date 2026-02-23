@@ -1,9 +1,5 @@
 import { getProfileImageUrl } from "@/lib/profile-image-url";
 
-const baseURL =
-  import.meta.env.VITE_SERVER_URL ||
-  (typeof window === "undefined" ? "" : window.location.origin);
-
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 const MAX_PROFILE_IMAGE_BYTES = 5 * 1024 * 1024;
 
@@ -27,7 +23,7 @@ const attemptDirectUpload = async (
 ): Promise<UploadProfileImageResult | null> => {
   try {
     const presignResponse = await fetch(
-      `${baseURL}/api/v1/uploads/profile-image/presign`,
+      "/api/v1/uploads/profile-image/presign",
       {
         method: "POST",
         credentials: "include",
@@ -105,7 +101,7 @@ export const uploadProfileImage = async (
   const formData = new FormData();
   formData.append("image", file);
 
-  const response = await fetch(`${baseURL}/api/v1/uploads/profile-image`, {
+  const response = await fetch("/api/v1/uploads/profile-image", {
     method: "POST",
     credentials: "include",
     body: formData,

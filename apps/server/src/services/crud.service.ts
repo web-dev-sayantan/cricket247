@@ -5,6 +5,7 @@ import {
   innings,
   matches,
   matchLineup,
+  matchParticipantSources,
   organizations,
   playerCareerStats,
   playerInningsStats,
@@ -12,6 +13,10 @@ import {
   playerTournamentStats,
   teamPlayers,
   teams,
+  tournamentStageAdvancements,
+  tournamentStageGroups,
+  tournamentStages,
+  tournamentStageTeamEntries,
   tournaments,
   tournamentTeams,
   venues,
@@ -21,10 +26,12 @@ import type {
   Innings,
   Match,
   MatchLineup,
+  MatchParticipantSource,
   NewDelivery,
   NewInnings,
   NewMatch,
   NewMatchLineup,
+  NewMatchParticipantSource,
   NewOrganization,
   NewPlayer,
   NewPlayerCareerStats,
@@ -33,6 +40,10 @@ import type {
   NewTeam,
   NewTeamPlayer,
   NewTournament,
+  NewTournamentStage,
+  NewTournamentStageAdvancement,
+  NewTournamentStageGroup,
+  NewTournamentStageTeamEntry,
   NewTournamentTeam,
   NewVenue,
   Organization,
@@ -43,6 +54,10 @@ import type {
   Team,
   TeamPlayer,
   Tournament,
+  TournamentStage,
+  TournamentStageAdvancement,
+  TournamentStageGroup,
+  TournamentStageTeamEntry,
   TournamentTeam,
   Venue,
 } from "@/db/types";
@@ -72,6 +87,30 @@ type UpdateTeamPlayerInput = Partial<CreateTeamPlayerInput>;
 
 type CreateTournamentTeamInput = Omit<NewTournamentTeam, "id">;
 type UpdateTournamentTeamInput = Partial<CreateTournamentTeamInput>;
+
+type CreateTournamentStageInput = Omit<NewTournamentStage, "id">;
+type UpdateTournamentStageInput = Partial<CreateTournamentStageInput>;
+
+type CreateTournamentStageGroupInput = Omit<NewTournamentStageGroup, "id">;
+type UpdateTournamentStageGroupInput = Partial<CreateTournamentStageGroupInput>;
+
+type CreateTournamentStageTeamEntryInput = Omit<
+  NewTournamentStageTeamEntry,
+  "id"
+>;
+type UpdateTournamentStageTeamEntryInput =
+  Partial<CreateTournamentStageTeamEntryInput>;
+
+type CreateTournamentStageAdvancementInput = Omit<
+  NewTournamentStageAdvancement,
+  "id"
+>;
+type UpdateTournamentStageAdvancementInput =
+  Partial<CreateTournamentStageAdvancementInput>;
+
+type CreateMatchParticipantSourceInput = Omit<NewMatchParticipantSource, "id">;
+type UpdateMatchParticipantSourceInput =
+  Partial<CreateMatchParticipantSourceInput>;
 
 type CreateInningsInput = Omit<NewInnings, "id">;
 type UpdateInningsInput = Partial<CreateInningsInput>;
@@ -453,6 +492,212 @@ export const tournamentTeamCrudService = {
       .where(eq(tournamentTeams.id, id))
       .returning({
         id: tournamentTeams.id,
+      });
+    return rows.length > 0;
+  },
+};
+
+export const tournamentStageCrudService = {
+  list: (): Promise<TournamentStage[]> => db.select().from(tournamentStages),
+  async getById(id: number): Promise<TournamentStage | null> {
+    const rows = await db
+      .select()
+      .from(tournamentStages)
+      .where(eq(tournamentStages.id, id))
+      .limit(1);
+    return rows[0] ?? null;
+  },
+  async create(
+    payload: CreateTournamentStageInput
+  ): Promise<TournamentStage | null> {
+    const rows = await db.insert(tournamentStages).values(payload).returning();
+    return rows[0] ?? null;
+  },
+  async update(
+    id: number,
+    payload: UpdateTournamentStageInput
+  ): Promise<TournamentStage | null> {
+    const rows = await db
+      .update(tournamentStages)
+      .set(payload)
+      .where(eq(tournamentStages.id, id))
+      .returning();
+    return rows[0] ?? null;
+  },
+  async remove(id: number): Promise<boolean> {
+    const rows = await db
+      .delete(tournamentStages)
+      .where(eq(tournamentStages.id, id))
+      .returning({
+        id: tournamentStages.id,
+      });
+    return rows.length > 0;
+  },
+};
+
+export const tournamentStageGroupCrudService = {
+  list: (): Promise<TournamentStageGroup[]> =>
+    db.select().from(tournamentStageGroups),
+  async getById(id: number): Promise<TournamentStageGroup | null> {
+    const rows = await db
+      .select()
+      .from(tournamentStageGroups)
+      .where(eq(tournamentStageGroups.id, id))
+      .limit(1);
+    return rows[0] ?? null;
+  },
+  async create(
+    payload: CreateTournamentStageGroupInput
+  ): Promise<TournamentStageGroup | null> {
+    const rows = await db
+      .insert(tournamentStageGroups)
+      .values(payload)
+      .returning();
+    return rows[0] ?? null;
+  },
+  async update(
+    id: number,
+    payload: UpdateTournamentStageGroupInput
+  ): Promise<TournamentStageGroup | null> {
+    const rows = await db
+      .update(tournamentStageGroups)
+      .set(payload)
+      .where(eq(tournamentStageGroups.id, id))
+      .returning();
+    return rows[0] ?? null;
+  },
+  async remove(id: number): Promise<boolean> {
+    const rows = await db
+      .delete(tournamentStageGroups)
+      .where(eq(tournamentStageGroups.id, id))
+      .returning({
+        id: tournamentStageGroups.id,
+      });
+    return rows.length > 0;
+  },
+};
+
+export const tournamentStageTeamEntryCrudService = {
+  list: (): Promise<TournamentStageTeamEntry[]> =>
+    db.select().from(tournamentStageTeamEntries),
+  async getById(id: number): Promise<TournamentStageTeamEntry | null> {
+    const rows = await db
+      .select()
+      .from(tournamentStageTeamEntries)
+      .where(eq(tournamentStageTeamEntries.id, id))
+      .limit(1);
+    return rows[0] ?? null;
+  },
+  async create(
+    payload: CreateTournamentStageTeamEntryInput
+  ): Promise<TournamentStageTeamEntry | null> {
+    const rows = await db
+      .insert(tournamentStageTeamEntries)
+      .values(payload)
+      .returning();
+    return rows[0] ?? null;
+  },
+  async update(
+    id: number,
+    payload: UpdateTournamentStageTeamEntryInput
+  ): Promise<TournamentStageTeamEntry | null> {
+    const rows = await db
+      .update(tournamentStageTeamEntries)
+      .set(payload)
+      .where(eq(tournamentStageTeamEntries.id, id))
+      .returning();
+    return rows[0] ?? null;
+  },
+  async remove(id: number): Promise<boolean> {
+    const rows = await db
+      .delete(tournamentStageTeamEntries)
+      .where(eq(tournamentStageTeamEntries.id, id))
+      .returning({
+        id: tournamentStageTeamEntries.id,
+      });
+    return rows.length > 0;
+  },
+};
+
+export const tournamentStageAdvancementCrudService = {
+  list: (): Promise<TournamentStageAdvancement[]> =>
+    db.select().from(tournamentStageAdvancements),
+  async getById(id: number): Promise<TournamentStageAdvancement | null> {
+    const rows = await db
+      .select()
+      .from(tournamentStageAdvancements)
+      .where(eq(tournamentStageAdvancements.id, id))
+      .limit(1);
+    return rows[0] ?? null;
+  },
+  async create(
+    payload: CreateTournamentStageAdvancementInput
+  ): Promise<TournamentStageAdvancement | null> {
+    const rows = await db
+      .insert(tournamentStageAdvancements)
+      .values(payload)
+      .returning();
+    return rows[0] ?? null;
+  },
+  async update(
+    id: number,
+    payload: UpdateTournamentStageAdvancementInput
+  ): Promise<TournamentStageAdvancement | null> {
+    const rows = await db
+      .update(tournamentStageAdvancements)
+      .set(payload)
+      .where(eq(tournamentStageAdvancements.id, id))
+      .returning();
+    return rows[0] ?? null;
+  },
+  async remove(id: number): Promise<boolean> {
+    const rows = await db
+      .delete(tournamentStageAdvancements)
+      .where(eq(tournamentStageAdvancements.id, id))
+      .returning({
+        id: tournamentStageAdvancements.id,
+      });
+    return rows.length > 0;
+  },
+};
+
+export const matchParticipantSourceCrudService = {
+  list: (): Promise<MatchParticipantSource[]> =>
+    db.select().from(matchParticipantSources),
+  async getById(id: number): Promise<MatchParticipantSource | null> {
+    const rows = await db
+      .select()
+      .from(matchParticipantSources)
+      .where(eq(matchParticipantSources.id, id))
+      .limit(1);
+    return rows[0] ?? null;
+  },
+  async create(
+    payload: CreateMatchParticipantSourceInput
+  ): Promise<MatchParticipantSource | null> {
+    const rows = await db
+      .insert(matchParticipantSources)
+      .values(payload)
+      .returning();
+    return rows[0] ?? null;
+  },
+  async update(
+    id: number,
+    payload: UpdateMatchParticipantSourceInput
+  ): Promise<MatchParticipantSource | null> {
+    const rows = await db
+      .update(matchParticipantSources)
+      .set(payload)
+      .where(eq(matchParticipantSources.id, id))
+      .returning();
+    return rows[0] ?? null;
+  },
+  async remove(id: number): Promise<boolean> {
+    const rows = await db
+      .delete(matchParticipantSources)
+      .where(eq(matchParticipantSources.id, id))
+      .returning({
+        id: matchParticipantSources.id,
       });
     return rows.length > 0;
   },

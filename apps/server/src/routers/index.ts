@@ -4,7 +4,12 @@ import { z } from "zod";
 import { db } from "@/db";
 import { players, tournamentTeams, user } from "@/db/schema";
 import { getBallsOfSameOver } from "@/services/ball.service";
-import { playerCrudService, teamCrudService } from "@/services/crud.service";
+import {
+  playerCrudService,
+  teamCrudService,
+  tournamentStageCrudService,
+  tournamentStageGroupCrudService,
+} from "@/services/crud.service";
 import {
   createMatchAction,
   getCompletedMatches,
@@ -37,7 +42,12 @@ import {
 import {
   getAllTournaments,
   getLiveTournaments,
+  getTournamentStructure,
 } from "@/services/tournament.service";
+import {
+  SeedTournamentTemplateError,
+  seedTournamentTemplate,
+} from "@/services/tournament-template.service";
 import {
   protectedProcedure,
   publicProcedure,
@@ -50,7 +60,11 @@ import {
   createOwnPlayerBodySchema,
   createPlayerBodySchema,
   createTeamBodySchema,
+  createTournamentStageBodySchema,
+  createTournamentStageGroupBodySchema,
   listClaimablePlayersQuerySchema,
+  updateTournamentStageBodySchema,
+  updateTournamentStageGroupBodySchema,
 } from "../schemas/crud.schemas";
 import { calculateAgeFromDob } from "../utils";
 
@@ -81,6 +95,11 @@ const CreateMatchInputSchema = z.object({
   isTied: z.boolean().optional(),
   margin: z.string().optional(),
   playerOfTheMatchId: z.number().optional(),
+  stageId: z.number().int().positive().optional(),
+  stageGroupId: z.number().int().positive().optional(),
+  stageRound: z.number().int().positive().optional(),
+  stageSequence: z.number().int().positive().optional(),
+  knockoutLeg: z.number().int().positive().optional(),
 });
 
 const RegisterTournamentTeamPlayerInputSchema = z.object({
@@ -95,6 +114,43 @@ const TeamTournamentStatsInputSchema = z.object({
   teamId: z.number().int().positive(),
   tournamentId: z.number().int().positive(),
 });
+
+const TournamentStructureInputSchema = z.object({
+  tournamentId: z.number().int().positive(),
+});
+
+const SeedTournamentTemplateInputSchema = z.object({
+  tournamentId: z.number().int().positive(),
+  template: z.enum([
+    "straight_league",
+    "grouped_league_with_playoffs",
+    "straight_knockout",
+  ]),
+  teamIds: z.array(z.number().int().positive()).min(2).optional(),
+  resetExisting: z.boolean().optional(),
+  groupCount: z.number().int().min(2).max(8).optional(),
+  advancingPerGroup: z.number().int().min(1).max(8).optional(),
+});
+
+const UpdateTournamentStageInputSchema = z
+  .object({
+    id: z.number().int().positive(),
+    data: updateTournamentStageBodySchema,
+  })
+  .refine(({ data }) => Object.keys(data).length > 0, {
+    message: "At least one field is required for update",
+    path: ["data"],
+  });
+
+const UpdateTournamentStageGroupInputSchema = z
+  .object({
+    id: z.number().int().positive(),
+    data: updateTournamentStageGroupBodySchema,
+  })
+  .refine(({ data }) => Object.keys(data).length > 0, {
+    message: "At least one field is required for update",
+    path: ["data"],
+  });
 
 const UpdatePlayerInputSchema = z
   .object({
@@ -150,6 +206,28 @@ export const appRouter = {
   ),
   liveTournaments: publicProcedure.handler(() => getLiveTournaments()),
   tournaments: publicProcedure.handler(() => getAllTournaments()),
+  tournamentStructure: publicProcedure
+    .input(TournamentStructureInputSchema)
+    .handler(({ input }) => getTournamentStructure(input.tournamentId)),
+  seedTournamentTemplate: sensitiveProcedure
+    .input(SeedTournamentTemplateInputSchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      try {
+        return await seedTournamentTemplate(input);
+      } catch (error) {
+        if (error instanceof SeedTournamentTemplateError) {
+          if (error.code === "TOURNAMENT_NOT_FOUND") {
+            throw new ORPCError("NOT_FOUND");
+          }
+
+          throw new ORPCError("BAD_REQUEST");
+        }
+
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
+      }
+    }),
   completedMatches: publicProcedure.handler(() => getCompletedMatches()),
   players: publicProcedure.handler(() => getAllPlayers()),
   playersWithCurrentTeams: publicProcedure.handler(() =>
@@ -306,6 +384,106 @@ export const appRouter = {
       const result = await createMatchAction(input);
       return result;
     }),
+  createTournamentStage: sensitiveProcedure
+    .input(createTournamentStageBodySchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      const stage = await tournamentStageCrudService.create(input);
+      if (!stage) {
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
+      }
+
+      return stage;
+    }),
+  updateTournamentStage: sensitiveProcedure
+    .input(UpdateTournamentStageInputSchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      const stage = await tournamentStageCrudService.update(
+        input.id,
+        input.data
+      );
+      if (!stage) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      return stage;
+    }),
+  deleteTournamentStage: sensitiveProcedure
+    .input(z.number().int().positive())
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      const deleted = await tournamentStageCrudService.remove(input);
+      if (!deleted) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      return { id: input };
+    }),
+  createTournamentStageGroup: sensitiveProcedure
+    .input(createTournamentStageGroupBodySchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      const stageExists = await db.query.tournamentStages.findFirst({
+        where: {
+          id: input.stageId,
+        },
+      });
+
+      if (!stageExists) {
+        throw new ORPCError("BAD_REQUEST");
+      }
+
+      const group = await tournamentStageGroupCrudService.create(input);
+      if (!group) {
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
+      }
+
+      return group;
+    }),
+  updateTournamentStageGroup: sensitiveProcedure
+    .input(UpdateTournamentStageGroupInputSchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      const group = await tournamentStageGroupCrudService.update(
+        input.id,
+        input.data
+      );
+      if (!group) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      return group;
+    }),
+  deleteTournamentStageGroup: sensitiveProcedure
+    .input(z.number().int().positive())
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      const deleted = await tournamentStageGroupCrudService.remove(input);
+      if (!deleted) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      return { id: input };
+    }),
+  stageGroupsByStage: publicProcedure
+    .input(z.number().int().positive())
+    .handler(({ input }) =>
+      db.query.tournamentStageGroups.findMany({
+        where: {
+          stageId: input,
+        },
+        orderBy: {
+          sequence: "asc",
+        },
+      })
+    ),
   registerTournamentTeamPlayer: sensitiveProcedure
     .input(RegisterTournamentTeamPlayerInputSchema)
     .handler(async ({ context, input }) => {

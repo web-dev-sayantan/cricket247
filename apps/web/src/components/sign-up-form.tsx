@@ -85,10 +85,12 @@ export default function SignUpForm({
   });
 
   async function signInWithSocial(provider: "facebook" | "google") {
+    const callbackBaseUrl =
+      typeof window === "undefined" ? "" : window.location.origin;
     const { data } = await authClient.signIn.social({
       provider,
-      callbackURL: `${import.meta.env.VITE_BASE_URL}/dashboard`,
-      errorCallbackURL: `${import.meta.env.VITE_BASE_URL}/error`,
+      callbackURL: `${callbackBaseUrl}/dashboard`,
+      errorCallbackURL: `${callbackBaseUrl}/error`,
     });
     if (data?.redirect) {
       // navigate("/play/matches");

@@ -127,6 +127,11 @@ export async function createMatchAction({
   hasSuperOver,
   venueId,
   notes,
+  stageId,
+  stageGroupId,
+  stageRound,
+  stageSequence,
+  knockoutLeg,
 }: {
   matchDate?: Date;
   tournamentId: number;
@@ -146,6 +151,11 @@ export async function createMatchAction({
   hasSuperOver?: boolean;
   venueId?: number;
   notes?: string;
+  stageId?: number;
+  stageGroupId?: number;
+  stageRound?: number;
+  stageSequence?: number;
+  knockoutLeg?: number;
 }) {
   const newMatch = await db.insert(matches).values({
     matchDate: matchDate ? toDate(matchDate) : getCurrentDate(),
@@ -164,6 +174,11 @@ export async function createMatchAction({
     hasLegBye,
     hasBoundaryOut,
     hasSuperOver,
+    stageId,
+    stageGroupId,
+    stageRound,
+    stageSequence,
+    knockoutLeg,
     venueId: venueId || null,
     notes: notes || "",
     isLive: false,

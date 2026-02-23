@@ -183,6 +183,9 @@ export const tournaments = sqliteTable(
     id: integer().primaryKey().notNull(),
     name: text().notNull(),
     category: text().notNull().default("competitive"),
+    type: text().notNull().default("league"), // "league", "knockout", "round_robin", "swiss", "custom"
+    genderAllowed: text().notNull().default("open"), // "male", "female", "open"
+    ageLimit: integer().default(100),
     organizationId: integer()
       .notNull()
       .references(() => organizations.id),
@@ -214,6 +217,118 @@ export const tournamentTeams = sqliteTable(
     ...timestampCols,
   },
   (t) => [uniqueIndex("unique_tournament_team").on(t.tournamentId, t.teamId)]
+);
+
+export const tournamentStages = sqliteTable(
+  "tournament_stages",
+  {
+    id: integer().primaryKey().notNull(),
+    tournamentId: integer()
+      .notNull()
+      .references(() => tournaments.id),
+    name: text().notNull(),
+    code: text(),
+    stageType: text().notNull().default("league"),
+    format: text().notNull().default("single_round_robin"),
+    sequence: integer().notNull().default(1),
+    status: text().notNull().default("upcoming"),
+    parentStageId: integer(),
+    qualificationSlots: integer().notNull().default(0),
+    metadata: text({ mode: "json" }),
+    ...timestampCols,
+  },
+  (t) => [
+    index("tournament_stages_tournament_idx").on(t.tournamentId),
+    index("tournament_stages_sequence_idx").on(t.tournamentId, t.sequence),
+    uniqueIndex("tournament_stages_tournament_sequence_unique").on(
+      t.tournamentId,
+      t.sequence
+    ),
+    foreignKey({
+      columns: [t.parentStageId],
+      foreignColumns: [t.id],
+      name: "fk_tournament_stages_parent_stage",
+    }),
+  ]
+);
+
+export const tournamentStageGroups = sqliteTable(
+  "tournament_stage_groups",
+  {
+    id: integer().primaryKey().notNull(),
+    stageId: integer()
+      .notNull()
+      .references(() => tournamentStages.id),
+    name: text().notNull(),
+    code: text(),
+    sequence: integer().notNull().default(1),
+    advancingSlots: integer().notNull().default(0),
+    metadata: text({ mode: "json" }),
+    ...timestampCols,
+  },
+  (t) => [
+    index("tournament_stage_groups_stage_idx").on(t.stageId),
+    uniqueIndex("tournament_stage_groups_stage_sequence_unique").on(
+      t.stageId,
+      t.sequence
+    ),
+  ]
+);
+
+export const tournamentStageTeamEntries = sqliteTable(
+  "tournament_stage_team_entries",
+  {
+    id: integer().primaryKey().notNull(),
+    tournamentId: integer()
+      .notNull()
+      .references(() => tournaments.id),
+    stageId: integer()
+      .notNull()
+      .references(() => tournamentStages.id),
+    stageGroupId: integer().references(() => tournamentStageGroups.id),
+    teamId: integer()
+      .notNull()
+      .references(() => teams.id),
+    seed: integer(),
+    entrySource: text().notNull().default("direct"),
+    isQualified: booleanFlag(),
+    isEliminated: booleanFlag(),
+    ...timestampCols,
+  },
+  (t) => [
+    uniqueIndex("tournament_stage_team_entries_stage_team_unique").on(
+      t.stageId,
+      t.teamId
+    ),
+    index("tournament_stage_team_entries_tournament_idx").on(t.tournamentId),
+    index("tournament_stage_team_entries_group_idx").on(t.stageGroupId),
+  ]
+);
+
+export const tournamentStageAdvancements = sqliteTable(
+  "tournament_stage_advancements",
+  {
+    id: integer().primaryKey().notNull(),
+    fromStageId: integer()
+      .notNull()
+      .references(() => tournamentStages.id),
+    fromStageGroupId: integer().references(() => tournamentStageGroups.id),
+    positionFrom: integer().notNull(),
+    toStageId: integer()
+      .notNull()
+      .references(() => tournamentStages.id),
+    toSlot: integer().notNull(),
+    qualificationType: text().notNull().default("position"),
+    ...timestampCols,
+  },
+  (t) => [
+    uniqueIndex("tournament_stage_advancements_from_position_unique").on(
+      t.fromStageId,
+      t.fromStageGroupId,
+      t.positionFrom
+    ),
+    index("tournament_stage_advancements_to_stage_idx").on(t.toStageId),
+  ]
 );
 
 export const teamPlayers = sqliteTable(
@@ -289,6 +404,11 @@ export const matches = sqliteTable(
     isTied: booleanFlag(),
     margin: text(),
     playerOfTheMatchId: integer().references(() => players.id),
+    stageId: integer().references(() => tournamentStages.id),
+    stageGroupId: integer().references(() => tournamentStageGroups.id),
+    stageRound: integer(),
+    stageSequence: integer(),
+    knockoutLeg: integer().notNull().default(1),
     hasLBW: booleanFlag(),
     hasBye: integer({ mode: "boolean" }).notNull().default(true),
     hasLegBye: booleanFlag(),
@@ -303,6 +423,32 @@ export const matches = sqliteTable(
     ...timestampCols,
   },
   (t) => [index("rank_idx").on(t.winnerId)]
+);
+
+export const matchParticipantSources = sqliteTable(
+  "match_participant_sources",
+  {
+    id: integer().primaryKey().notNull(),
+    matchId: integer()
+      .notNull()
+      .references(() => matches.id),
+    teamSlot: integer().notNull().default(1),
+    sourceType: text().notNull().default("team"),
+    sourceTeamId: integer().references(() => teams.id),
+    sourceMatchId: integer().references(() => matches.id),
+    sourceStageId: integer().references(() => tournamentStages.id),
+    sourceStageGroupId: integer().references(() => tournamentStageGroups.id),
+    sourcePosition: integer(),
+    ...timestampCols,
+  },
+  (t) => [
+    uniqueIndex("match_participant_sources_match_slot_unique").on(
+      t.matchId,
+      t.teamSlot
+    ),
+    index("match_participant_sources_source_match_idx").on(t.sourceMatchId),
+    index("match_participant_sources_source_stage_idx").on(t.sourceStageId),
+  ]
 );
 
 export const matchLineup = sqliteTable(

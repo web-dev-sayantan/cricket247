@@ -11,6 +11,7 @@ import {
   innings,
   matches,
   matchLineup,
+  matchParticipantSources,
   organizations,
   playerCareerStats,
   playerInningsStats,
@@ -20,6 +21,10 @@ import {
   teamPlayers,
   teams,
   teamTournamentStats,
+  tournamentStageAdvancements,
+  tournamentStageGroups,
+  tournamentStages,
+  tournamentStageTeamEntries,
   tournaments,
   tournamentTeams,
   venues,
@@ -38,8 +43,21 @@ export const selectTeamTournamentStatsSchema =
 export const selectOrganizationSchema = createSelectSchema(organizations);
 export const selectTournamentSchema = createSelectSchema(tournaments);
 export const selectTournamentTeamSchema = createSelectSchema(tournamentTeams);
+export const selectTournamentStageSchema = createSelectSchema(tournamentStages);
+export const selectTournamentStageGroupSchema = createSelectSchema(
+  tournamentStageGroups
+);
+export const selectTournamentStageTeamEntrySchema = createSelectSchema(
+  tournamentStageTeamEntries
+);
+export const selectTournamentStageAdvancementSchema = createSelectSchema(
+  tournamentStageAdvancements
+);
 export const selectVenueSchema = createSelectSchema(venues);
 export const selectMatchSchema = createSelectSchema(matches);
+export const selectMatchParticipantSourceSchema = createSelectSchema(
+  matchParticipantSources
+);
 export const selectInningsSchema = createSelectSchema(innings);
 export const selectDeliverySchema = createSelectSchema(deliveries);
 export const selectMatchLineupSchema = createSelectSchema(matchLineup);
@@ -64,8 +82,21 @@ export const insertTeamTournamentStatsSchema =
 export const insertOrganizationSchema = createInsertSchema(organizations);
 export const insertTournamentSchema = createInsertSchema(tournaments);
 export const insertTournamentTeamSchema = createInsertSchema(tournamentTeams);
+export const insertTournamentStageSchema = createInsertSchema(tournamentStages);
+export const insertTournamentStageGroupSchema = createInsertSchema(
+  tournamentStageGroups
+);
+export const insertTournamentStageTeamEntrySchema = createInsertSchema(
+  tournamentStageTeamEntries
+);
+export const insertTournamentStageAdvancementSchema = createInsertSchema(
+  tournamentStageAdvancements
+);
 export const insertVenueSchema = createInsertSchema(venues);
 export const insertMatchSchema = createInsertSchema(matches);
+export const insertMatchParticipantSourceSchema = createInsertSchema(
+  matchParticipantSources
+);
 export const insertInningsSchema = createInsertSchema(innings);
 export const insertDeliverySchema = createInsertSchema(deliveries);
 export const insertMatchLineupSchema = createInsertSchema(matchLineup);

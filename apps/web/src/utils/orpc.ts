@@ -5,9 +5,10 @@ import { createTanstackQueryUtils } from "@orpc/tanstack-query";
 import { QueryCache, QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-const baseURL =
-  import.meta.env.VITE_SERVER_URL ||
-  (typeof window === "undefined" ? "" : window.location.origin);
+const rpcUrl =
+  typeof window === "undefined"
+    ? "/rpc"
+    : new URL("/rpc", window.location.origin).toString();
 
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -25,7 +26,7 @@ export const queryClient = new QueryClient({
 });
 
 export const link = new RPCLink({
-  url: `${baseURL}/rpc`,
+  url: rpcUrl,
   fetch(url, options) {
     return fetch(url, {
       ...options,

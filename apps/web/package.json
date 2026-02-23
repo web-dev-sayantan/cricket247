@@ -11,6 +11,7 @@
     "check-types": "tsc --noEmit",
     "wrangler": "wrangler",
     "wrangler:dev": "wrangler dev --port=3001",
+    "wrangler:dev:multi": "wrangler dev --config wrangler.jsonc --config ../server/wrangler.jsonc --port=3001",
     "deploy": "bun run build && wrangler deploy",
     "deploy:dry-run": "bun run build && wrangler deploy --dry-run"
   },

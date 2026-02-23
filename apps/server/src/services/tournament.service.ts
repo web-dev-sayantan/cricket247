@@ -25,3 +25,25 @@ export function getAllTournaments() {
     },
   });
 }
+
+export function getTournamentStructure(tournamentId: number) {
+  return db.query.tournamentStages.findMany({
+    where: {
+      tournamentId,
+    },
+    orderBy: {
+      sequence: "asc",
+    },
+    with: {
+      groups: {
+        orderBy: {
+          sequence: "asc",
+        },
+      },
+      teamEntries: true,
+      sourceAdvancements: true,
+      targetAdvancements: true,
+      matches: true,
+    },
+  });
+}

@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
-import { Button } from "./ui/button";
+import { buttonVariants } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
 
 export default function UserMenu() {
@@ -22,9 +22,9 @@ export default function UserMenu() {
 
   if (!session) {
     return (
-      <Button variant="outline">
-        <Link to="/login">Sign In</Link>
-      </Button>
+      <Link className={buttonVariants({ variant: "outline" })} to="/login">
+        Sign In
+      </Link>
     );
   }
 
@@ -33,8 +33,8 @@ export default function UserMenu() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger>
-        <Button variant="outline">{session.user.email}</Button>
+      <DropdownMenuTrigger className={buttonVariants({ variant: "outline" })}>
+        {session.user.email}
       </DropdownMenuTrigger>
       <DropdownMenuContent className="bg-card">
         <DropdownMenuGroup>

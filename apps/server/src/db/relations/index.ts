@@ -4,6 +4,7 @@ import {
   innings,
   matches,
   matchLineup,
+  matchParticipantSources,
   organizations,
   playerCareerStats,
   playerInningsStats,
@@ -13,6 +14,10 @@ import {
   teamPlayers,
   teams,
   teamTournamentStats,
+  tournamentStageAdvancements,
+  tournamentStageGroups,
+  tournamentStages,
+  tournamentStageTeamEntries,
   tournaments,
   tournamentTeams,
 } from "../schema";
@@ -22,6 +27,7 @@ export const relations = defineRelations(
     deliveries,
     innings,
     matchLineup,
+    matchParticipantSources,
     matches,
     organizations,
     teamCareerStats,
@@ -33,6 +39,10 @@ export const relations = defineRelations(
     teams,
     teamTournamentStats,
     tournaments,
+    tournamentStageAdvancements,
+    tournamentStageGroups,
+    tournamentStageTeamEntries,
+    tournamentStages,
     tournamentTeams,
   },
   (r) => ({
@@ -55,6 +65,8 @@ export const relations = defineRelations(
         to: r.organizations.id,
         optional: false,
       }),
+      stages: r.many.tournamentStages(),
+      stageTeamEntries: r.many.tournamentStageTeamEntries(),
       matches: r.many.matches(),
       tournamentTeams: r.many.tournamentTeams(),
       teamPlayers: r.many.teamPlayers(),
@@ -163,6 +175,14 @@ export const relations = defineRelations(
         from: r.matches.tournamentId,
         to: r.tournaments.id,
       }),
+      stage: r.one.tournamentStages({
+        from: r.matches.stageId,
+        to: r.tournamentStages.id,
+      }),
+      stageGroup: r.one.tournamentStageGroups({
+        from: r.matches.stageGroupId,
+        to: r.tournamentStageGroups.id,
+      }),
       tossWinner: r.one.teams({
         from: r.matches.tossWinnerId,
         to: r.teams.id,
@@ -188,6 +208,16 @@ export const relations = defineRelations(
       }),
       innings: r.many.innings(),
       lineup: r.many.matchLineup(),
+      participantSources: r.many.matchParticipantSources({
+        from: r.matches.id,
+        to: r.matchParticipantSources.matchId,
+        alias: "match",
+      }),
+      asSourceMatch: r.many.matchParticipantSources({
+        from: r.matches.id,
+        to: r.matchParticipantSources.sourceMatchId,
+        alias: "sourceMatch",
+      }),
       playerInningsStats: r.many.playerInningsStats(),
     },
     innings: {
@@ -279,6 +309,113 @@ export const relations = defineRelations(
       player: r.one.players({
         from: r.teamPlayers.playerId,
         to: r.players.id,
+      }),
+    },
+    tournamentStages: {
+      tournament: r.one.tournaments({
+        from: r.tournamentStages.tournamentId,
+        to: r.tournaments.id,
+      }),
+      parentStage: r.one.tournamentStages({
+        from: r.tournamentStages.parentStageId,
+        to: r.tournamentStages.id,
+        alias: "parentStage",
+      }),
+      childStages: r.many.tournamentStages({
+        from: r.tournamentStages.id,
+        to: r.tournamentStages.parentStageId,
+        alias: "childStages",
+      }),
+      groups: r.many.tournamentStageGroups(),
+      teamEntries: r.many.tournamentStageTeamEntries(),
+      sourceAdvancements: r.many.tournamentStageAdvancements({
+        from: r.tournamentStages.id,
+        to: r.tournamentStageAdvancements.fromStageId,
+        alias: "fromStage",
+      }),
+      targetAdvancements: r.many.tournamentStageAdvancements({
+        from: r.tournamentStages.id,
+        to: r.tournamentStageAdvancements.toStageId,
+        alias: "toStage",
+      }),
+      matches: r.many.matches(),
+      participantSources: r.many.matchParticipantSources({
+        from: r.tournamentStages.id,
+        to: r.matchParticipantSources.sourceStageId,
+        alias: "sourceStage",
+      }),
+    },
+    tournamentStageGroups: {
+      stage: r.one.tournamentStages({
+        from: r.tournamentStageGroups.stageId,
+        to: r.tournamentStages.id,
+      }),
+      teamEntries: r.many.tournamentStageTeamEntries(),
+      sourceAdvancements: r.many.tournamentStageAdvancements(),
+      matches: r.many.matches(),
+      participantSources: r.many.matchParticipantSources({
+        from: r.tournamentStageGroups.id,
+        to: r.matchParticipantSources.sourceStageGroupId,
+        alias: "sourceStageGroup",
+      }),
+    },
+    tournamentStageTeamEntries: {
+      tournament: r.one.tournaments({
+        from: r.tournamentStageTeamEntries.tournamentId,
+        to: r.tournaments.id,
+      }),
+      stage: r.one.tournamentStages({
+        from: r.tournamentStageTeamEntries.stageId,
+        to: r.tournamentStages.id,
+      }),
+      stageGroup: r.one.tournamentStageGroups({
+        from: r.tournamentStageTeamEntries.stageGroupId,
+        to: r.tournamentStageGroups.id,
+      }),
+      team: r.one.teams({
+        from: r.tournamentStageTeamEntries.teamId,
+        to: r.teams.id,
+      }),
+    },
+    tournamentStageAdvancements: {
+      fromStage: r.one.tournamentStages({
+        from: r.tournamentStageAdvancements.fromStageId,
+        to: r.tournamentStages.id,
+        alias: "fromStage",
+      }),
+      fromStageGroup: r.one.tournamentStageGroups({
+        from: r.tournamentStageAdvancements.fromStageGroupId,
+        to: r.tournamentStageGroups.id,
+      }),
+      toStage: r.one.tournamentStages({
+        from: r.tournamentStageAdvancements.toStageId,
+        to: r.tournamentStages.id,
+        alias: "toStage",
+      }),
+    },
+    matchParticipantSources: {
+      match: r.one.matches({
+        from: r.matchParticipantSources.matchId,
+        to: r.matches.id,
+        alias: "match",
+      }),
+      sourceTeam: r.one.teams({
+        from: r.matchParticipantSources.sourceTeamId,
+        to: r.teams.id,
+      }),
+      sourceMatch: r.one.matches({
+        from: r.matchParticipantSources.sourceMatchId,
+        to: r.matches.id,
+        alias: "sourceMatch",
+      }),
+      sourceStage: r.one.tournamentStages({
+        from: r.matchParticipantSources.sourceStageId,
+        to: r.tournamentStages.id,
+        alias: "sourceStage",
+      }),
+      sourceStageGroup: r.one.tournamentStageGroups({
+        from: r.matchParticipantSources.sourceStageGroupId,
+        to: r.tournamentStageGroups.id,
       }),
     },
     playerInningsStats: {

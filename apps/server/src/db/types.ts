@@ -9,6 +9,7 @@ import type {
   innings,
   matches,
   matchLineup,
+  matchParticipantSources,
   organizations,
   passkey,
   playerCareerStats,
@@ -20,6 +21,10 @@ import type {
   teamPlayers,
   teams,
   teamTournamentStats,
+  tournamentStageAdvancements,
+  tournamentStageGroups,
+  tournamentStages,
+  tournamentStageTeamEntries,
   tournaments,
   tournamentTeams,
   user,
@@ -43,8 +48,21 @@ export type TeamTournamentStats = InferSelectModel<typeof teamTournamentStats>;
 export type Organization = InferSelectModel<typeof organizations>;
 export type Tournament = InferSelectModel<typeof tournaments>;
 export type TournamentTeam = InferSelectModel<typeof tournamentTeams>;
+export type TournamentStage = InferSelectModel<typeof tournamentStages>;
+export type TournamentStageGroup = InferSelectModel<
+  typeof tournamentStageGroups
+>;
+export type TournamentStageTeamEntry = InferSelectModel<
+  typeof tournamentStageTeamEntries
+>;
+export type TournamentStageAdvancement = InferSelectModel<
+  typeof tournamentStageAdvancements
+>;
 export type Venue = InferSelectModel<typeof venues>;
 export type Match = InferSelectModel<typeof matches>;
+export type MatchParticipantSource = InferSelectModel<
+  typeof matchParticipantSources
+>;
 export type Innings = InferSelectModel<typeof innings>;
 export type Delivery = InferSelectModel<typeof deliveries>;
 export type MatchLineup = InferSelectModel<typeof matchLineup>;
@@ -75,8 +93,21 @@ export type NewTeamTournamentStats = InferInsertModel<
 export type NewOrganization = InferInsertModel<typeof organizations>;
 export type NewTournament = InferInsertModel<typeof tournaments>;
 export type NewTournamentTeam = InferInsertModel<typeof tournamentTeams>;
+export type NewTournamentStage = InferInsertModel<typeof tournamentStages>;
+export type NewTournamentStageGroup = InferInsertModel<
+  typeof tournamentStageGroups
+>;
+export type NewTournamentStageTeamEntry = InferInsertModel<
+  typeof tournamentStageTeamEntries
+>;
+export type NewTournamentStageAdvancement = InferInsertModel<
+  typeof tournamentStageAdvancements
+>;
 export type NewVenue = InferInsertModel<typeof venues>;
 export type NewMatch = InferInsertModel<typeof matches>;
+export type NewMatchParticipantSource = InferInsertModel<
+  typeof matchParticipantSources
+>;
 export type NewInnings = InferInsertModel<typeof innings>;
 export type NewDelivery = InferInsertModel<typeof deliveries>;
 export type NewMatchLineup = InferInsertModel<typeof matchLineup>;

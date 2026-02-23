@@ -3,6 +3,7 @@ import {
   insertDeliverySchema,
   insertInningsSchema,
   insertMatchLineupSchema,
+  insertMatchParticipantSourceSchema,
   insertMatchSchema,
   insertOrganizationSchema,
   insertPlayerCareerStatsSchema,
@@ -12,6 +13,10 @@ import {
   insertTeamPlayerSchema,
   insertTeamSchema,
   insertTournamentSchema,
+  insertTournamentStageAdvancementSchema,
+  insertTournamentStageGroupSchema,
+  insertTournamentStageSchema,
+  insertTournamentStageTeamEntrySchema,
   insertTournamentTeamSchema,
   insertVenueSchema,
 } from "./drizzle.schemas";
@@ -140,6 +145,42 @@ export const createTournamentTeamBodySchema = insertTournamentTeamSchema.omit({
 });
 export const updateTournamentTeamBodySchema =
   createTournamentTeamBodySchema.partial();
+
+export const createTournamentStageBodySchema = insertTournamentStageSchema.omit(
+  {
+    id: true,
+  }
+);
+export const updateTournamentStageBodySchema =
+  createTournamentStageBodySchema.partial();
+
+export const createTournamentStageGroupBodySchema =
+  insertTournamentStageGroupSchema.omit({
+    id: true,
+  });
+export const updateTournamentStageGroupBodySchema =
+  createTournamentStageGroupBodySchema.partial();
+
+export const createTournamentStageTeamEntryBodySchema =
+  insertTournamentStageTeamEntrySchema.omit({
+    id: true,
+  });
+export const updateTournamentStageTeamEntryBodySchema =
+  createTournamentStageTeamEntryBodySchema.partial();
+
+export const createTournamentStageAdvancementBodySchema =
+  insertTournamentStageAdvancementSchema.omit({
+    id: true,
+  });
+export const updateTournamentStageAdvancementBodySchema =
+  createTournamentStageAdvancementBodySchema.partial();
+
+export const createMatchParticipantSourceBodySchema =
+  insertMatchParticipantSourceSchema.omit({
+    id: true,
+  });
+export const updateMatchParticipantSourceBodySchema =
+  createMatchParticipantSourceBodySchema.partial();
 
 export const createInningsBodySchema = insertInningsSchema.omit({ id: true });
 export const updateInningsBodySchema = createInningsBodySchema.partial();

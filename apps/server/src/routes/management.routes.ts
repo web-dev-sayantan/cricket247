@@ -10,23 +10,33 @@ import {
 import {
   createBallBodySchema,
   createInningsBodySchema,
+  createMatchParticipantSourceBodySchema,
   createOrganizationBodySchema,
   createPlayerCareerStatsBodySchema,
   createPlayerMatchPerformanceBodySchema,
   createPlayerTournamentStatsBodySchema,
   createTeamPlayerBodySchema,
   createTournamentBodySchema,
+  createTournamentStageAdvancementBodySchema,
+  createTournamentStageBodySchema,
+  createTournamentStageGroupBodySchema,
+  createTournamentStageTeamEntryBodySchema,
   createTournamentTeamBodySchema,
   createVenueBodySchema,
   idRouteParamSchema,
   updateBallBodySchema,
   updateInningsBodySchema,
+  updateMatchParticipantSourceBodySchema,
   updateOrganizationBodySchema,
   updatePlayerCareerStatsBodySchema,
   updatePlayerMatchPerformanceBodySchema,
   updatePlayerTournamentStatsBodySchema,
   updateTeamPlayerBodySchema,
   updateTournamentBodySchema,
+  updateTournamentStageAdvancementBodySchema,
+  updateTournamentStageBodySchema,
+  updateTournamentStageGroupBodySchema,
+  updateTournamentStageTeamEntryBodySchema,
   updateTournamentTeamBodySchema,
   updateVenueBodySchema,
 } from "@/schemas/crud.schemas";
@@ -34,12 +44,17 @@ import {
   ballCrudService,
   CrudServiceError,
   inningsCrudService,
+  matchParticipantSourceCrudService,
   organizationCrudService,
   playerCareerStatsCrudService,
   playerMatchPerformanceCrudService,
   playerTournamentStatsCrudService,
   teamPlayerCrudService,
   tournamentCrudService,
+  tournamentStageAdvancementCrudService,
+  tournamentStageCrudService,
+  tournamentStageGroupCrudService,
+  tournamentStageTeamEntryCrudService,
   tournamentTeamCrudService,
   venueCrudService,
 } from "@/services/crud.service";
@@ -303,6 +318,51 @@ registerCrudRoutes(managementRoutes, {
   createSchema: createTournamentTeamBodySchema,
   updateSchema: updateTournamentTeamBodySchema,
   service: tournamentTeamCrudService,
+  writeAccess: "admin",
+});
+
+registerCrudRoutes(managementRoutes, {
+  path: "/tournament-stages",
+  entityLabel: "Tournament stage",
+  createSchema: createTournamentStageBodySchema,
+  updateSchema: updateTournamentStageBodySchema,
+  service: tournamentStageCrudService,
+  writeAccess: "admin",
+});
+
+registerCrudRoutes(managementRoutes, {
+  path: "/tournament-stage-groups",
+  entityLabel: "Tournament stage group",
+  createSchema: createTournamentStageGroupBodySchema,
+  updateSchema: updateTournamentStageGroupBodySchema,
+  service: tournamentStageGroupCrudService,
+  writeAccess: "admin",
+});
+
+registerCrudRoutes(managementRoutes, {
+  path: "/tournament-stage-team-entries",
+  entityLabel: "Tournament stage team entry",
+  createSchema: createTournamentStageTeamEntryBodySchema,
+  updateSchema: updateTournamentStageTeamEntryBodySchema,
+  service: tournamentStageTeamEntryCrudService,
+  writeAccess: "admin",
+});
+
+registerCrudRoutes(managementRoutes, {
+  path: "/tournament-stage-advancements",
+  entityLabel: "Tournament stage advancement",
+  createSchema: createTournamentStageAdvancementBodySchema,
+  updateSchema: updateTournamentStageAdvancementBodySchema,
+  service: tournamentStageAdvancementCrudService,
+  writeAccess: "admin",
+});
+
+registerCrudRoutes(managementRoutes, {
+  path: "/match-participant-sources",
+  entityLabel: "Match participant source",
+  createSchema: createMatchParticipantSourceBodySchema,
+  updateSchema: updateMatchParticipantSourceBodySchema,
+  service: matchParticipantSourceCrudService,
   writeAccess: "admin",
 });
 
