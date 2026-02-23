@@ -6,16 +6,16 @@
 	"compatibility_flags": ["nodejs_compat"],
 	"workers_dev": false,
 	"vars": {
-		"BETTER_AUTH_URL": "http://localhost:3000",
-		"CORS_ORIGIN": "http://localhost:3001",
+		"BETTER_AUTH_URL": "https://cricket247-web.web-dev-sayantan.workers.dev",
+		"CORS_ORIGIN": "https://cricket247-web.web-dev-sayantan.workers.dev",
 		"PROFILE_IMAGES_PUBLIC_BASE_URL": "https://pub-18e474120c2d40f19ed08a82f09d6671.r2.dev",
 		"PROFILE_IMAGES_BUCKET_NAME": "cricket247-profile-images"
 	},
 	"env": {
-		"production": {
+		"development": {
 			"vars": {
-				"BETTER_AUTH_URL": "https://cricket247-web.web-dev-sayantan.workers.dev",
-				"CORS_ORIGIN": "https://cricket247-web.web-dev-sayantan.workers.dev",
+				"BETTER_AUTH_URL": "http://localhost:3000",
+				"CORS_ORIGIN": "http://localhost:3001",
 				"PROFILE_IMAGES_PUBLIC_BASE_URL": "https://pub-18e474120c2d40f19ed08a82f09d6671.r2.dev",
 				"PROFILE_IMAGES_BUCKET_NAME": "cricket247-profile-images"
 			},
