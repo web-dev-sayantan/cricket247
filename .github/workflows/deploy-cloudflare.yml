@@ -31,17 +31,31 @@ jobs:
         run: bun run build
 
       - name: Deploy API worker
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: apps/server
-          command: deploy --config wrangler.jsonc
+        working-directory: apps/server
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_LOG: debug
+        run: bunx wrangler deploy --config wrangler.jsonc
+
+      - name: Dump Wrangler debug logs (API)
+        if: failure()
+        run: |
+          echo "=== Wrangler log directory ==="
+          ls -la ~/.config/.wrangler/logs/ 2>/dev/null || ls -la /root/.config/.wrangler/logs/ 2>/dev/null || echo "No log directory found"
+          echo "=== Latest Wrangler log ==="
+          logfile="$(ls -t ~/.config/.wrangler/logs/wrangler-*.log 2>/dev/null | head -n 1)"
+          if [[ -n "$logfile" ]]; then
+            echo "Log file: $logfile"
+            cat "$logfile"
+          else
+            echo "No wrangler log file found"
+          fi
 
       - name: Deploy web worker
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: apps/web
-          command: deploy --config wrangler.jsonc
+        working-directory: apps/web
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_LOG: debug
+        run: bunx wrangler deploy --config wrangler.jsonc

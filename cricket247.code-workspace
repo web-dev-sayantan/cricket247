@@ -7,15 +7,6 @@
   "settings": {
     "typescript.tsdk": "node_modules/typescript/lib",
     "emmet.showExpandedAbbreviation": "never",
-    "mcp": {
-      "servers": {
-        "cloudflare-api": {
-          "url": "https://mcp.cloudflare.com/mcp",
-          "type": "http"
-        }
-      },
-      "inputs": []
-    },
     "chat.tools.terminal.autoApprove": {
       "/^bunx @biomejs/biome check apps/server/src/db/relations/index\\.ts apps/server/src/schemas/drizzle\\.schemas\\.ts apps/server/src/db/types\\.ts apps/server/src/schemas/crud\\.schemas\\.ts apps/server/src/services/crud\\.service\\.ts apps/server/src/routes/management\\.routes\\.ts apps/server/src/services/tournament\\.service\\.ts apps/server/src/routers/index\\.ts apps/server/src/services/match\\.service\\.ts apps/server/src/db/schema/index\\.ts$/": {
         "approve": true,
