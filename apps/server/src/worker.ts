@@ -7,6 +7,46 @@ interface AppModule {
   default?: App;
 }
 
+const hasFetch = (value: unknown): value is App =>
+  typeof value === "object" &&
+  value !== null &&
+  "fetch" in value &&
+  typeof (value as { fetch?: unknown }).fetch === "function";
+
+const resolveApp = (moduleValue: unknown): App | null => {
+  if (hasFetch(moduleValue)) {
+    return moduleValue;
+  }
+
+  if (typeof moduleValue !== "object" || moduleValue === null) {
+    return null;
+  }
+
+  const moduleRecord = moduleValue as Record<string, unknown>;
+  const candidates = [
+    moduleRecord.default,
+    moduleRecord.app,
+    moduleRecord.default &&
+    typeof moduleRecord.default === "object" &&
+    moduleRecord.default !== null
+      ? (moduleRecord.default as Record<string, unknown>).default
+      : undefined,
+    moduleRecord.default &&
+    typeof moduleRecord.default === "object" &&
+    moduleRecord.default !== null
+      ? (moduleRecord.default as Record<string, unknown>).app
+      : undefined,
+  ];
+
+  for (const candidate of candidates) {
+    if (hasFetch(candidate)) {
+      return candidate;
+    }
+  }
+
+  return null;
+};
+
 interface WorkerEnv {
   BETTER_AUTH_SECRET?: string;
   BETTER_AUTH_URL?: string;
@@ -47,11 +87,19 @@ const loadApp = (env: WorkerEnv) => {
     appPromise = import("./index")
       .then((module) => {
         const appModule = module as AppModule;
-        const app = appModule.default ?? appModule.app;
+        const app = resolveApp(appModule);
 
-        if (!app || typeof app.fetch !== "function") {
+        if (!app) {
+          const exportKeys = Object.keys(module as Record<string, unknown>);
+          const defaultKeys =
+            appModule.default && typeof appModule.default === "object"
+              ? Object.keys(appModule.default)
+              : [];
+
           throw new Error(
-            "Failed to initialize API app: expected default or named app export with fetch()"
+            `Failed to initialize API app: unresolved export shape. exports=[${exportKeys.join(
+              ","
+            )}] defaultKeys=[${defaultKeys.join(",")}]`
           );
         }
 

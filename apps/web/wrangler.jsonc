@@ -17,5 +17,15 @@
 		"directory": "./dist/client",
 		"run_worker_first": ["/api/*", "/rpc/*"],
 		"not_found_handling": "single-page-application"
-	}
+	},
+	"vars": {
+		"PROFILE_IMAGES_PUBLIC_BASE_URL": "https://pub-18e474120c2d40f19ed08a82f09d6671.r2.dev",
+	},
+	"env": {
+		"production": {
+			"vars": {
+				"PROFILE_IMAGES_PUBLIC_BASE_URL": "https://pub-18e474120c2d40f19ed08a82f09d6671.r2.dev",
+			}
+		}
+	},
 }
