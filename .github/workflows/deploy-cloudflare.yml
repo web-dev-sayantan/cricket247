@@ -33,6 +33,13 @@ jobs:
       - name: Build monorepo (build-only gate)
         run: bun run build
 
+      - name: Regenerate and validate OpenAPI spec (main)
+        working-directory: apps/server
+        run: |
+          bun run openapi:generate
+          bun run openapi:validate
+          git diff --exit-code -- openapi.json openapi.yaml
+
       - name: Deploy API worker
         working-directory: apps/server
         env:

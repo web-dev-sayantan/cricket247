@@ -1,0 +1,2734 @@
+info:
+  title: Cricket247 API
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api
+openapi: 3.1.1
+paths:
+  /healthCheck:
+    post:
+      operationId: healthCheck
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /privateData:
+    post:
+      operationId: privateData
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /liveMatches:
+    post:
+      operationId: liveMatches
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /currentUserRole:
+    post:
+      operationId: currentUserRole
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /liveTournaments:
+    post:
+      operationId: liveTournaments
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /tournaments:
+    post:
+      operationId: tournaments
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /managementTournaments:
+    post:
+      operationId: managementTournaments
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /managementTournamentById:
+    post:
+      operationId: managementTournamentById
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+              exclusiveMinimum: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /createTournament:
+    post:
+      operationId: createTournament
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                category:
+                  enum:
+                    - competitive
+                    - practice
+                    - recreational
+                    - one_off
+                season:
+                  anyOf:
+                    - type: string
+                    - type: "null"
+                type:
+                  type: string
+                genderAllowed:
+                  type: string
+                ageLimit:
+                  anyOf:
+                    - type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    - type: "null"
+                organizationId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                startDate:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+                endDate:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+                defaultMatchFormatId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                championTeamId:
+                  anyOf:
+                    - type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    - type: "null"
+                fixturePublishedAt:
+                  anyOf:
+                    - type: string
+                      format: date-time
+                      x-native-type: date
+                    - type: "null"
+                activeFixtureVersion:
+                  anyOf:
+                    - type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    - type: "null"
+                createdAt:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+                updatedAt:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+              required:
+                - name
+                - startDate
+                - endDate
+                - defaultMatchFormatId
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /updateTournament:
+    post:
+      operationId: updateTournament
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                data:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    category:
+                      enum:
+                        - competitive
+                        - practice
+                        - recreational
+                        - one_off
+                    season:
+                      anyOf:
+                        - type: string
+                        - type: "null"
+                    type:
+                      type: string
+                    genderAllowed:
+                      type: string
+                    ageLimit:
+                      anyOf:
+                        - type: integer
+                          minimum: -9007199254740991
+                          maximum: 9007199254740991
+                        - type: "null"
+                    organizationId:
+                      type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                      exclusiveMinimum: 0
+                    startDate:
+                      type: string
+                      format: date-time
+                      x-native-type: date
+                    endDate:
+                      type: string
+                      format: date-time
+                      x-native-type: date
+                    defaultMatchFormatId:
+                      type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    championTeamId:
+                      anyOf:
+                        - type: integer
+                          minimum: -9007199254740991
+                          maximum: 9007199254740991
+                        - type: "null"
+                    fixturePublishedAt:
+                      anyOf:
+                        - type: string
+                          format: date-time
+                          x-native-type: date
+                        - type: "null"
+                    activeFixtureVersion:
+                      anyOf:
+                        - type: integer
+                          minimum: -9007199254740991
+                          maximum: 9007199254740991
+                        - type: "null"
+                    createdAt:
+                      type: string
+                      format: date-time
+                      x-native-type: date
+                    updatedAt:
+                      type: string
+                      format: date-time
+                      x-native-type: date
+              required:
+                - id
+                - data
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /deleteTournament:
+    post:
+      operationId: deleteTournament
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+              exclusiveMinimum: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /tournamentTeams:
+    post:
+      operationId: tournamentTeams
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /tournamentTeamById:
+    post:
+      operationId: tournamentTeamById
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+              exclusiveMinimum: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /createTournamentTeam:
+    post:
+      operationId: createTournamentTeam
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tournamentId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                teamId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                points:
+                  anyOf:
+                    - type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    - type: "null"
+                matchesPlayed:
+                  anyOf:
+                    - type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    - type: "null"
+                matchesWon:
+                  anyOf:
+                    - type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    - type: "null"
+                matchesLost:
+                  anyOf:
+                    - type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    - type: "null"
+                matchesTied:
+                  anyOf:
+                    - type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    - type: "null"
+                matchesDrawn:
+                  anyOf:
+                    - type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    - type: "null"
+                createdAt:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+                updatedAt:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+              required:
+                - tournamentId
+                - teamId
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /updateTournamentTeam:
+    post:
+      operationId: updateTournamentTeam
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                data:
+                  type: object
+                  properties:
+                    tournamentId:
+                      type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    teamId:
+                      type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    points:
+                      anyOf:
+                        - type: integer
+                          minimum: -9007199254740991
+                          maximum: 9007199254740991
+                        - type: "null"
+                    matchesPlayed:
+                      anyOf:
+                        - type: integer
+                          minimum: -9007199254740991
+                          maximum: 9007199254740991
+                        - type: "null"
+                    matchesWon:
+                      anyOf:
+                        - type: integer
+                          minimum: -9007199254740991
+                          maximum: 9007199254740991
+                        - type: "null"
+                    matchesLost:
+                      anyOf:
+                        - type: integer
+                          minimum: -9007199254740991
+                          maximum: 9007199254740991
+                        - type: "null"
+                    matchesTied:
+                      anyOf:
+                        - type: integer
+                          minimum: -9007199254740991
+                          maximum: 9007199254740991
+                        - type: "null"
+                    matchesDrawn:
+                      anyOf:
+                        - type: integer
+                          minimum: -9007199254740991
+                          maximum: 9007199254740991
+                        - type: "null"
+                    createdAt:
+                      type: string
+                      format: date-time
+                      x-native-type: date
+                    updatedAt:
+                      type: string
+                      format: date-time
+                      x-native-type: date
+              required:
+                - id
+                - data
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /deleteTournamentTeam:
+    post:
+      operationId: deleteTournamentTeam
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+              exclusiveMinimum: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /tournamentStages:
+    post:
+      operationId: tournamentStages
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /tournamentStageById:
+    post:
+      operationId: tournamentStageById
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+              exclusiveMinimum: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /tournamentStageGroups:
+    post:
+      operationId: tournamentStageGroups
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /tournamentStageGroupById:
+    post:
+      operationId: tournamentStageGroupById
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+              exclusiveMinimum: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /tournamentStageTeamEntries:
+    post:
+      operationId: tournamentStageTeamEntries
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /tournamentStageTeamEntryById:
+    post:
+      operationId: tournamentStageTeamEntryById
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+              exclusiveMinimum: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /createTournamentStageTeamEntry:
+    post:
+      operationId: createTournamentStageTeamEntry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tournamentId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                stageId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                stageGroupId:
+                  anyOf:
+                    - type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    - type: "null"
+                teamId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                seed:
+                  anyOf:
+                    - type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    - type: "null"
+                entrySource:
+                  type: string
+                isQualified:
+                  type: boolean
+                isEliminated:
+                  type: boolean
+                createdAt:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+                updatedAt:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+              required:
+                - tournamentId
+                - stageId
+                - teamId
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /updateTournamentStageTeamEntry:
+    post:
+      operationId: updateTournamentStageTeamEntry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                data:
+                  type: object
+                  properties:
+                    tournamentId:
+                      type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    stageId:
+                      type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    stageGroupId:
+                      anyOf:
+                        - type: integer
+                          minimum: -9007199254740991
+                          maximum: 9007199254740991
+                        - type: "null"
+                    teamId:
+                      type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    seed:
+                      anyOf:
+                        - type: integer
+                          minimum: -9007199254740991
+                          maximum: 9007199254740991
+                        - type: "null"
+                    entrySource:
+                      type: string
+                    isQualified:
+                      type: boolean
+                    isEliminated:
+                      type: boolean
+                    createdAt:
+                      type: string
+                      format: date-time
+                      x-native-type: date
+                    updatedAt:
+                      type: string
+                      format: date-time
+                      x-native-type: date
+              required:
+                - id
+                - data
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /deleteTournamentStageTeamEntry:
+    post:
+      operationId: deleteTournamentStageTeamEntry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+              exclusiveMinimum: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /tournamentStageAdvancements:
+    post:
+      operationId: tournamentStageAdvancements
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /tournamentStageAdvancementById:
+    post:
+      operationId: tournamentStageAdvancementById
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+              exclusiveMinimum: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /createTournamentStageAdvancement:
+    post:
+      operationId: createTournamentStageAdvancement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fromStageId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                fromStageGroupId:
+                  anyOf:
+                    - type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    - type: "null"
+                positionFrom:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                toStageId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                toSlot:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                qualificationType:
+                  type: string
+                createdAt:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+                updatedAt:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+              required:
+                - fromStageId
+                - positionFrom
+                - toStageId
+                - toSlot
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /updateTournamentStageAdvancement:
+    post:
+      operationId: updateTournamentStageAdvancement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                data:
+                  type: object
+                  properties:
+                    fromStageId:
+                      type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    fromStageGroupId:
+                      anyOf:
+                        - type: integer
+                          minimum: -9007199254740991
+                          maximum: 9007199254740991
+                        - type: "null"
+                    positionFrom:
+                      type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    toStageId:
+                      type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    toSlot:
+                      type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    qualificationType:
+                      type: string
+                    createdAt:
+                      type: string
+                      format: date-time
+                      x-native-type: date
+                    updatedAt:
+                      type: string
+                      format: date-time
+                      x-native-type: date
+              required:
+                - id
+                - data
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /deleteTournamentStageAdvancement:
+    post:
+      operationId: deleteTournamentStageAdvancement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+              exclusiveMinimum: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /tournamentStructure:
+    post:
+      operationId: tournamentStructure
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tournamentId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+              required:
+                - tournamentId
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /seedTournamentTemplate:
+    post:
+      operationId: seedTournamentTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tournamentId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                template:
+                  enum:
+                    - straight_league
+                    - grouped_league_with_playoffs
+                    - straight_knockout
+                teamIds:
+                  type: array
+                  minItems: 2
+                  items:
+                    type: integer
+                    minimum: -9007199254740991
+                    maximum: 9007199254740991
+                    exclusiveMinimum: 0
+                resetExisting:
+                  type: boolean
+                groupCount:
+                  type: integer
+                  minimum: 2
+                  maximum: 8
+                advancingPerGroup:
+                  type: integer
+                  minimum: 1
+                  maximum: 8
+              required:
+                - tournamentId
+                - template
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /createFixtureDraft:
+    post:
+      operationId: createFixtureDraft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tournamentId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                stageId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                label:
+                  type: string
+                  maxLength: 120
+                includeCurrentMatches:
+                  type: boolean
+                metadata:
+                  type: object
+                  propertyNames:
+                    type: string
+                  additionalProperties:
+                    anyOf:
+                      - type: string
+                      - type: number
+                      - type: boolean
+              required:
+                - tournamentId
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /createFixtureRound:
+    post:
+      operationId: createFixtureRound
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tournamentId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                stageId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                stageGroupId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                fixtureVersionId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                roundNumber:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                roundName:
+                  type: string
+                  maxLength: 120
+                pairingMethod:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+                scheduledStartAt:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+                scheduledEndAt:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+                lockAt:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+                publishedAt:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+                metadata:
+                  type: object
+                  propertyNames:
+                    type: string
+                  additionalProperties:
+                    anyOf:
+                      - type: string
+                      - type: number
+                      - type: boolean
+              required:
+                - tournamentId
+                - stageId
+                - roundNumber
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /publishFixtureVersion:
+    post:
+      operationId: publishFixtureVersion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tournamentId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                fixtureVersionId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                note:
+                  type: string
+                  maxLength: 500
+              required:
+                - tournamentId
+                - fixtureVersionId
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /validateFixtureConflicts:
+    post:
+      operationId: validateFixtureConflicts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tournamentId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                stageId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                teamIds:
+                  type: array
+                  minItems: 1
+                  maxItems: 2
+                  items:
+                    type: integer
+                    minimum: -9007199254740991
+                    maximum: 9007199254740991
+                    exclusiveMinimum: 0
+                venueId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                scheduledStartAt:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+                scheduledEndAt:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+                excludeMatchId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+              required:
+                - tournamentId
+                - teamIds
+                - scheduledStartAt
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /completedMatches:
+    post:
+      operationId: completedMatches
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /players:
+    post:
+      operationId: players
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /playersWithCurrentTeams:
+    post:
+      operationId: playersWithCurrentTeams
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /onboardingStatus:
+    post:
+      operationId: onboardingStatus
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /markOnboardingSeen:
+    post:
+      operationId: markOnboardingSeen
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /createOwnPlayerProfile:
+    post:
+      operationId: createOwnPlayerProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 100
+                dob:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+                sex:
+                  type: string
+                  minLength: 1
+                  maxLength: 30
+                nationality:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                height:
+                  type: integer
+                  minimum: 1
+                  maximum: 300
+                weight:
+                  type: integer
+                  minimum: 1
+                  maximum: 250
+                image:
+                  type: string
+                  format: uri
+                role:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+                battingStance:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+                bowlingStance:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                isWicketKeeper:
+                  type: boolean
+              required:
+                - name
+                - dob
+                - sex
+                - role
+                - battingStance
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /claimablePlayers:
+    post:
+      operationId: claimablePlayers
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  maxLength: 100
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /sendClaimOtp:
+    post:
+      operationId: sendClaimOtp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                playerId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+              required:
+                - playerId
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /verifyClaimOtpAndLink:
+    post:
+      operationId: verifyClaimOtpAndLink
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                playerId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                otp:
+                  type: string
+                  pattern: ^\d{6}$
+              required:
+                - playerId
+                - otp
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /teams:
+    post:
+      operationId: teams
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /searchTeamsByName:
+    post:
+      operationId: searchTeamsByName
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /getTeamById:
+    post:
+      operationId: getTeamById
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+              exclusiveMinimum: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /teamTournaments:
+    post:
+      operationId: teamTournaments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                teamId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+              required:
+                - teamId
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /getTournamentTeamRoster:
+    post:
+      operationId: getTournamentTeamRoster
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tournamentId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                teamId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+              required:
+                - tournamentId
+                - teamId
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /listTeamStats:
+    post:
+      operationId: listTeamStats
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /getTeamStatsById:
+    post:
+      operationId: getTeamStatsById
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+              exclusiveMinimum: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /getTeamTournamentStats:
+    post:
+      operationId: getTeamTournamentStats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                teamId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                tournamentId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+              required:
+                - teamId
+                - tournamentId
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /createPlayer:
+    post:
+      operationId: createPlayer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  anyOf:
+                    - type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    - type: "null"
+                name:
+                  type: string
+                age:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                dob:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+                sex:
+                  type: string
+                nationality:
+                  anyOf:
+                    - type: string
+                    - type: "null"
+                height:
+                  anyOf:
+                    - type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    - type: "null"
+                weight:
+                  anyOf:
+                    - type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    - type: "null"
+                image:
+                  anyOf:
+                    - type: string
+                    - type: "null"
+                role:
+                  type: string
+                battingStance:
+                  type: string
+                bowlingStance:
+                  anyOf:
+                    - type: string
+                    - type: "null"
+                isWicketKeeper:
+                  type: boolean
+                createdAt:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+                updatedAt:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+              required:
+                - name
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /bulkImportPlayers:
+    post:
+      operationId: bulkImportPlayers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rows:
+                  type: array
+                  minItems: 1
+                  maxItems: 1000
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        minLength: 2
+                        maxLength: 100
+                      dob:
+                        type: string
+                        format: date-time
+                        x-native-type: date
+                      sex:
+                        type: string
+                        minLength: 1
+                        maxLength: 30
+                      nationality:
+                        type: string
+                        minLength: 1
+                        maxLength: 100
+                      height:
+                        type: integer
+                        minimum: 1
+                        maximum: 300
+                      weight:
+                        type: integer
+                        minimum: 1
+                        maximum: 250
+                      image:
+                        type: string
+                        format: uri
+                      role:
+                        type: string
+                        minLength: 1
+                        maxLength: 50
+                      battingStance:
+                        type: string
+                        minLength: 1
+                        maxLength: 50
+                      bowlingStance:
+                        type: string
+                        minLength: 1
+                        maxLength: 100
+                      isWicketKeeper:
+                        type: boolean
+                    required:
+                      - name
+                      - dob
+                      - sex
+                      - role
+                      - battingStance
+              required:
+                - rows
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /createTeam:
+    post:
+      operationId: createTeam
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                shortName:
+                  type: string
+                baseLocation:
+                  anyOf:
+                    - type: string
+                    - type: "null"
+                country:
+                  type: string
+                logo:
+                  anyOf:
+                    - type: string
+                    - type: "null"
+                createdAt:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+                updatedAt:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+              required:
+                - name
+                - shortName
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /createMatch:
+    post:
+      operationId: createMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tournamentId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                matchDate:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+                tossWinnerId:
+                  type: number
+                tossDecision:
+                  type: string
+                team1Id:
+                  type: number
+                team2Id:
+                  type: number
+                matchFormatId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                oversPerSide:
+                  type: number
+                  minimum: 1
+                maxOverPerBowler:
+                  type: number
+                  minimum: 1
+                winnerId:
+                  type: number
+                result:
+                  type: string
+                hasLBW:
+                  type: boolean
+                hasBye:
+                  type: boolean
+                hasLegBye:
+                  type: boolean
+                hasBoundaryOut:
+                  type: boolean
+                hasSuperOver:
+                  type: boolean
+                venueId:
+                  type: number
+                format:
+                  type: string
+                notes:
+                  type: string
+                ranked:
+                  type: boolean
+                isLive:
+                  type: boolean
+                isCompleted:
+                  type: boolean
+                isAbandoned:
+                  type: boolean
+                isTied:
+                  type: boolean
+                margin:
+                  type: string
+                playerOfTheMatchId:
+                  type: number
+                stageId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                stageGroupId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                stageRound:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                stageSequence:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                knockoutLeg:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+              required:
+                - tournamentId
+                - matchDate
+                - tossWinnerId
+                - tossDecision
+                - team1Id
+                - team2Id
+                - oversPerSide
+                - maxOverPerBowler
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /createTournamentStage:
+    post:
+      operationId: createTournamentStage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tournamentId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                name:
+                  type: string
+                code:
+                  anyOf:
+                    - type: string
+                    - type: "null"
+                stageType:
+                  type: string
+                format:
+                  type: string
+                sequence:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                status:
+                  type: string
+                fixtureStatus:
+                  type: string
+                parentStageId:
+                  anyOf:
+                    - type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    - type: "null"
+                qualificationSlots:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                scheduledStartAt:
+                  anyOf:
+                    - type: string
+                      format: date-time
+                      x-native-type: date
+                    - type: "null"
+                scheduledEndAt:
+                  anyOf:
+                    - type: string
+                      format: date-time
+                      x-native-type: date
+                    - type: "null"
+                lockAt:
+                  anyOf:
+                    - type: string
+                      format: date-time
+                      x-native-type: date
+                    - type: "null"
+                publishedAt:
+                  anyOf:
+                    - type: string
+                      format: date-time
+                      x-native-type: date
+                    - type: "null"
+                fixtureVersion:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                matchFormatId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                metadata:
+                  anyOf:
+                    - anyOf:
+                        - anyOf:
+                            - type: string
+                            - type: number
+                            - type: boolean
+                            - type: "null"
+                        - type: object
+                          propertyNames:
+                            type: string
+                          additionalProperties: {}
+                        - type: array
+                          items: {}
+                    - type: "null"
+                createdAt:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+                updatedAt:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+              required:
+                - tournamentId
+                - name
+                - matchFormatId
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /updateTournamentStage:
+    post:
+      operationId: updateTournamentStage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                data:
+                  type: object
+                  properties:
+                    tournamentId:
+                      type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    name:
+                      type: string
+                    code:
+                      anyOf:
+                        - type: string
+                        - type: "null"
+                    stageType:
+                      type: string
+                    format:
+                      type: string
+                    sequence:
+                      type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    status:
+                      type: string
+                    fixtureStatus:
+                      type: string
+                    parentStageId:
+                      anyOf:
+                        - type: integer
+                          minimum: -9007199254740991
+                          maximum: 9007199254740991
+                        - type: "null"
+                    qualificationSlots:
+                      type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    scheduledStartAt:
+                      anyOf:
+                        - type: string
+                          format: date-time
+                          x-native-type: date
+                        - type: "null"
+                    scheduledEndAt:
+                      anyOf:
+                        - type: string
+                          format: date-time
+                          x-native-type: date
+                        - type: "null"
+                    lockAt:
+                      anyOf:
+                        - type: string
+                          format: date-time
+                          x-native-type: date
+                        - type: "null"
+                    publishedAt:
+                      anyOf:
+                        - type: string
+                          format: date-time
+                          x-native-type: date
+                        - type: "null"
+                    fixtureVersion:
+                      type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    matchFormatId:
+                      type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    metadata:
+                      anyOf:
+                        - anyOf:
+                            - anyOf:
+                                - type: string
+                                - type: number
+                                - type: boolean
+                                - type: "null"
+                            - type: object
+                              propertyNames:
+                                type: string
+                              additionalProperties: {}
+                            - type: array
+                              items: {}
+                        - type: "null"
+                    createdAt:
+                      type: string
+                      format: date-time
+                      x-native-type: date
+                    updatedAt:
+                      type: string
+                      format: date-time
+                      x-native-type: date
+              required:
+                - id
+                - data
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /deleteTournamentStage:
+    post:
+      operationId: deleteTournamentStage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+              exclusiveMinimum: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /createTournamentStageGroup:
+    post:
+      operationId: createTournamentStageGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                stageId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                name:
+                  type: string
+                code:
+                  anyOf:
+                    - type: string
+                    - type: "null"
+                sequence:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                advancingSlots:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                metadata:
+                  anyOf:
+                    - anyOf:
+                        - anyOf:
+                            - type: string
+                            - type: number
+                            - type: boolean
+                            - type: "null"
+                        - type: object
+                          propertyNames:
+                            type: string
+                          additionalProperties: {}
+                        - type: array
+                          items: {}
+                    - type: "null"
+                createdAt:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+                updatedAt:
+                  type: string
+                  format: date-time
+                  x-native-type: date
+              required:
+                - stageId
+                - name
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /updateTournamentStageGroup:
+    post:
+      operationId: updateTournamentStageGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                data:
+                  type: object
+                  properties:
+                    stageId:
+                      type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    name:
+                      type: string
+                    code:
+                      anyOf:
+                        - type: string
+                        - type: "null"
+                    sequence:
+                      type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    advancingSlots:
+                      type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    metadata:
+                      anyOf:
+                        - anyOf:
+                            - anyOf:
+                                - type: string
+                                - type: number
+                                - type: boolean
+                                - type: "null"
+                            - type: object
+                              propertyNames:
+                                type: string
+                              additionalProperties: {}
+                            - type: array
+                              items: {}
+                        - type: "null"
+                    createdAt:
+                      type: string
+                      format: date-time
+                      x-native-type: date
+                    updatedAt:
+                      type: string
+                      format: date-time
+                      x-native-type: date
+              required:
+                - id
+                - data
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /deleteTournamentStageGroup:
+    post:
+      operationId: deleteTournamentStageGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+              exclusiveMinimum: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /stageGroupsByStage:
+    post:
+      operationId: stageGroupsByStage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+              exclusiveMinimum: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /registerTournamentTeamPlayer:
+    post:
+      operationId: registerTournamentTeamPlayer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tournamentId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                teamId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                playerId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                isCaptain:
+                  type: boolean
+                isViceCaptain:
+                  type: boolean
+              required:
+                - tournamentId
+                - teamId
+                - playerId
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /unassignTournamentTeamPlayer:
+    post:
+      operationId: unassignTournamentTeamPlayer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tournamentId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                teamId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                playerId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+              required:
+                - tournamentId
+                - teamId
+                - playerId
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /reassignTournamentTeamPlayer:
+    post:
+      operationId: reassignTournamentTeamPlayer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tournamentId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                toTeamId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                playerId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                confirmReassign:
+                  type: boolean
+                expectedFromTeamId:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+              required:
+                - tournamentId
+                - toTeamId
+                - playerId
+                - confirmReassign
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /getMatchById:
+    post:
+      operationId: getMatchById
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: number
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /getMatchScorecard:
+    post:
+      operationId: getMatchScorecard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                matchId:
+                  type: number
+                inningsNumber:
+                  type: number
+                includeBallByBall:
+                  type: boolean
+              required:
+                - matchId
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /getBallsOfSameOver:
+    post:
+      operationId: getBallsOfSameOver
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                inningsId:
+                  type: number
+                ballNumber:
+                  type: number
+              required:
+                - inningsId
+                - ballNumber
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /updatePlayer:
+    post:
+      operationId: updatePlayer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                data:
+                  type: object
+                  properties:
+                    userId:
+                      anyOf:
+                        - type: integer
+                          minimum: -9007199254740991
+                          maximum: 9007199254740991
+                        - type: "null"
+                    name:
+                      type: string
+                    age:
+                      type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                    dob:
+                      type: string
+                      format: date-time
+                      x-native-type: date
+                    sex:
+                      type: string
+                    nationality:
+                      anyOf:
+                        - type: string
+                        - type: "null"
+                    height:
+                      anyOf:
+                        - type: integer
+                          minimum: -9007199254740991
+                          maximum: 9007199254740991
+                        - type: "null"
+                    weight:
+                      anyOf:
+                        - type: integer
+                          minimum: -9007199254740991
+                          maximum: 9007199254740991
+                        - type: "null"
+                    image:
+                      anyOf:
+                        - type: string
+                        - type: "null"
+                    role:
+                      type: string
+                    battingStance:
+                      type: string
+                    bowlingStance:
+                      anyOf:
+                        - type: string
+                        - type: "null"
+                    isWicketKeeper:
+                      type: boolean
+                    createdAt:
+                      type: string
+                      format: date-time
+                      x-native-type: date
+                    updatedAt:
+                      type: string
+                      format: date-time
+                      x-native-type: date
+              required:
+                - id
+                - data
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /deletePlayer:
+    post:
+      operationId: deletePlayer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+              exclusiveMinimum: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /updateTeam:
+    post:
+      operationId: updateTeam
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  minimum: -9007199254740991
+                  maximum: 9007199254740991
+                  exclusiveMinimum: 0
+                data:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    shortName:
+                      type: string
+                    baseLocation:
+                      anyOf:
+                        - type: string
+                        - type: "null"
+                    country:
+                      type: string
+                    logo:
+                      anyOf:
+                        - type: string
+                        - type: "null"
+                    createdAt:
+                      type: string
+                      format: date-time
+                      x-native-type: date
+                    updatedAt:
+                      type: string
+                      format: date-time
+                      x-native-type: date
+              required:
+                - id
+                - data
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+  /deleteTeam:
+    post:
+      operationId: deleteTeam
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+              minimum: -9007199254740991
+              maximum: 9007199254740991
+              exclusiveMinimum: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}

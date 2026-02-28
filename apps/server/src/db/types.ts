@@ -6,6 +6,11 @@ import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import type {
   account,
   deliveries,
+  fixtureChangeLog,
+  fixtureConstraints,
+  fixtureRounds,
+  fixtureVersionMatches,
+  fixtureVersions,
   innings,
   matches,
   matchLineup,
@@ -17,6 +22,7 @@ import type {
   players,
   playerTournamentStats,
   session,
+  swissRoundStandings,
   teamCareerStats,
   teamPlayers,
   teams,
@@ -63,6 +69,14 @@ export type Match = InferSelectModel<typeof matches>;
 export type MatchParticipantSource = InferSelectModel<
   typeof matchParticipantSources
 >;
+export type FixtureVersion = InferSelectModel<typeof fixtureVersions>;
+export type FixtureRound = InferSelectModel<typeof fixtureRounds>;
+export type FixtureVersionMatch = InferSelectModel<
+  typeof fixtureVersionMatches
+>;
+export type FixtureChangeLog = InferSelectModel<typeof fixtureChangeLog>;
+export type FixtureConstraint = InferSelectModel<typeof fixtureConstraints>;
+export type SwissRoundStanding = InferSelectModel<typeof swissRoundStandings>;
 export type Innings = InferSelectModel<typeof innings>;
 export type Delivery = InferSelectModel<typeof deliveries>;
 export type MatchLineup = InferSelectModel<typeof matchLineup>;
@@ -107,6 +121,16 @@ export type NewVenue = InferInsertModel<typeof venues>;
 export type NewMatch = InferInsertModel<typeof matches>;
 export type NewMatchParticipantSource = InferInsertModel<
   typeof matchParticipantSources
+>;
+export type NewFixtureVersion = InferInsertModel<typeof fixtureVersions>;
+export type NewFixtureRound = InferInsertModel<typeof fixtureRounds>;
+export type NewFixtureVersionMatch = InferInsertModel<
+  typeof fixtureVersionMatches
+>;
+export type NewFixtureChangeLog = InferInsertModel<typeof fixtureChangeLog>;
+export type NewFixtureConstraint = InferInsertModel<typeof fixtureConstraints>;
+export type NewSwissRoundStanding = InferInsertModel<
+  typeof swissRoundStandings
 >;
 export type NewInnings = InferInsertModel<typeof innings>;
 export type NewDelivery = InferInsertModel<typeof deliveries>;

@@ -133,6 +133,24 @@ bun run dev
 
 The API will be available at `http://localhost:3000`
 
+### OpenAPI (oRPC)
+
+- Swagger UI docs: `http://localhost:3000/api/docs`
+- OpenAPI JSON: `http://localhost:3000/api/openapi.json`
+- OpenAPI YAML: `http://localhost:3000/api/openapi.yaml`
+
+Generate committed spec files:
+
+```bash
+bun run openapi:generate
+```
+
+Validate committed spec files are up to date:
+
+```bash
+bun run openapi:validate
+```
+
 ### Building
 
 Build for production:
