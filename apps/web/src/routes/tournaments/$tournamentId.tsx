@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 import { formatWeekdayMonthDayYear } from "@/lib/date";
@@ -108,6 +109,9 @@ function TournamentDetailPage() {
   const publishedFixtures = fixtureRows.filter(
     (match) => match.fixtureStatus === "published"
   );
+  const areAllDraftFixturesSelected =
+    draftFixtures.length > 0 &&
+    draftFixtures.every((match) => selectedDraftMatches.has(match.id));
 
   const autoGenerateMutation = useMutation({
     mutationFn: async () =>
@@ -224,6 +228,28 @@ function TournamentDetailPage() {
     },
     onError: (error) => {
       toast.error(error.message || "Failed to delete draft fixture");
+    },
+  });
+
+  const deleteSelectedDraftMutation = useMutation({
+    mutationFn: async () => {
+      const selectedMatchIds = Array.from(selectedDraftMatches);
+      await Promise.all(
+        selectedMatchIds.map(async (matchId) =>
+          client.deleteDraftFixtureMatch({
+            tournamentId: numericTournamentId,
+            matchId,
+          })
+        )
+      );
+    },
+    onSuccess: async () => {
+      toast.success("Selected draft fixtures deleted");
+      setSelectedDraftMatches(new Set());
+      await invalidateTournamentQueries(queryClient, numericTournamentId);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to delete selected draft fixtures");
     },
   });
 
@@ -540,17 +566,48 @@ function TournamentDetailPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Draft Fixtures</CardTitle>
-                    <Button
-                      disabled={
-                        publishMutation.isPending ||
-                        selectedDraftMatches.size === 0
-                      }
-                      onClick={() => publishMutation.mutate()}
-                      size="sm"
-                    >
-                      <Check className="mr-1 size-4" />
-                      Publish Selected
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        disabled={draftFixtures.length === 0}
+                        onClick={() => {
+                          if (areAllDraftFixturesSelected) {
+                            setSelectedDraftMatches(new Set());
+                            return;
+                          }
+                          setSelectedDraftMatches(
+                            new Set(draftFixtures.map((match) => match.id))
+                          );
+                        }}
+                        size="sm"
+                        variant="outline"
+                      >
+                        {areAllDraftFixturesSelected
+                          ? "Clear Selection"
+                          : "Select All"}
+                      </Button>
+                      <Button
+                        disabled={
+                          publishMutation.isPending ||
+                          selectedDraftMatches.size === 0
+                        }
+                        onClick={() => publishMutation.mutate()}
+                        size="sm"
+                      >
+                        <Check className="mr-1 size-4" />
+                        Publish Selected
+                      </Button>
+                      <Button
+                        disabled={
+                          deleteSelectedDraftMutation.isPending ||
+                          selectedDraftMatches.size === 0
+                        }
+                        onClick={() => deleteSelectedDraftMutation.mutate()}
+                        size="sm"
+                        variant="destructive"
+                      >
+                        Delete Selected
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {draftFixtures.length === 0 ? (
@@ -828,10 +885,14 @@ function FixtureCard(props: {
 
       {props.showDraftControls && (
         <div className="flex flex-wrap gap-2 pt-1">
-          <Button onClick={props.onToggleSelect} size="sm" variant="outline">
-            {props.selected ? "Unselect" : "Select"}
-          </Button>
-          <Button onClick={props.onDelete} size="sm" variant="outline">
+          <div className="flex items-center gap-2 border px-2 py-1 text-xs">
+            <Checkbox
+              checked={props.selected ?? false}
+              onCheckedChange={() => props.onToggleSelect?.()}
+            />
+            {props.selected ? "Selected" : "Select"}
+          </div>
+          <Button onClick={props.onDelete} size="sm" variant="destructive">
             Delete
           </Button>
         </div>
