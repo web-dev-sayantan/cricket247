@@ -1,9 +1,10 @@
-import { eq } from "drizzle-orm";
+import { eq, type InferInsertModel, type InferSelectModel } from "drizzle-orm";
 import { db } from "@/db";
 import {
   deliveries,
   innings,
   matches,
+  matchFormats,
   matchLineup,
   matchParticipantSources,
   organizations,
@@ -73,6 +74,10 @@ type UpdateMatchInput = Partial<CreateMatchInput>;
 
 type CreateOrganizationInput = Omit<NewOrganization, "id">;
 type UpdateOrganizationInput = Partial<CreateOrganizationInput>;
+
+type MatchFormatRecord = InferSelectModel<typeof matchFormats>;
+type CreateMatchFormatInput = Omit<InferInsertModel<typeof matchFormats>, "id">;
+type UpdateMatchFormatInput = Partial<CreateMatchFormatInput>;
 
 type CreateTournamentInput = Omit<NewTournament, "id" | "organizationId"> & {
   organizationId?: number;
@@ -331,6 +336,44 @@ export const organizationCrudService = {
       .where(eq(organizations.id, id))
       .returning({ id: organizations.id });
 
+    return rows.length > 0;
+  },
+};
+
+export const matchFormatCrudService = {
+  list: (): Promise<MatchFormatRecord[]> => db.select().from(matchFormats),
+  async getById(id: number): Promise<MatchFormatRecord | null> {
+    const rows = await db
+      .select()
+      .from(matchFormats)
+      .where(eq(matchFormats.id, id))
+      .limit(1);
+    return rows[0] ?? null;
+  },
+  async create(
+    payload: CreateMatchFormatInput
+  ): Promise<MatchFormatRecord | null> {
+    const rows = await db.insert(matchFormats).values(payload).returning();
+    return rows[0] ?? null;
+  },
+  async update(
+    id: number,
+    payload: UpdateMatchFormatInput
+  ): Promise<MatchFormatRecord | null> {
+    const rows = await db
+      .update(matchFormats)
+      .set(payload)
+      .where(eq(matchFormats.id, id))
+      .returning();
+    return rows[0] ?? null;
+  },
+  async remove(id: number): Promise<boolean> {
+    const rows = await db
+      .delete(matchFormats)
+      .where(eq(matchFormats.id, id))
+      .returning({
+        id: matchFormats.id,
+      });
     return rows.length > 0;
   },
 };

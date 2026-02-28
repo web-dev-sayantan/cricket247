@@ -1,6 +1,11 @@
 import { defineRelations } from "drizzle-orm";
 import {
   deliveries,
+  fixtureChangeLog,
+  fixtureConstraints,
+  fixtureRounds,
+  fixtureVersionMatches,
+  fixtureVersions,
   innings,
   matches,
   matchFormats,
@@ -11,6 +16,7 @@ import {
   playerInningsStats,
   players,
   playerTournamentStats,
+  swissRoundStandings,
   teamCareerStats,
   teamPlayers,
   teams,
@@ -21,11 +27,17 @@ import {
   tournamentStageTeamEntries,
   tournaments,
   tournamentTeams,
+  venues,
 } from "../schema";
 
 export const relations = defineRelations(
   {
     deliveries,
+    fixtureChangeLog,
+    fixtureConstraints,
+    fixtureRounds,
+    fixtureVersionMatches,
+    fixtureVersions,
     innings,
     matchLineup,
     matchParticipantSources,
@@ -46,6 +58,8 @@ export const relations = defineRelations(
     tournamentStageTeamEntries,
     tournamentStages,
     tournamentTeams,
+    venues,
+    swissRoundStandings,
   },
   (r) => ({
     organizations: {
@@ -81,6 +95,11 @@ export const relations = defineRelations(
         to: r.matchFormats.id,
       }),
       teamTournamentStats: r.many.teamTournamentStats(),
+      fixtureVersions: r.many.fixtureVersions(),
+      fixtureRounds: r.many.fixtureRounds(),
+      fixtureChangeLog: r.many.fixtureChangeLog(),
+      fixtureConstraints: r.many.fixtureConstraints(),
+      swissRoundStandings: r.many.swissRoundStandings(),
     },
     teams: {
       tournamentTeams: r.many.tournamentTeams(),
@@ -124,6 +143,8 @@ export const relations = defineRelations(
       inningsStats: r.many.playerInningsStats(),
       careerStats: r.many.teamCareerStats(),
       tournamentStats: r.many.teamTournamentStats(),
+      fixtureConstraints: r.many.fixtureConstraints(),
+      swissRoundStandings: r.many.swissRoundStandings(),
     },
     players: {
       teamPlayers: r.many.teamPlayers(),
@@ -193,6 +214,10 @@ export const relations = defineRelations(
         from: r.matches.stageGroupId,
         to: r.tournamentStageGroups.id,
       }),
+      fixtureRound: r.one.fixtureRounds({
+        from: r.matches.fixtureRoundId,
+        to: r.fixtureRounds.id,
+      }),
       tossWinner: r.one.teams({
         from: r.matches.tossWinnerId,
         to: r.teams.id,
@@ -216,6 +241,20 @@ export const relations = defineRelations(
         to: r.teams.id,
         alias: "winner",
       }),
+      venue: r.one.venues({
+        from: r.matches.venueId,
+        to: r.venues.id,
+      }),
+      previousScheduleMatch: r.one.matches({
+        from: r.matches.previousScheduleMatchId,
+        to: r.matches.id,
+        alias: "previousScheduleMatch",
+      }),
+      rescheduledMatches: r.many.matches({
+        from: r.matches.id,
+        to: r.matches.previousScheduleMatchId,
+        alias: "previousScheduleMatch",
+      }),
       innings: r.many.innings(),
       lineup: r.many.matchLineup(),
       participantSources: r.many.matchParticipantSources({
@@ -228,6 +267,8 @@ export const relations = defineRelations(
         to: r.matchParticipantSources.sourceMatchId,
         alias: "sourceMatch",
       }),
+      fixtureVersionEntries: r.many.fixtureVersionMatches(),
+      fixtureChangeLog: r.many.fixtureChangeLog(),
       playerInningsStats: r.many.playerInningsStats(),
     },
     matchFormats: {
@@ -367,6 +408,11 @@ export const relations = defineRelations(
         to: r.matchParticipantSources.sourceStageId,
         alias: "sourceStage",
       }),
+      fixtureVersions: r.many.fixtureVersions(),
+      fixtureRounds: r.many.fixtureRounds(),
+      fixtureChangeLog: r.many.fixtureChangeLog(),
+      fixtureConstraints: r.many.fixtureConstraints(),
+      swissRoundStandings: r.many.swissRoundStandings(),
     },
     tournamentStageGroups: {
       stage: r.one.tournamentStages({
@@ -381,6 +427,7 @@ export const relations = defineRelations(
         to: r.matchParticipantSources.sourceStageGroupId,
         alias: "sourceStageGroup",
       }),
+      fixtureRounds: r.many.fixtureRounds(),
     },
     tournamentStageTeamEntries: {
       tournament: r.one.tournaments({
@@ -504,6 +551,112 @@ export const relations = defineRelations(
       tournament: r.one.tournaments({
         from: r.teamTournamentStats.tournamentId,
         to: r.tournaments.id,
+      }),
+    },
+    venues: {
+      matches: r.many.matches(),
+      fixtureConstraints: r.many.fixtureConstraints(),
+    },
+    fixtureVersions: {
+      tournament: r.one.tournaments({
+        from: r.fixtureVersions.tournamentId,
+        to: r.tournaments.id,
+      }),
+      stage: r.one.tournamentStages({
+        from: r.fixtureVersions.stageId,
+        to: r.tournamentStages.id,
+      }),
+      rounds: r.many.fixtureRounds(),
+      matches: r.many.fixtureVersionMatches(),
+      changeLog: r.many.fixtureChangeLog(),
+    },
+    fixtureRounds: {
+      tournament: r.one.tournaments({
+        from: r.fixtureRounds.tournamentId,
+        to: r.tournaments.id,
+      }),
+      stage: r.one.tournamentStages({
+        from: r.fixtureRounds.stageId,
+        to: r.tournamentStages.id,
+      }),
+      stageGroup: r.one.tournamentStageGroups({
+        from: r.fixtureRounds.stageGroupId,
+        to: r.tournamentStageGroups.id,
+      }),
+      fixtureVersion: r.one.fixtureVersions({
+        from: r.fixtureRounds.fixtureVersionId,
+        to: r.fixtureVersions.id,
+      }),
+      matches: r.many.matches(),
+      changeLog: r.many.fixtureChangeLog(),
+      swissStandings: r.many.swissRoundStandings(),
+    },
+    fixtureVersionMatches: {
+      fixtureVersion: r.one.fixtureVersions({
+        from: r.fixtureVersionMatches.fixtureVersionId,
+        to: r.fixtureVersions.id,
+      }),
+      match: r.one.matches({
+        from: r.fixtureVersionMatches.matchId,
+        to: r.matches.id,
+      }),
+    },
+    fixtureChangeLog: {
+      tournament: r.one.tournaments({
+        from: r.fixtureChangeLog.tournamentId,
+        to: r.tournaments.id,
+      }),
+      stage: r.one.tournamentStages({
+        from: r.fixtureChangeLog.stageId,
+        to: r.tournamentStages.id,
+      }),
+      fixtureVersion: r.one.fixtureVersions({
+        from: r.fixtureChangeLog.fixtureVersionId,
+        to: r.fixtureVersions.id,
+      }),
+      fixtureRound: r.one.fixtureRounds({
+        from: r.fixtureChangeLog.fixtureRoundId,
+        to: r.fixtureRounds.id,
+      }),
+      match: r.one.matches({
+        from: r.fixtureChangeLog.matchId,
+        to: r.matches.id,
+      }),
+    },
+    fixtureConstraints: {
+      tournament: r.one.tournaments({
+        from: r.fixtureConstraints.tournamentId,
+        to: r.tournaments.id,
+      }),
+      stage: r.one.tournamentStages({
+        from: r.fixtureConstraints.stageId,
+        to: r.tournamentStages.id,
+      }),
+      team: r.one.teams({
+        from: r.fixtureConstraints.teamId,
+        to: r.teams.id,
+      }),
+      venue: r.one.venues({
+        from: r.fixtureConstraints.venueId,
+        to: r.venues.id,
+      }),
+    },
+    swissRoundStandings: {
+      tournament: r.one.tournaments({
+        from: r.swissRoundStandings.tournamentId,
+        to: r.tournaments.id,
+      }),
+      stage: r.one.tournamentStages({
+        from: r.swissRoundStandings.stageId,
+        to: r.tournamentStages.id,
+      }),
+      fixtureRound: r.one.fixtureRounds({
+        from: r.swissRoundStandings.fixtureRoundId,
+        to: r.fixtureRounds.id,
+      }),
+      team: r.one.teams({
+        from: r.swissRoundStandings.teamId,
+        to: r.teams.id,
       }),
     },
   })

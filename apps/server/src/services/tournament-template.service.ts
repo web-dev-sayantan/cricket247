@@ -33,6 +33,15 @@ export interface SeedTournamentTemplateResult {
   tournamentId: number;
 }
 
+type TournamentTemplateDbClient = Pick<
+  typeof db,
+  "delete" | "insert" | "query" | "select" | "update"
+>;
+
+interface SeedTournamentTemplateOptions {
+  dbClient?: TournamentTemplateDbClient;
+}
+
 type SeedTournamentTemplateErrorCode =
   | "TOURNAMENT_NOT_FOUND"
   | "NO_TOURNAMENT_TEAMS"
@@ -85,8 +94,11 @@ function buildGroupAdvancementSlots(params: {
   return slots;
 }
 
-async function resetTournamentStructure(tournamentId: number) {
-  const stageRows = await db
+async function resetTournamentStructure(
+  dbClient: TournamentTemplateDbClient,
+  tournamentId: number
+) {
+  const stageRows = await dbClient
     .select({ id: tournamentStages.id })
     .from(tournamentStages)
     .where(eq(tournamentStages.tournamentId, tournamentId));
@@ -97,14 +109,14 @@ async function resetTournamentStructure(tournamentId: number) {
 
   const stageIds = stageRows.map((stage) => stage.id);
 
-  const groupRows = await db
+  const groupRows = await dbClient
     .select({ id: tournamentStageGroups.id })
     .from(tournamentStageGroups)
     .where(inArray(tournamentStageGroups.stageId, stageIds));
 
   const groupIds = groupRows.map((group) => group.id);
 
-  await db
+  await dbClient
     .update(matches)
     .set({
       stageId: null,
@@ -115,42 +127,44 @@ async function resetTournamentStructure(tournamentId: number) {
     .where(eq(matches.tournamentId, tournamentId));
 
   if (groupIds.length > 0) {
-    await db
+    await dbClient
       .delete(matchParticipantSources)
       .where(inArray(matchParticipantSources.sourceStageGroupId, groupIds));
   }
 
-  await db
+  await dbClient
     .delete(matchParticipantSources)
     .where(inArray(matchParticipantSources.sourceStageId, stageIds));
 
-  await db
+  await dbClient
     .delete(tournamentStageAdvancements)
     .where(inArray(tournamentStageAdvancements.fromStageId, stageIds));
 
-  await db
+  await dbClient
     .delete(tournamentStageAdvancements)
     .where(inArray(tournamentStageAdvancements.toStageId, stageIds));
 
-  await db
+  await dbClient
     .delete(tournamentStageTeamEntries)
     .where(eq(tournamentStageTeamEntries.tournamentId, tournamentId));
 
   if (groupIds.length > 0) {
-    await db
+    await dbClient
       .delete(tournamentStageGroups)
       .where(inArray(tournamentStageGroups.id, groupIds));
   }
 
-  await db
+  await dbClient
     .delete(tournamentStages)
     .where(eq(tournamentStages.tournamentId, tournamentId));
 }
 
 export async function seedTournamentTemplate(
-  input: SeedTournamentTemplateInput
+  input: SeedTournamentTemplateInput,
+  options?: SeedTournamentTemplateOptions
 ): Promise<SeedTournamentTemplateResult> {
-  const tournament = await db.query.tournaments.findFirst({
+  const dbClient = options?.dbClient ?? db;
+  const tournament = await dbClient.query.tournaments.findFirst({
     where: {
       id: input.tournamentId,
     },
@@ -160,7 +174,7 @@ export async function seedTournamentTemplate(
     throw new SeedTournamentTemplateError("TOURNAMENT_NOT_FOUND");
   }
 
-  const tournamentTeamRows = await db
+  const tournamentTeamRows = await dbClient
     .select({ teamId: tournamentTeams.teamId })
     .from(tournamentTeams)
     .where(eq(tournamentTeams.tournamentId, input.tournamentId));
@@ -202,7 +216,7 @@ export async function seedTournamentTemplate(
   }
 
   if (input.resetExisting ?? true) {
-    await resetTournamentStructure(input.tournamentId);
+    await resetTournamentStructure(dbClient, input.tournamentId);
   }
 
   let stageCount = 0;
@@ -210,7 +224,7 @@ export async function seedTournamentTemplate(
   let advancementRuleCount = 0;
 
   if (input.template === "straight_league") {
-    const [leagueStage] = await db
+    const [leagueStage] = await dbClient
       .insert(tournamentStages)
       .values({
         tournamentId: input.tournamentId,
@@ -225,7 +239,7 @@ export async function seedTournamentTemplate(
       })
       .returning();
 
-    await db.insert(tournamentStageTeamEntries).values(
+    await dbClient.insert(tournamentStageTeamEntries).values(
       selectedTeamIds.map((teamId, index) => ({
         tournamentId: input.tournamentId,
         stageId: leagueStage.id,
@@ -240,7 +254,7 @@ export async function seedTournamentTemplate(
   }
 
   if (input.template === "straight_knockout") {
-    const [knockoutStage] = await db
+    const [knockoutStage] = await dbClient
       .insert(tournamentStages)
       .values({
         tournamentId: input.tournamentId,
@@ -255,7 +269,7 @@ export async function seedTournamentTemplate(
       })
       .returning();
 
-    await db.insert(tournamentStageTeamEntries).values(
+    await dbClient.insert(tournamentStageTeamEntries).values(
       selectedTeamIds.map((teamId, index) => ({
         tournamentId: input.tournamentId,
         stageId: knockoutStage.id,
@@ -270,7 +284,7 @@ export async function seedTournamentTemplate(
   }
 
   if (input.template === "grouped_league_with_playoffs") {
-    const [groupStage] = await db
+    const [groupStage] = await dbClient
       .insert(tournamentStages)
       .values({
         tournamentId: input.tournamentId,
@@ -285,7 +299,7 @@ export async function seedTournamentTemplate(
       })
       .returning();
 
-    const groups = await db
+    const groups = await dbClient
       .insert(tournamentStageGroups)
       .values(
         Array.from({ length: groupCount }, (_, index) => ({
@@ -298,7 +312,7 @@ export async function seedTournamentTemplate(
       )
       .returning();
 
-    await db.insert(tournamentStageTeamEntries).values(
+    await dbClient.insert(tournamentStageTeamEntries).values(
       selectedTeamIds.map((teamId, index) => {
         const group = groups[index % groups.length];
         return {
@@ -312,7 +326,7 @@ export async function seedTournamentTemplate(
       })
     );
 
-    const [playoffStage] = await db
+    const [playoffStage] = await dbClient
       .insert(tournamentStages)
       .values({
         tournamentId: input.tournamentId,
@@ -333,7 +347,7 @@ export async function seedTournamentTemplate(
       groupCount,
     });
 
-    await db.insert(tournamentStageAdvancements).values(
+    await dbClient.insert(tournamentStageAdvancements).values(
       advancementSlots.map((rule) => ({
         fromStageId: groupStage.id,
         fromStageGroupId: groups[rule.groupIndex]?.id ?? null,

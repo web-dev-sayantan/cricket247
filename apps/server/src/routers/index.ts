@@ -6,6 +6,8 @@ import { players, tournamentTeams, user } from "@/db/schema";
 import { getBallsOfSameOver } from "@/services/ball.service";
 import {
   CrudServiceError,
+  matchFormatCrudService,
+  organizationCrudService,
   playerCrudService,
   teamCrudService,
   tournamentCrudService,
@@ -15,6 +17,13 @@ import {
   tournamentStageTeamEntryCrudService,
   tournamentTeamCrudService,
 } from "@/services/crud.service";
+import {
+  createFixtureDraft,
+  createFixtureRound,
+  FixtureWorkflowError,
+  publishFixtureVersion,
+  validateFixtureConflicts,
+} from "@/services/fixture.service";
 import {
   createMatchAction,
   getCompletedMatches,
@@ -55,6 +64,10 @@ import {
   getTournamentStructure,
 } from "@/services/tournament.service";
 import {
+  createTournamentFromScratch,
+  TournamentCreateServiceError,
+} from "@/services/tournament-create.service";
+import {
   SeedTournamentTemplateError,
   seedTournamentTemplate,
 } from "@/services/tournament-template.service";
@@ -67,6 +80,8 @@ import {
   bulkImportPlayersBodySchema,
   claimPlayerOtpRequestSchema,
   claimPlayerVerifySchema,
+  createMatchFormatBodySchema,
+  createOrganizationBodySchema,
   createOwnPlayerBodySchema,
   createPlayerBodySchema,
   createTeamBodySchema,
@@ -84,6 +99,7 @@ import {
   updateTournamentStageTeamEntryBodySchema,
   updateTournamentTeamBodySchema,
 } from "../schemas/crud.schemas";
+import { createTournamentFromScratchInputSchema } from "../schemas/tournament-create.schemas";
 import { calculateAgeFromDob } from "../utils";
 
 // Match creation schema matching the frontend MatchFormSchema
@@ -172,6 +188,49 @@ const SeedTournamentTemplateInputSchema = z.object({
   resetExisting: z.boolean().optional(),
   groupCount: z.number().int().min(2).max(8).optional(),
   advancingPerGroup: z.number().int().min(1).max(8).optional(),
+});
+
+const FixtureMetadataSchema = z
+  .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
+  .optional();
+
+const CreateFixtureDraftInputSchema = z.object({
+  tournamentId: z.number().int().positive(),
+  stageId: z.number().int().positive().optional(),
+  label: z.string().trim().max(120).optional(),
+  includeCurrentMatches: z.boolean().optional(),
+  metadata: FixtureMetadataSchema,
+});
+
+const CreateFixtureRoundInputSchema = z.object({
+  tournamentId: z.number().int().positive(),
+  stageId: z.number().int().positive(),
+  stageGroupId: z.number().int().positive().optional(),
+  fixtureVersionId: z.number().int().positive().optional(),
+  roundNumber: z.number().int().positive(),
+  roundName: z.string().trim().max(120).optional(),
+  pairingMethod: z.string().trim().min(1).max(50).optional(),
+  scheduledStartAt: z.coerce.date().optional(),
+  scheduledEndAt: z.coerce.date().optional(),
+  lockAt: z.coerce.date().optional(),
+  publishedAt: z.coerce.date().optional(),
+  metadata: FixtureMetadataSchema,
+});
+
+const PublishFixtureVersionInputSchema = z.object({
+  tournamentId: z.number().int().positive(),
+  fixtureVersionId: z.number().int().positive(),
+  note: z.string().trim().max(500).optional(),
+});
+
+const ValidateFixtureConflictsInputSchema = z.object({
+  tournamentId: z.number().int().positive(),
+  stageId: z.number().int().positive().optional(),
+  teamIds: z.array(z.number().int().positive()).min(1).max(2),
+  venueId: z.number().int().positive().optional(),
+  scheduledStartAt: z.coerce.date(),
+  scheduledEndAt: z.coerce.date().optional(),
+  excludeMatchId: z.number().int().positive().optional(),
 });
 
 const UpdateTournamentStageInputSchema = z
@@ -279,12 +338,55 @@ function getPlayerDuplicateKey(params: { name: string; dob: Date }) {
 function mapTournamentCrudServiceError(error: unknown) {
   if (
     error instanceof CrudServiceError &&
-    error.code === "TOURNAMENT_ORGANIZATION_REQUIRED"
+    (error.code === "TOURNAMENT_ORGANIZATION_REQUIRED" ||
+      error.code === "SYSTEM_ORGANIZATION_NOT_FOUND")
   ) {
     return new ORPCError("BAD_REQUEST");
   }
 
   return new ORPCError("INTERNAL_SERVER_ERROR");
+}
+
+function mapTournamentCreateServiceError(error: unknown) {
+  if (!(error instanceof TournamentCreateServiceError)) {
+    return new ORPCError("INTERNAL_SERVER_ERROR");
+  }
+
+  switch (error.code) {
+    case "DATE_RANGE_INVALID":
+    case "DUPLICATE_TEAM_IDS":
+    case "MATCH_FORMAT_NOT_FOUND":
+    case "ORGANIZATION_NOT_FOUND":
+    case "ORGANIZATION_SYSTEM_FLAG_IMMUTABLE":
+    case "GROUP_EDIT_TARGET_NOT_FOUND":
+    case "INVALID_TEMPLATE_CONFIGURATION":
+    case "STAGE_EDIT_TARGET_NOT_FOUND":
+    case "TEAM_COUNT_TOO_LOW":
+      return new ORPCError("BAD_REQUEST");
+    default:
+      return new ORPCError("INTERNAL_SERVER_ERROR");
+  }
+}
+
+function mapFixtureWorkflowError(error: unknown) {
+  if (!(error instanceof FixtureWorkflowError)) {
+    return new ORPCError("INTERNAL_SERVER_ERROR");
+  }
+
+  switch (error.code) {
+    case "TOURNAMENT_NOT_FOUND":
+    case "STAGE_NOT_FOUND":
+    case "FIXTURE_VERSION_NOT_FOUND":
+      return new ORPCError("NOT_FOUND");
+    case "INVALID_SCHEDULE_WINDOW":
+    case "FIXTURE_VERSION_NOT_DRAFT":
+    case "FIXTURE_VERSION_EMPTY":
+    case "FIXTURE_VERSION_TOURNAMENT_MISMATCH":
+    case "ROUND_ALREADY_EXISTS":
+      return new ORPCError("BAD_REQUEST");
+    default:
+      return new ORPCError("INTERNAL_SERVER_ERROR");
+  }
 }
 
 export const appRouter = {
@@ -297,6 +399,8 @@ export const appRouter = {
   currentUserRole: protectedProcedure.handler(async ({ context }) =>
     getUserRoleByEmail(context.session.user.email)
   ),
+  organizations: publicProcedure.handler(() => organizationCrudService.list()),
+  matchFormats: publicProcedure.handler(() => matchFormatCrudService.list()),
   liveTournaments: publicProcedure.handler(() => getLiveTournaments()),
   tournaments: publicProcedure.handler(() => getAllTournaments()),
   managementTournaments: publicProcedure.handler(() =>
@@ -326,6 +430,17 @@ export const appRouter = {
         return tournament;
       } catch (error) {
         throw mapTournamentCrudServiceError(error);
+      }
+    }),
+  createTournamentFromScratch: sensitiveProcedure
+    .input(createTournamentFromScratchInputSchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      try {
+        return await createTournamentFromScratch(input);
+      } catch (error) {
+        throw mapTournamentCreateServiceError(error);
       }
     }),
   updateTournament: sensitiveProcedure
@@ -370,6 +485,44 @@ export const appRouter = {
 
         throw mapTournamentCrudServiceError(error);
       }
+    }),
+  createOrganization: sensitiveProcedure
+    .input(createOrganizationBodySchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      try {
+        const organization = await organizationCrudService.create(input);
+        if (!organization) {
+          throw new ORPCError("INTERNAL_SERVER_ERROR");
+        }
+
+        return organization;
+      } catch (error) {
+        if (
+          error instanceof CrudServiceError &&
+          (error.code === "ORGANIZATION_SYSTEM_FLAG_IMMUTABLE" ||
+            error.code === "ORGANIZATION_SYSTEM_IDENTITY_IMMUTABLE" ||
+            error.code === "ORGANIZATION_DEACTIVATE_SYSTEM_FORBIDDEN" ||
+            error.code === "ORGANIZATION_DELETE_SYSTEM_FORBIDDEN")
+        ) {
+          throw new ORPCError("BAD_REQUEST");
+        }
+
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
+      }
+    }),
+  createMatchFormat: sensitiveProcedure
+    .input(createMatchFormatBodySchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      const format = await matchFormatCrudService.create(input);
+      if (!format) {
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
+      }
+
+      return format;
     }),
   tournamentTeams: publicProcedure.handler(() =>
     tournamentTeamCrudService.list()
@@ -578,6 +731,50 @@ export const appRouter = {
         }
 
         throw new ORPCError("INTERNAL_SERVER_ERROR");
+      }
+    }),
+  createFixtureDraft: sensitiveProcedure
+    .input(CreateFixtureDraftInputSchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      try {
+        return await createFixtureDraft(input);
+      } catch (error) {
+        throw mapFixtureWorkflowError(error);
+      }
+    }),
+  createFixtureRound: sensitiveProcedure
+    .input(CreateFixtureRoundInputSchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      try {
+        return await createFixtureRound(input);
+      } catch (error) {
+        throw mapFixtureWorkflowError(error);
+      }
+    }),
+  publishFixtureVersion: sensitiveProcedure
+    .input(PublishFixtureVersionInputSchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      try {
+        return await publishFixtureVersion(input);
+      } catch (error) {
+        throw mapFixtureWorkflowError(error);
+      }
+    }),
+  validateFixtureConflicts: sensitiveProcedure
+    .input(ValidateFixtureConflictsInputSchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      try {
+        return await validateFixtureConflicts(input);
+      } catch (error) {
+        throw mapFixtureWorkflowError(error);
       }
     }),
   completedMatches: publicProcedure.handler(() => getCompletedMatches()),

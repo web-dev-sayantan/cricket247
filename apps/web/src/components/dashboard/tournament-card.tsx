@@ -2,8 +2,10 @@ import { CalendarIcon, TrophyIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatMonthDay, isDateWithinInclusiveRange } from "@/lib/date";
+import { cn } from "@/lib/utils";
 
 interface TournamentCardProps {
+  className?: string;
   endDate: Date;
   format: string;
   id: number;
@@ -12,6 +14,7 @@ interface TournamentCardProps {
 }
 
 export function TournamentCard({
+  className,
   id: _id,
   name,
   startDate,
@@ -21,7 +24,7 @@ export function TournamentCard({
   const isLive = isDateWithinInclusiveRange(new Date(), startDate, endDate);
 
   return (
-    <Card className="group relative w-[85vw] max-w-75 shrink-0 snap-center overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-primary/20 hover:shadow-xl md:max-w-[320px]">
+    <Card className={cn("group relative w-[85vw] max-w-75 shrink-0 snap-center overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-primary/20 hover:shadow-xl md:max-w-[320px]", className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 px-5 pt-5 pb-2">
         <CardTitle className="font-semibold text-muted-foreground text-xs uppercase tracking-wider">
           {format}

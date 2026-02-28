@@ -1,8 +1,10 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "361ee0e4-1343-475e-9e3e-52fe503bb213",
-  "prevIds": ["00000000-0000-0000-0000-000000000000"],
+  "id": "35cb8fac-74fb-45d0-afc2-12dc6f902f66",
+  "prevIds": [
+    "00000000-0000-0000-0000-000000000000"
+  ],
   "ddl": [
     {
       "name": "account",
@@ -10,6 +12,26 @@
     },
     {
       "name": "deliveries",
+      "entityType": "tables"
+    },
+    {
+      "name": "fixture_change_log",
+      "entityType": "tables"
+    },
+    {
+      "name": "fixture_constraints",
+      "entityType": "tables"
+    },
+    {
+      "name": "fixture_rounds",
+      "entityType": "tables"
+    },
+    {
+      "name": "fixture_version_matches",
+      "entityType": "tables"
+    },
+    {
+      "name": "fixture_versions",
       "entityType": "tables"
     },
     {
@@ -30,6 +52,10 @@
     },
     {
       "name": "matches",
+      "entityType": "tables"
+    },
+    {
+      "name": "organization_venues",
       "entityType": "tables"
     },
     {
@@ -62,6 +88,10 @@
     },
     {
       "name": "session",
+      "entityType": "tables"
+    },
+    {
+      "name": "swiss_round_standings",
       "entityType": "tables"
     },
     {
@@ -98,6 +128,10 @@
     },
     {
       "name": "tournament_teams",
+      "entityType": "tables"
+    },
+    {
+      "name": "tournament_venues",
       "entityType": "tables"
     },
     {
@@ -484,6 +518,576 @@
       "generated": null,
       "name": "id",
       "entityType": "columns",
+      "table": "fixture_change_log"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "tournament_id",
+      "entityType": "columns",
+      "table": "fixture_change_log"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stage_id",
+      "entityType": "columns",
+      "table": "fixture_change_log"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "fixture_version_id",
+      "entityType": "columns",
+      "table": "fixture_change_log"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "fixture_round_id",
+      "entityType": "columns",
+      "table": "fixture_change_log"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "match_id",
+      "entityType": "columns",
+      "table": "fixture_change_log"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'updated'",
+      "generated": null,
+      "name": "action",
+      "entityType": "columns",
+      "table": "fixture_change_log"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "reason",
+      "entityType": "columns",
+      "table": "fixture_change_log"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "payload",
+      "entityType": "columns",
+      "table": "fixture_change_log"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "fixture_change_log"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "fixture_change_log"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "fixture_constraints"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "tournament_id",
+      "entityType": "columns",
+      "table": "fixture_constraints"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stage_id",
+      "entityType": "columns",
+      "table": "fixture_constraints"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "team_id",
+      "entityType": "columns",
+      "table": "fixture_constraints"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "venue_id",
+      "entityType": "columns",
+      "table": "fixture_constraints"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "constraint_type",
+      "entityType": "columns",
+      "table": "fixture_constraints"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "rule",
+      "entityType": "columns",
+      "table": "fixture_constraints"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "name": "priority",
+      "entityType": "columns",
+      "table": "fixture_constraints"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "true",
+      "generated": null,
+      "name": "is_active",
+      "entityType": "columns",
+      "table": "fixture_constraints"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "fixture_constraints"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "fixture_constraints"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "fixture_rounds"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "tournament_id",
+      "entityType": "columns",
+      "table": "fixture_rounds"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stage_id",
+      "entityType": "columns",
+      "table": "fixture_rounds"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stage_group_id",
+      "entityType": "columns",
+      "table": "fixture_rounds"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "fixture_version_id",
+      "entityType": "columns",
+      "table": "fixture_rounds"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "round_number",
+      "entityType": "columns",
+      "table": "fixture_rounds"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "round_name",
+      "entityType": "columns",
+      "table": "fixture_rounds"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'manual'",
+      "generated": null,
+      "name": "pairing_method",
+      "entityType": "columns",
+      "table": "fixture_rounds"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'draft'",
+      "generated": null,
+      "name": "status",
+      "entityType": "columns",
+      "table": "fixture_rounds"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "scheduled_start_at",
+      "entityType": "columns",
+      "table": "fixture_rounds"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "scheduled_end_at",
+      "entityType": "columns",
+      "table": "fixture_rounds"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "lock_at",
+      "entityType": "columns",
+      "table": "fixture_rounds"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "published_at",
+      "entityType": "columns",
+      "table": "fixture_rounds"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "metadata",
+      "entityType": "columns",
+      "table": "fixture_rounds"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "fixture_rounds"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "fixture_rounds"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "fixture_version_matches"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "fixture_version_id",
+      "entityType": "columns",
+      "table": "fixture_version_matches"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "match_id",
+      "entityType": "columns",
+      "table": "fixture_version_matches"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "name": "sequence",
+      "entityType": "columns",
+      "table": "fixture_version_matches"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'{}'",
+      "generated": null,
+      "name": "snapshot",
+      "entityType": "columns",
+      "table": "fixture_version_matches"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "fixture_version_matches"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "fixture_version_matches"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "fixture_versions"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "tournament_id",
+      "entityType": "columns",
+      "table": "fixture_versions"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stage_id",
+      "entityType": "columns",
+      "table": "fixture_versions"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "name": "version_number",
+      "entityType": "columns",
+      "table": "fixture_versions"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'draft'",
+      "generated": null,
+      "name": "status",
+      "entityType": "columns",
+      "table": "fixture_versions"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "label",
+      "entityType": "columns",
+      "table": "fixture_versions"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "published_at",
+      "entityType": "columns",
+      "table": "fixture_versions"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "archived_at",
+      "entityType": "columns",
+      "table": "fixture_versions"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "checksum",
+      "entityType": "columns",
+      "table": "fixture_versions"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "metadata",
+      "entityType": "columns",
+      "table": "fixture_versions"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "fixture_versions"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "fixture_versions"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
       "table": "innings"
     },
     {
@@ -773,6 +1377,26 @@
       "default": "false",
       "generated": null,
       "name": "is_super_over_allowed",
+      "entityType": "columns",
+      "table": "match_formats"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "minutes_per_innings",
+      "entityType": "columns",
+      "table": "match_formats"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "innings_break_minutes",
       "entityType": "columns",
       "table": "match_formats"
     },
@@ -1302,6 +1926,16 @@
       "autoincrement": false,
       "default": null,
       "generated": null,
+      "name": "fixture_round_id",
+      "entityType": "columns",
+      "table": "matches"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
       "name": "stage_round",
       "entityType": "columns",
       "table": "matches"
@@ -1323,6 +1957,86 @@
       "default": "1",
       "generated": null,
       "name": "knockout_leg",
+      "entityType": "columns",
+      "table": "matches"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'draft'",
+      "generated": null,
+      "name": "fixture_status",
+      "entityType": "columns",
+      "table": "matches"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "scheduled_start_at",
+      "entityType": "columns",
+      "table": "matches"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "scheduled_end_at",
+      "entityType": "columns",
+      "table": "matches"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'UTC'",
+      "generated": null,
+      "name": "time_zone",
+      "entityType": "columns",
+      "table": "matches"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "published_at",
+      "entityType": "columns",
+      "table": "matches"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "name": "fixture_version",
+      "entityType": "columns",
+      "table": "matches"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "previous_schedule_match_id",
+      "entityType": "columns",
+      "table": "matches"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "reschedule_reason",
       "entityType": "columns",
       "table": "matches"
     },
@@ -1455,6 +2169,56 @@
       "name": "updated_at",
       "entityType": "columns",
       "table": "matches"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "organization_venues"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "organization_id",
+      "entityType": "columns",
+      "table": "organization_venues"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "venue_id",
+      "entityType": "columns",
+      "table": "organization_venues"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "organization_venues"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "organization_venues"
     },
     {
       "type": "integer",
@@ -2794,6 +3558,186 @@
       "generated": null,
       "name": "id",
       "entityType": "columns",
+      "table": "swiss_round_standings"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "tournament_id",
+      "entityType": "columns",
+      "table": "swiss_round_standings"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stage_id",
+      "entityType": "columns",
+      "table": "swiss_round_standings"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "fixture_round_id",
+      "entityType": "columns",
+      "table": "swiss_round_standings"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "team_id",
+      "entityType": "columns",
+      "table": "swiss_round_standings"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "position",
+      "entityType": "columns",
+      "table": "swiss_round_standings"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "name": "points",
+      "entityType": "columns",
+      "table": "swiss_round_standings"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "name": "wins",
+      "entityType": "columns",
+      "table": "swiss_round_standings"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "name": "losses",
+      "entityType": "columns",
+      "table": "swiss_round_standings"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "name": "ties",
+      "entityType": "columns",
+      "table": "swiss_round_standings"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "name": "byes",
+      "entityType": "columns",
+      "table": "swiss_round_standings"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "name": "tie_break1",
+      "entityType": "columns",
+      "table": "swiss_round_standings"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "name": "tie_break2",
+      "entityType": "columns",
+      "table": "swiss_round_standings"
+    },
+    {
+      "type": "real",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "name": "tie_break3",
+      "entityType": "columns",
+      "table": "swiss_round_standings"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'[]'",
+      "generated": null,
+      "name": "opponent_team_ids",
+      "entityType": "columns",
+      "table": "swiss_round_standings"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "metadata",
+      "entityType": "columns",
+      "table": "swiss_round_standings"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "swiss_round_standings"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "swiss_round_standings"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
       "table": "team_career_stats"
     },
     {
@@ -3697,6 +4641,16 @@
       "table": "tournament_stages"
     },
     {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'draft'",
+      "generated": null,
+      "name": "fixture_status",
+      "entityType": "columns",
+      "table": "tournament_stages"
+    },
+    {
       "type": "integer",
       "notNull": false,
       "autoincrement": false,
@@ -3713,6 +4667,56 @@
       "default": "0",
       "generated": null,
       "name": "qualification_slots",
+      "entityType": "columns",
+      "table": "tournament_stages"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "scheduled_start_at",
+      "entityType": "columns",
+      "table": "tournament_stages"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "scheduled_end_at",
+      "entityType": "columns",
+      "table": "tournament_stages"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "lock_at",
+      "entityType": "columns",
+      "table": "tournament_stages"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "published_at",
+      "entityType": "columns",
+      "table": "tournament_stages"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "name": "fixture_version",
       "entityType": "columns",
       "table": "tournament_stages"
     },
@@ -3874,6 +4878,56 @@
       "generated": null,
       "name": "id",
       "entityType": "columns",
+      "table": "tournament_venues"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "tournament_id",
+      "entityType": "columns",
+      "table": "tournament_venues"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "venue_id",
+      "entityType": "columns",
+      "table": "tournament_venues"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "tournament_venues"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "tournament_venues"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
       "table": "tournaments"
     },
     {
@@ -3983,6 +5037,26 @@
       "default": null,
       "generated": null,
       "name": "champion_team_id",
+      "entityType": "columns",
+      "table": "tournaments"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "fixture_published_at",
+      "entityType": "columns",
+      "table": "tournaments"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "active_fixture_version",
       "entityType": "columns",
       "table": "tournaments"
     },
@@ -4250,6 +5324,36 @@
       "type": "integer",
       "notNull": true,
       "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "name": "lights",
+      "entityType": "columns",
+      "table": "venues"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "480",
+      "generated": null,
+      "name": "opening_time",
+      "entityType": "columns",
+      "table": "venues"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1080",
+      "generated": null,
+      "name": "closing_time",
+      "entityType": "columns",
+      "table": "venues"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
       "default": "(unixepoch() * 1000)",
       "generated": null,
       "name": "created_at",
@@ -4327,9 +5431,13 @@
       "table": "verification"
     },
     {
-      "columns": ["user_id"],
+      "columns": [
+        "user_id"
+      ],
       "tableTo": "user",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4338,9 +5446,13 @@
       "table": "account"
     },
     {
-      "columns": ["innings_id"],
+      "columns": [
+        "innings_id"
+      ],
       "tableTo": "innings",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4349,9 +5461,13 @@
       "table": "deliveries"
     },
     {
-      "columns": ["striker_id"],
+      "columns": [
+        "striker_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4360,9 +5476,13 @@
       "table": "deliveries"
     },
     {
-      "columns": ["non_striker_id"],
+      "columns": [
+        "non_striker_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4371,9 +5491,13 @@
       "table": "deliveries"
     },
     {
-      "columns": ["bowler_id"],
+      "columns": [
+        "bowler_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4382,9 +5506,13 @@
       "table": "deliveries"
     },
     {
-      "columns": ["dismissed_player_id"],
+      "columns": [
+        "dismissed_player_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4393,9 +5521,13 @@
       "table": "deliveries"
     },
     {
-      "columns": ["dismissed_by_id"],
+      "columns": [
+        "dismissed_by_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4404,9 +5536,13 @@
       "table": "deliveries"
     },
     {
-      "columns": ["assisted_by_id"],
+      "columns": [
+        "assisted_by_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4415,9 +5551,268 @@
       "table": "deliveries"
     },
     {
-      "columns": ["match_id"],
+      "columns": [
+        "tournament_id"
+      ],
+      "tableTo": "tournaments",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_fixture_change_log_tournament_id_tournaments_id_fk",
+      "entityType": "fks",
+      "table": "fixture_change_log"
+    },
+    {
+      "columns": [
+        "stage_id"
+      ],
+      "tableTo": "tournament_stages",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_fixture_change_log_stage_id_tournament_stages_id_fk",
+      "entityType": "fks",
+      "table": "fixture_change_log"
+    },
+    {
+      "columns": [
+        "fixture_version_id"
+      ],
+      "tableTo": "fixture_versions",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_fixture_change_log_fixture_version_id_fixture_versions_id_fk",
+      "entityType": "fks",
+      "table": "fixture_change_log"
+    },
+    {
+      "columns": [
+        "fixture_round_id"
+      ],
+      "tableTo": "fixture_rounds",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_fixture_change_log_fixture_round_id_fixture_rounds_id_fk",
+      "entityType": "fks",
+      "table": "fixture_change_log"
+    },
+    {
+      "columns": [
+        "match_id"
+      ],
       "tableTo": "matches",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_fixture_change_log_match_id_matches_id_fk",
+      "entityType": "fks",
+      "table": "fixture_change_log"
+    },
+    {
+      "columns": [
+        "tournament_id"
+      ],
+      "tableTo": "tournaments",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_fixture_constraints_tournament_id_tournaments_id_fk",
+      "entityType": "fks",
+      "table": "fixture_constraints"
+    },
+    {
+      "columns": [
+        "stage_id"
+      ],
+      "tableTo": "tournament_stages",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_fixture_constraints_stage_id_tournament_stages_id_fk",
+      "entityType": "fks",
+      "table": "fixture_constraints"
+    },
+    {
+      "columns": [
+        "team_id"
+      ],
+      "tableTo": "teams",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_fixture_constraints_team_id_teams_id_fk",
+      "entityType": "fks",
+      "table": "fixture_constraints"
+    },
+    {
+      "columns": [
+        "venue_id"
+      ],
+      "tableTo": "venues",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_fixture_constraints_venue_id_venues_id_fk",
+      "entityType": "fks",
+      "table": "fixture_constraints"
+    },
+    {
+      "columns": [
+        "tournament_id"
+      ],
+      "tableTo": "tournaments",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_fixture_rounds_tournament_id_tournaments_id_fk",
+      "entityType": "fks",
+      "table": "fixture_rounds"
+    },
+    {
+      "columns": [
+        "stage_id"
+      ],
+      "tableTo": "tournament_stages",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_fixture_rounds_stage_id_tournament_stages_id_fk",
+      "entityType": "fks",
+      "table": "fixture_rounds"
+    },
+    {
+      "columns": [
+        "stage_group_id"
+      ],
+      "tableTo": "tournament_stage_groups",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_fixture_rounds_stage_group_id_tournament_stage_groups_id_fk",
+      "entityType": "fks",
+      "table": "fixture_rounds"
+    },
+    {
+      "columns": [
+        "fixture_version_id"
+      ],
+      "tableTo": "fixture_versions",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_fixture_rounds_fixture_version_id_fixture_versions_id_fk",
+      "entityType": "fks",
+      "table": "fixture_rounds"
+    },
+    {
+      "columns": [
+        "fixture_version_id"
+      ],
+      "tableTo": "fixture_versions",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_fixture_version_matches_fixture_version_id_fixture_versions_id_fk",
+      "entityType": "fks",
+      "table": "fixture_version_matches"
+    },
+    {
+      "columns": [
+        "match_id"
+      ],
+      "tableTo": "matches",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_fixture_version_matches_match_id_matches_id_fk",
+      "entityType": "fks",
+      "table": "fixture_version_matches"
+    },
+    {
+      "columns": [
+        "tournament_id"
+      ],
+      "tableTo": "tournaments",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_fixture_versions_tournament_id_tournaments_id_fk",
+      "entityType": "fks",
+      "table": "fixture_versions"
+    },
+    {
+      "columns": [
+        "stage_id"
+      ],
+      "tableTo": "tournament_stages",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_fixture_versions_stage_id_tournament_stages_id_fk",
+      "entityType": "fks",
+      "table": "fixture_versions"
+    },
+    {
+      "columns": [
+        "match_id"
+      ],
+      "tableTo": "matches",
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4426,9 +5821,13 @@
       "table": "innings"
     },
     {
-      "columns": ["batting_team_id"],
+      "columns": [
+        "batting_team_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4437,9 +5836,13 @@
       "table": "innings"
     },
     {
-      "columns": ["bowling_team_id"],
+      "columns": [
+        "bowling_team_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4448,9 +5851,13 @@
       "table": "innings"
     },
     {
-      "columns": ["match_id"],
+      "columns": [
+        "match_id"
+      ],
       "tableTo": "matches",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4459,9 +5866,13 @@
       "table": "match_lineup"
     },
     {
-      "columns": ["team_id"],
+      "columns": [
+        "team_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4470,9 +5881,13 @@
       "table": "match_lineup"
     },
     {
-      "columns": ["player_id"],
+      "columns": [
+        "player_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4481,9 +5896,13 @@
       "table": "match_lineup"
     },
     {
-      "columns": ["match_id"],
+      "columns": [
+        "match_id"
+      ],
       "tableTo": "matches",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4492,9 +5911,13 @@
       "table": "match_participant_sources"
     },
     {
-      "columns": ["source_team_id"],
+      "columns": [
+        "source_team_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4503,9 +5926,13 @@
       "table": "match_participant_sources"
     },
     {
-      "columns": ["source_match_id"],
+      "columns": [
+        "source_match_id"
+      ],
       "tableTo": "matches",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4514,9 +5941,13 @@
       "table": "match_participant_sources"
     },
     {
-      "columns": ["source_stage_id"],
+      "columns": [
+        "source_stage_id"
+      ],
       "tableTo": "tournament_stages",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4525,9 +5956,13 @@
       "table": "match_participant_sources"
     },
     {
-      "columns": ["source_stage_group_id"],
+      "columns": [
+        "source_stage_group_id"
+      ],
       "tableTo": "tournament_stage_groups",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4536,9 +5971,13 @@
       "table": "match_participant_sources"
     },
     {
-      "columns": ["tournament_id"],
+      "columns": [
+        "tournament_id"
+      ],
       "tableTo": "tournaments",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4547,9 +5986,13 @@
       "table": "matches"
     },
     {
-      "columns": ["match_format_id"],
+      "columns": [
+        "match_format_id"
+      ],
       "tableTo": "match_formats",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4558,9 +6001,13 @@
       "table": "matches"
     },
     {
-      "columns": ["toss_winner_id"],
+      "columns": [
+        "toss_winner_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4569,9 +6016,13 @@
       "table": "matches"
     },
     {
-      "columns": ["team1_id"],
+      "columns": [
+        "team1_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4580,9 +6031,13 @@
       "table": "matches"
     },
     {
-      "columns": ["team2_id"],
+      "columns": [
+        "team2_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4591,9 +6046,13 @@
       "table": "matches"
     },
     {
-      "columns": ["winner_id"],
+      "columns": [
+        "winner_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4602,9 +6061,13 @@
       "table": "matches"
     },
     {
-      "columns": ["player_of_the_match_id"],
+      "columns": [
+        "player_of_the_match_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4613,9 +6076,13 @@
       "table": "matches"
     },
     {
-      "columns": ["stage_id"],
+      "columns": [
+        "stage_id"
+      ],
       "tableTo": "tournament_stages",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4624,9 +6091,13 @@
       "table": "matches"
     },
     {
-      "columns": ["stage_group_id"],
+      "columns": [
+        "stage_group_id"
+      ],
       "tableTo": "tournament_stage_groups",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4635,9 +6106,28 @@
       "table": "matches"
     },
     {
-      "columns": ["venue_id"],
+      "columns": [
+        "fixture_round_id"
+      ],
+      "tableTo": "fixture_rounds",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_matches_fixture_round_id_fixture_rounds_id_fk",
+      "entityType": "fks",
+      "table": "matches"
+    },
+    {
+      "columns": [
+        "venue_id"
+      ],
       "tableTo": "venues",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4646,9 +6136,58 @@
       "table": "matches"
     },
     {
-      "columns": ["parent_organization_id"],
+      "columns": [
+        "previous_schedule_match_id"
+      ],
+      "tableTo": "matches",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": true,
+      "name": "fk_matches_previous_schedule_match",
+      "entityType": "fks",
+      "table": "matches"
+    },
+    {
+      "columns": [
+        "organization_id"
+      ],
       "tableTo": "organizations",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_organization_venues_organization_id_organizations_id_fk",
+      "entityType": "fks",
+      "table": "organization_venues"
+    },
+    {
+      "columns": [
+        "venue_id"
+      ],
+      "tableTo": "venues",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_organization_venues_venue_id_venues_id_fk",
+      "entityType": "fks",
+      "table": "organization_venues"
+    },
+    {
+      "columns": [
+        "parent_organization_id"
+      ],
+      "tableTo": "organizations",
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": true,
@@ -4657,9 +6196,13 @@
       "table": "organizations"
     },
     {
-      "columns": ["user_id"],
+      "columns": [
+        "user_id"
+      ],
       "tableTo": "user",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4668,9 +6211,13 @@
       "table": "passkey"
     },
     {
-      "columns": ["player_id"],
+      "columns": [
+        "player_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4679,9 +6226,13 @@
       "table": "player_career_stats"
     },
     {
-      "columns": ["innings_id"],
+      "columns": [
+        "innings_id"
+      ],
       "tableTo": "innings",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4690,9 +6241,13 @@
       "table": "player_innings_stats"
     },
     {
-      "columns": ["match_id"],
+      "columns": [
+        "match_id"
+      ],
       "tableTo": "matches",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4701,9 +6256,13 @@
       "table": "player_innings_stats"
     },
     {
-      "columns": ["player_id"],
+      "columns": [
+        "player_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4712,9 +6271,13 @@
       "table": "player_innings_stats"
     },
     {
-      "columns": ["team_id"],
+      "columns": [
+        "team_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4723,9 +6286,13 @@
       "table": "player_innings_stats"
     },
     {
-      "columns": ["dismissed_by_id"],
+      "columns": [
+        "dismissed_by_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4734,9 +6301,13 @@
       "table": "player_innings_stats"
     },
     {
-      "columns": ["assisted_by_id"],
+      "columns": [
+        "assisted_by_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4745,9 +6316,13 @@
       "table": "player_innings_stats"
     },
     {
-      "columns": ["player_id"],
+      "columns": [
+        "player_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4756,9 +6331,13 @@
       "table": "player_tournament_stats"
     },
     {
-      "columns": ["tournament_id"],
+      "columns": [
+        "tournament_id"
+      ],
       "tableTo": "tournaments",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4767,9 +6346,13 @@
       "table": "player_tournament_stats"
     },
     {
-      "columns": ["team_id"],
+      "columns": [
+        "team_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4778,9 +6361,13 @@
       "table": "player_tournament_stats"
     },
     {
-      "columns": ["player_id"],
+      "columns": [
+        "player_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4789,9 +6376,13 @@
       "table": "player_verification"
     },
     {
-      "columns": ["user_id"],
+      "columns": [
+        "user_id"
+      ],
       "tableTo": "user",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4800,9 +6391,13 @@
       "table": "players"
     },
     {
-      "columns": ["user_id"],
+      "columns": [
+        "user_id"
+      ],
       "tableTo": "user",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4811,9 +6406,73 @@
       "table": "session"
     },
     {
-      "columns": ["team_id"],
+      "columns": [
+        "tournament_id"
+      ],
+      "tableTo": "tournaments",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_swiss_round_standings_tournament_id_tournaments_id_fk",
+      "entityType": "fks",
+      "table": "swiss_round_standings"
+    },
+    {
+      "columns": [
+        "stage_id"
+      ],
+      "tableTo": "tournament_stages",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_swiss_round_standings_stage_id_tournament_stages_id_fk",
+      "entityType": "fks",
+      "table": "swiss_round_standings"
+    },
+    {
+      "columns": [
+        "fixture_round_id"
+      ],
+      "tableTo": "fixture_rounds",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_swiss_round_standings_fixture_round_id_fixture_rounds_id_fk",
+      "entityType": "fks",
+      "table": "swiss_round_standings"
+    },
+    {
+      "columns": [
+        "team_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_swiss_round_standings_team_id_teams_id_fk",
+      "entityType": "fks",
+      "table": "swiss_round_standings"
+    },
+    {
+      "columns": [
+        "team_id"
+      ],
+      "tableTo": "teams",
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4822,9 +6481,13 @@
       "table": "team_career_stats"
     },
     {
-      "columns": ["tournament_id"],
+      "columns": [
+        "tournament_id"
+      ],
       "tableTo": "tournaments",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4833,9 +6496,13 @@
       "table": "team_players"
     },
     {
-      "columns": ["team_id"],
+      "columns": [
+        "team_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4844,9 +6511,13 @@
       "table": "team_players"
     },
     {
-      "columns": ["player_id"],
+      "columns": [
+        "player_id"
+      ],
       "tableTo": "players",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4855,9 +6526,15 @@
       "table": "team_players"
     },
     {
-      "columns": ["tournament_id", "team_id"],
+      "columns": [
+        "tournament_id",
+        "team_id"
+      ],
       "tableTo": "tournament_teams",
-      "columnsTo": ["tournament_id", "team_id"],
+      "columnsTo": [
+        "tournament_id",
+        "team_id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": true,
@@ -4866,9 +6543,13 @@
       "table": "team_players"
     },
     {
-      "columns": ["tournament_id"],
+      "columns": [
+        "tournament_id"
+      ],
       "tableTo": "tournaments",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4877,9 +6558,13 @@
       "table": "team_tournament_stats"
     },
     {
-      "columns": ["team_id"],
+      "columns": [
+        "team_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4888,9 +6573,13 @@
       "table": "team_tournament_stats"
     },
     {
-      "columns": ["from_stage_id"],
+      "columns": [
+        "from_stage_id"
+      ],
       "tableTo": "tournament_stages",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4899,9 +6588,13 @@
       "table": "tournament_stage_advancements"
     },
     {
-      "columns": ["from_stage_group_id"],
+      "columns": [
+        "from_stage_group_id"
+      ],
       "tableTo": "tournament_stage_groups",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4910,9 +6603,13 @@
       "table": "tournament_stage_advancements"
     },
     {
-      "columns": ["to_stage_id"],
+      "columns": [
+        "to_stage_id"
+      ],
       "tableTo": "tournament_stages",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4921,9 +6618,13 @@
       "table": "tournament_stage_advancements"
     },
     {
-      "columns": ["stage_id"],
+      "columns": [
+        "stage_id"
+      ],
       "tableTo": "tournament_stages",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4932,9 +6633,13 @@
       "table": "tournament_stage_groups"
     },
     {
-      "columns": ["tournament_id"],
+      "columns": [
+        "tournament_id"
+      ],
       "tableTo": "tournaments",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4943,9 +6648,13 @@
       "table": "tournament_stage_team_entries"
     },
     {
-      "columns": ["stage_id"],
+      "columns": [
+        "stage_id"
+      ],
       "tableTo": "tournament_stages",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4954,9 +6663,13 @@
       "table": "tournament_stage_team_entries"
     },
     {
-      "columns": ["stage_group_id"],
+      "columns": [
+        "stage_group_id"
+      ],
       "tableTo": "tournament_stage_groups",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4965,9 +6678,13 @@
       "table": "tournament_stage_team_entries"
     },
     {
-      "columns": ["team_id"],
+      "columns": [
+        "team_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4976,9 +6693,13 @@
       "table": "tournament_stage_team_entries"
     },
     {
-      "columns": ["tournament_id"],
+      "columns": [
+        "tournament_id"
+      ],
       "tableTo": "tournaments",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4987,9 +6708,13 @@
       "table": "tournament_stages"
     },
     {
-      "columns": ["match_format_id"],
+      "columns": [
+        "match_format_id"
+      ],
       "tableTo": "match_formats",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -4998,9 +6723,13 @@
       "table": "tournament_stages"
     },
     {
-      "columns": ["parent_stage_id"],
+      "columns": [
+        "parent_stage_id"
+      ],
       "tableTo": "tournament_stages",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": true,
@@ -5009,9 +6738,13 @@
       "table": "tournament_stages"
     },
     {
-      "columns": ["tournament_id"],
+      "columns": [
+        "tournament_id"
+      ],
       "tableTo": "tournaments",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -5020,9 +6753,13 @@
       "table": "tournament_teams"
     },
     {
-      "columns": ["team_id"],
+      "columns": [
+        "team_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -5031,9 +6768,43 @@
       "table": "tournament_teams"
     },
     {
-      "columns": ["organization_id"],
+      "columns": [
+        "tournament_id"
+      ],
+      "tableTo": "tournaments",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_tournament_venues_tournament_id_tournaments_id_fk",
+      "entityType": "fks",
+      "table": "tournament_venues"
+    },
+    {
+      "columns": [
+        "venue_id"
+      ],
+      "tableTo": "venues",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_tournament_venues_venue_id_venues_id_fk",
+      "entityType": "fks",
+      "table": "tournament_venues"
+    },
+    {
+      "columns": [
+        "organization_id"
+      ],
       "tableTo": "organizations",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -5042,9 +6813,13 @@
       "table": "tournaments"
     },
     {
-      "columns": ["default_match_format_id"],
+      "columns": [
+        "default_match_format_id"
+      ],
       "tableTo": "match_formats",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -5053,9 +6828,13 @@
       "table": "tournaments"
     },
     {
-      "columns": ["champion_team_id"],
+      "columns": [
+        "champion_team_id"
+      ],
       "tableTo": "teams",
-      "columnsTo": ["id"],
+      "columnsTo": [
+        "id"
+      ],
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
@@ -5064,196 +6843,324 @@
       "table": "tournaments"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "account_pk",
       "table": "account",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "deliveries_pk",
       "table": "deliveries",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "fixture_change_log_pk",
+      "table": "fixture_change_log",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "fixture_constraints_pk",
+      "table": "fixture_constraints",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "fixture_rounds_pk",
+      "table": "fixture_rounds",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "fixture_version_matches_pk",
+      "table": "fixture_version_matches",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "fixture_versions_pk",
+      "table": "fixture_versions",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "innings_pk",
       "table": "innings",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "match_formats_pk",
       "table": "match_formats",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "match_lineup_pk",
       "table": "match_lineup",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "match_participant_sources_pk",
       "table": "match_participant_sources",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "matches_pk",
       "table": "matches",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "organization_venues_pk",
+      "table": "organization_venues",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "organizations_pk",
       "table": "organizations",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "passkey_pk",
       "table": "passkey",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "player_career_stats_pk",
       "table": "player_career_stats",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "player_innings_stats_pk",
       "table": "player_innings_stats",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "player_tournament_stats_pk",
       "table": "player_tournament_stats",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "player_verification_pk",
       "table": "player_verification",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "players_pk",
       "table": "players",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "session_pk",
       "table": "session",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "swiss_round_standings_pk",
+      "table": "swiss_round_standings",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "team_career_stats_pk",
       "table": "team_career_stats",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "team_players_pk",
       "table": "team_players",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "team_tournament_stats_pk",
       "table": "team_tournament_stats",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "teams_pk",
       "table": "teams",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "tournament_stage_advancements_pk",
       "table": "tournament_stage_advancements",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "tournament_stage_groups_pk",
       "table": "tournament_stage_groups",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "tournament_stage_team_entries_pk",
       "table": "tournament_stage_team_entries",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "tournament_stages_pk",
       "table": "tournament_stages",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "tournament_teams_pk",
       "table": "tournament_teams",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "tournament_venues_pk",
+      "table": "tournament_venues",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "tournaments_pk",
       "table": "tournaments",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "user_pk",
       "table": "user",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "venues_pk",
       "table": "venues",
       "entityType": "pks"
     },
     {
-      "columns": ["id"],
+      "columns": [
+        "id"
+      ],
       "nameExplicit": false,
       "name": "verification_pk",
       "table": "verification",
@@ -5348,6 +7255,316 @@
       "name": "delivery_innings_idx",
       "entityType": "indexes",
       "table": "deliveries"
+    },
+    {
+      "columns": [
+        {
+          "value": "tournament_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "fixture_change_log_tournament_idx",
+      "entityType": "indexes",
+      "table": "fixture_change_log"
+    },
+    {
+      "columns": [
+        {
+          "value": "stage_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "fixture_change_log_stage_idx",
+      "entityType": "indexes",
+      "table": "fixture_change_log"
+    },
+    {
+      "columns": [
+        {
+          "value": "fixture_version_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "fixture_change_log_version_idx",
+      "entityType": "indexes",
+      "table": "fixture_change_log"
+    },
+    {
+      "columns": [
+        {
+          "value": "fixture_round_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "fixture_change_log_round_idx",
+      "entityType": "indexes",
+      "table": "fixture_change_log"
+    },
+    {
+      "columns": [
+        {
+          "value": "match_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "fixture_change_log_match_idx",
+      "entityType": "indexes",
+      "table": "fixture_change_log"
+    },
+    {
+      "columns": [
+        {
+          "value": "tournament_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "fixture_constraints_tournament_idx",
+      "entityType": "indexes",
+      "table": "fixture_constraints"
+    },
+    {
+      "columns": [
+        {
+          "value": "stage_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "fixture_constraints_stage_idx",
+      "entityType": "indexes",
+      "table": "fixture_constraints"
+    },
+    {
+      "columns": [
+        {
+          "value": "team_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "fixture_constraints_team_idx",
+      "entityType": "indexes",
+      "table": "fixture_constraints"
+    },
+    {
+      "columns": [
+        {
+          "value": "venue_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "fixture_constraints_venue_idx",
+      "entityType": "indexes",
+      "table": "fixture_constraints"
+    },
+    {
+      "columns": [
+        {
+          "value": "constraint_type",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "fixture_constraints_type_idx",
+      "entityType": "indexes",
+      "table": "fixture_constraints"
+    },
+    {
+      "columns": [
+        {
+          "value": "stage_id",
+          "isExpression": false
+        },
+        {
+          "value": "stage_group_id",
+          "isExpression": false
+        },
+        {
+          "value": "round_number",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "name": "fixture_rounds_stage_group_round_unique",
+      "entityType": "indexes",
+      "table": "fixture_rounds"
+    },
+    {
+      "columns": [
+        {
+          "value": "tournament_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "fixture_rounds_tournament_idx",
+      "entityType": "indexes",
+      "table": "fixture_rounds"
+    },
+    {
+      "columns": [
+        {
+          "value": "stage_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "fixture_rounds_stage_idx",
+      "entityType": "indexes",
+      "table": "fixture_rounds"
+    },
+    {
+      "columns": [
+        {
+          "value": "fixture_version_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "fixture_rounds_fixture_version_idx",
+      "entityType": "indexes",
+      "table": "fixture_rounds"
+    },
+    {
+      "columns": [
+        {
+          "value": "fixture_version_id",
+          "isExpression": false
+        },
+        {
+          "value": "match_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "name": "fixture_version_matches_unique",
+      "entityType": "indexes",
+      "table": "fixture_version_matches"
+    },
+    {
+      "columns": [
+        {
+          "value": "fixture_version_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "fixture_version_matches_fixture_version_idx",
+      "entityType": "indexes",
+      "table": "fixture_version_matches"
+    },
+    {
+      "columns": [
+        {
+          "value": "match_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "fixture_version_matches_match_idx",
+      "entityType": "indexes",
+      "table": "fixture_version_matches"
+    },
+    {
+      "columns": [
+        {
+          "value": "tournament_id",
+          "isExpression": false
+        },
+        {
+          "value": "version_number",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "name": "fixture_versions_tournament_version_unique",
+      "entityType": "indexes",
+      "table": "fixture_versions"
+    },
+    {
+      "columns": [
+        {
+          "value": "tournament_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "fixture_versions_tournament_idx",
+      "entityType": "indexes",
+      "table": "fixture_versions"
+    },
+    {
+      "columns": [
+        {
+          "value": "stage_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "fixture_versions_stage_idx",
+      "entityType": "indexes",
+      "table": "fixture_versions"
+    },
+    {
+      "columns": [
+        {
+          "value": "status",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "fixture_versions_status_idx",
+      "entityType": "indexes",
+      "table": "fixture_versions"
     },
     {
       "columns": [
@@ -5530,6 +7747,114 @@
     {
       "columns": [
         {
+          "value": "tournament_id",
+          "isExpression": false
+        },
+        {
+          "value": "match_date",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "matches_tournament_date_idx",
+      "entityType": "indexes",
+      "table": "matches"
+    },
+    {
+      "columns": [
+        {
+          "value": "stage_id",
+          "isExpression": false
+        },
+        {
+          "value": "stage_round",
+          "isExpression": false
+        },
+        {
+          "value": "stage_sequence",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "matches_stage_round_sequence_idx",
+      "entityType": "indexes",
+      "table": "matches"
+    },
+    {
+      "columns": [
+        {
+          "value": "venue_id",
+          "isExpression": false
+        },
+        {
+          "value": "scheduled_start_at",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "matches_venue_schedule_idx",
+      "entityType": "indexes",
+      "table": "matches"
+    },
+    {
+      "columns": [
+        {
+          "value": "team1_id",
+          "isExpression": false
+        },
+        {
+          "value": "scheduled_start_at",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "matches_team1_schedule_idx",
+      "entityType": "indexes",
+      "table": "matches"
+    },
+    {
+      "columns": [
+        {
+          "value": "team2_id",
+          "isExpression": false
+        },
+        {
+          "value": "scheduled_start_at",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "matches_team2_schedule_idx",
+      "entityType": "indexes",
+      "table": "matches"
+    },
+    {
+      "columns": [
+        {
+          "value": "fixture_round_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "matches_fixture_round_idx",
+      "entityType": "indexes",
+      "table": "matches"
+    },
+    {
+      "columns": [
+        {
           "value": "slug",
           "isExpression": false
         }
@@ -5698,6 +8023,66 @@
       "name": "session_expires_idx",
       "entityType": "indexes",
       "table": "session"
+    },
+    {
+      "columns": [
+        {
+          "value": "fixture_round_id",
+          "isExpression": false
+        },
+        {
+          "value": "team_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "name": "swiss_round_standings_round_team_unique",
+      "entityType": "indexes",
+      "table": "swiss_round_standings"
+    },
+    {
+      "columns": [
+        {
+          "value": "stage_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "swiss_round_standings_stage_idx",
+      "entityType": "indexes",
+      "table": "swiss_round_standings"
+    },
+    {
+      "columns": [
+        {
+          "value": "tournament_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "swiss_round_standings_tournament_idx",
+      "entityType": "indexes",
+      "table": "swiss_round_standings"
+    },
+    {
+      "columns": [
+        {
+          "value": "team_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "swiss_round_standings_team_idx",
+      "entityType": "indexes",
+      "table": "swiss_round_standings"
     },
     {
       "columns": [
@@ -5974,28 +8359,36 @@
       "table": "tournaments"
     },
     {
-      "columns": ["username"],
+      "columns": [
+        "username"
+      ],
       "nameExplicit": false,
       "name": "user_username_unique",
       "entityType": "uniques",
       "table": "user"
     },
     {
-      "columns": ["display_username"],
+      "columns": [
+        "display_username"
+      ],
       "nameExplicit": false,
       "name": "user_display_username_unique",
       "entityType": "uniques",
       "table": "user"
     },
     {
-      "columns": ["email"],
+      "columns": [
+        "email"
+      ],
       "nameExplicit": false,
       "name": "user_email_unique",
       "entityType": "uniques",
       "table": "user"
     },
     {
-      "columns": ["phone_number"],
+      "columns": [
+        "phone_number"
+      ],
       "nameExplicit": false,
       "name": "user_phone_number_unique",
       "entityType": "uniques",

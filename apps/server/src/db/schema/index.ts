@@ -135,6 +135,25 @@ export const playerVerification = sqliteTable("player_verification", {
   ...timestampCols,
 });
 
+const DEFAULT_OPENING_TIME_MINUTES = 8 * 60;
+const DEFAULT_CLOSING_TIME_MINUTES = 18 * 60;
+
+export const venues = sqliteTable('venues', {
+  id: integer().primaryKey().notNull(),
+  name: text().notNull(),
+  location: text(),
+  street: text(),
+  city: text(),
+  state: text(),
+  country: text(),
+  pincode: text(),
+  capacity: integer().default(0),
+  lights: booleanFlag(),
+  openingTime: integer().default(DEFAULT_OPENING_TIME_MINUTES).notNull(),
+  closingTime: integer().default(DEFAULT_CLOSING_TIME_MINUTES).notNull(),
+  ...timestampCols,
+});
+
 export const teams = sqliteTable("teams", {
   id: integer().primaryKey().notNull(),
   name: text().notNull(),
@@ -177,6 +196,17 @@ export const organizations = sqliteTable(
   ]
 );
 
+export const organizationVenues = sqliteTable("organization_venues", {
+  id: integer().primaryKey().notNull(),
+  organizationId: integer()
+    .notNull()
+    .references(() => organizations.id),
+  venueId: integer()
+    .notNull()
+    .references(() => venues.id),
+  ...timestampCols,
+});
+
 export const matchFormats = sqliteTable("match_formats", {
   id: integer().primaryKey().notNull(),
   name: text().notNull(),
@@ -189,6 +219,8 @@ export const matchFormats = sqliteTable("match_formats", {
   playersPerSide: integer().notNull().default(11),
   isDrawAllowed: booleanFlag().default(false),
   isSuperOverAllowed: booleanFlag().default(false),
+  minutesPerInnings: integer(),
+  inningsBreakMinutes: integer(),
   ...timestampCols,
 });
 
@@ -211,10 +243,23 @@ export const tournaments = sqliteTable(
       .notNull()
       .references(() => matchFormats.id),
     championTeamId: integer().references(() => teams.id),
+    fixturePublishedAt: integer({ mode: "timestamp_ms" }),
+    activeFixtureVersion: integer(),
     ...timestampCols,
   },
   (t) => [index("tournament_organization_idx").on(t.organizationId)]
 );
+
+export const tournamentVenues = sqliteTable("tournament_venues", {
+  id: integer().primaryKey().notNull(),
+  tournamentId: integer()
+    .notNull()
+    .references(() => tournaments.id),
+  venueId: integer()
+    .notNull()
+    .references(() => venues.id),
+  ...timestampCols,
+});
 
 export const tournamentTeams = sqliteTable(
   "tournament_teams",
@@ -250,8 +295,14 @@ export const tournamentStages = sqliteTable(
     format: text().notNull().default("single_round_robin"),
     sequence: integer().notNull().default(1),
     status: text().notNull().default("upcoming"),
+    fixtureStatus: text().notNull().default("draft"),
     parentStageId: integer(),
     qualificationSlots: integer().notNull().default(0),
+    scheduledStartAt: integer({ mode: "timestamp_ms" }),
+    scheduledEndAt: integer({ mode: "timestamp_ms" }),
+    lockAt: integer({ mode: "timestamp_ms" }),
+    publishedAt: integer({ mode: "timestamp_ms" }),
+    fixtureVersion: integer().notNull().default(1),
     matchFormatId: integer()
       .notNull()
       .references(() => matchFormats.id),
@@ -352,6 +403,69 @@ export const tournamentStageAdvancements = sqliteTable(
   ]
 );
 
+export const fixtureVersions = sqliteTable(
+  "fixture_versions",
+  {
+    id: integer().primaryKey().notNull(),
+    tournamentId: integer()
+      .notNull()
+      .references(() => tournaments.id),
+    stageId: integer().references(() => tournamentStages.id),
+    versionNumber: integer().notNull().default(1),
+    status: text().notNull().default("draft"),
+    label: text(),
+    publishedAt: integer({ mode: "timestamp_ms" }),
+    archivedAt: integer({ mode: "timestamp_ms" }),
+    checksum: text(),
+    metadata: text({ mode: "json" }),
+    ...timestampCols,
+  },
+  (t) => [
+    uniqueIndex("fixture_versions_tournament_version_unique").on(
+      t.tournamentId,
+      t.versionNumber
+    ),
+    index("fixture_versions_tournament_idx").on(t.tournamentId),
+    index("fixture_versions_stage_idx").on(t.stageId),
+    index("fixture_versions_status_idx").on(t.status),
+  ]
+);
+
+export const fixtureRounds = sqliteTable(
+  "fixture_rounds",
+  {
+    id: integer().primaryKey().notNull(),
+    tournamentId: integer()
+      .notNull()
+      .references(() => tournaments.id),
+    stageId: integer()
+      .notNull()
+      .references(() => tournamentStages.id),
+    stageGroupId: integer().references(() => tournamentStageGroups.id),
+    fixtureVersionId: integer().references(() => fixtureVersions.id),
+    roundNumber: integer().notNull(),
+    roundName: text(),
+    pairingMethod: text().notNull().default("manual"),
+    status: text().notNull().default("draft"),
+    scheduledStartAt: integer({ mode: "timestamp_ms" }),
+    scheduledEndAt: integer({ mode: "timestamp_ms" }),
+    lockAt: integer({ mode: "timestamp_ms" }),
+    publishedAt: integer({ mode: "timestamp_ms" }),
+    metadata: text({ mode: "json" }),
+    ...timestampCols,
+  },
+  (t) => [
+    uniqueIndex("fixture_rounds_stage_group_round_unique").on(
+      t.stageId,
+      t.stageGroupId,
+      t.roundNumber
+    ),
+    index("fixture_rounds_tournament_idx").on(t.tournamentId),
+    index("fixture_rounds_stage_idx").on(t.stageId),
+    index("fixture_rounds_fixture_version_idx").on(t.fixtureVersionId),
+  ]
+);
+
 export const teamPlayers = sqliteTable(
   "team_players",
   {
@@ -378,19 +492,6 @@ export const teamPlayers = sqliteTable(
     }),
   ]
 );
-
-export const venues = sqliteTable("venues", {
-  id: integer().primaryKey().notNull(),
-  name: text().notNull(),
-  location: text(),
-  street: text(),
-  city: text(),
-  state: text(),
-  country: text(),
-  pincode: text(),
-  capacity: integer().default(0),
-  ...timestampCols,
-});
 
 export const matches = sqliteTable(
   "matches",
@@ -431,9 +532,18 @@ export const matches = sqliteTable(
     playerOfTheMatchId: integer().references(() => players.id),
     stageId: integer().references(() => tournamentStages.id),
     stageGroupId: integer().references(() => tournamentStageGroups.id),
+    fixtureRoundId: integer().references(() => fixtureRounds.id),
     stageRound: integer(),
     stageSequence: integer(),
     knockoutLeg: integer().notNull().default(1),
+    fixtureStatus: text().notNull().default("draft"),
+    scheduledStartAt: integer({ mode: "timestamp_ms" }),
+    scheduledEndAt: integer({ mode: "timestamp_ms" }),
+    timeZone: text().notNull().default("UTC"),
+    publishedAt: integer({ mode: "timestamp_ms" }),
+    fixtureVersion: integer().notNull().default(1),
+    previousScheduleMatchId: integer(),
+    rescheduleReason: text(),
     hasLBW: booleanFlag(),
     hasBye: integer({ mode: "boolean" }).notNull().default(true),
     hasLegBye: booleanFlag(),
@@ -450,6 +560,21 @@ export const matches = sqliteTable(
   (t) => [
     index("rank_idx").on(t.winnerId),
     index("matches_format_idx").on(t.matchFormatId),
+    index("matches_tournament_date_idx").on(t.tournamentId, t.matchDate),
+    index("matches_stage_round_sequence_idx").on(
+      t.stageId,
+      t.stageRound,
+      t.stageSequence
+    ),
+    index("matches_venue_schedule_idx").on(t.venueId, t.scheduledStartAt),
+    index("matches_team1_schedule_idx").on(t.team1Id, t.scheduledStartAt),
+    index("matches_team2_schedule_idx").on(t.team2Id, t.scheduledStartAt),
+    index("matches_fixture_round_idx").on(t.fixtureRoundId),
+    foreignKey({
+      columns: [t.previousScheduleMatchId],
+      foreignColumns: [t.id],
+      name: "fk_matches_previous_schedule_match",
+    }),
   ]
 );
 
@@ -476,6 +601,120 @@ export const matchParticipantSources = sqliteTable(
     ),
     index("match_participant_sources_source_match_idx").on(t.sourceMatchId),
     index("match_participant_sources_source_stage_idx").on(t.sourceStageId),
+  ]
+);
+
+export const fixtureVersionMatches = sqliteTable(
+  "fixture_version_matches",
+  {
+    id: integer().primaryKey().notNull(),
+    fixtureVersionId: integer()
+      .notNull()
+      .references(() => fixtureVersions.id),
+    matchId: integer()
+      .notNull()
+      .references(() => matches.id),
+    sequence: integer().notNull().default(1),
+    snapshot: text({ mode: "json" }).notNull().default("{}"),
+    ...timestampCols,
+  },
+  (t) => [
+    uniqueIndex("fixture_version_matches_unique").on(
+      t.fixtureVersionId,
+      t.matchId
+    ),
+    index("fixture_version_matches_fixture_version_idx").on(t.fixtureVersionId),
+    index("fixture_version_matches_match_idx").on(t.matchId),
+  ]
+);
+
+export const fixtureChangeLog = sqliteTable(
+  "fixture_change_log",
+  {
+    id: integer().primaryKey().notNull(),
+    tournamentId: integer()
+      .notNull()
+      .references(() => tournaments.id),
+    stageId: integer().references(() => tournamentStages.id),
+    fixtureVersionId: integer().references(() => fixtureVersions.id),
+    fixtureRoundId: integer().references(() => fixtureRounds.id),
+    matchId: integer().references(() => matches.id),
+    action: text().notNull().default("updated"),
+    reason: text(),
+    payload: text({ mode: "json" }),
+    ...timestampCols,
+  },
+  (t) => [
+    index("fixture_change_log_tournament_idx").on(t.tournamentId),
+    index("fixture_change_log_stage_idx").on(t.stageId),
+    index("fixture_change_log_version_idx").on(t.fixtureVersionId),
+    index("fixture_change_log_round_idx").on(t.fixtureRoundId),
+    index("fixture_change_log_match_idx").on(t.matchId),
+  ]
+);
+
+export const fixtureConstraints = sqliteTable(
+  "fixture_constraints",
+  {
+    id: integer().primaryKey().notNull(),
+    tournamentId: integer()
+      .notNull()
+      .references(() => tournaments.id),
+    stageId: integer().references(() => tournamentStages.id),
+    teamId: integer().references(() => teams.id),
+    venueId: integer().references(() => venues.id),
+    constraintType: text().notNull(),
+    rule: text({ mode: "json" }).notNull(),
+    priority: integer().notNull().default(0),
+    isActive: booleanFlag().default(true),
+    ...timestampCols,
+  },
+  (t) => [
+    index("fixture_constraints_tournament_idx").on(t.tournamentId),
+    index("fixture_constraints_stage_idx").on(t.stageId),
+    index("fixture_constraints_team_idx").on(t.teamId),
+    index("fixture_constraints_venue_idx").on(t.venueId),
+    index("fixture_constraints_type_idx").on(t.constraintType),
+  ]
+);
+
+export const swissRoundStandings = sqliteTable(
+  "swiss_round_standings",
+  {
+    id: integer().primaryKey().notNull(),
+    tournamentId: integer()
+      .notNull()
+      .references(() => tournaments.id),
+    stageId: integer()
+      .notNull()
+      .references(() => tournamentStages.id),
+    fixtureRoundId: integer()
+      .notNull()
+      .references(() => fixtureRounds.id),
+    teamId: integer()
+      .notNull()
+      .references(() => teams.id),
+    position: integer(),
+    points: real().notNull().default(0),
+    wins: integer().notNull().default(0),
+    losses: integer().notNull().default(0),
+    ties: integer().notNull().default(0),
+    byes: integer().notNull().default(0),
+    tieBreak1: real().notNull().default(0),
+    tieBreak2: real().notNull().default(0),
+    tieBreak3: real().notNull().default(0),
+    opponentTeamIds: text({ mode: "json" }).notNull().default("[]"),
+    metadata: text({ mode: "json" }),
+    ...timestampCols,
+  },
+  (t) => [
+    uniqueIndex("swiss_round_standings_round_team_unique").on(
+      t.fixtureRoundId,
+      t.teamId
+    ),
+    index("swiss_round_standings_stage_idx").on(t.stageId),
+    index("swiss_round_standings_tournament_idx").on(t.tournamentId),
+    index("swiss_round_standings_team_idx").on(t.teamId),
   ]
 );
 

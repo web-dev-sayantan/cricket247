@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   insertDeliverySchema,
   insertInningsSchema,
+  insertMatchFormatSchema,
   insertMatchLineupSchema,
   insertMatchParticipantSourceSchema,
   insertMatchSchema,
@@ -86,6 +87,12 @@ export const createOrganizationBodySchema = insertOrganizationSchema.omit({
 });
 export const updateOrganizationBodySchema =
   createOrganizationBodySchema.partial();
+
+export const createMatchFormatBodySchema = insertMatchFormatSchema.omit({
+  id: true,
+});
+export const updateMatchFormatBodySchema =
+  createMatchFormatBodySchema.partial();
 
 export const createMatchBodySchema = insertMatchSchema.omit({ id: true });
 export const updateMatchBodySchema = createMatchBodySchema.partial();

@@ -48,6 +48,95 @@ CREATE TABLE `deliveries` (
 	CONSTRAINT `fk_deliveries_assisted_by_id_players_id_fk` FOREIGN KEY (`assisted_by_id`) REFERENCES `players`(`id`)
 );
 --> statement-breakpoint
+CREATE TABLE `fixture_change_log` (
+	`id` integer PRIMARY KEY,
+	`tournament_id` integer NOT NULL,
+	`stage_id` integer,
+	`fixture_version_id` integer,
+	`fixture_round_id` integer,
+	`match_id` integer,
+	`action` text DEFAULT 'updated' NOT NULL,
+	`reason` text,
+	`payload` text,
+	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	CONSTRAINT `fk_fixture_change_log_tournament_id_tournaments_id_fk` FOREIGN KEY (`tournament_id`) REFERENCES `tournaments`(`id`),
+	CONSTRAINT `fk_fixture_change_log_stage_id_tournament_stages_id_fk` FOREIGN KEY (`stage_id`) REFERENCES `tournament_stages`(`id`),
+	CONSTRAINT `fk_fixture_change_log_fixture_version_id_fixture_versions_id_fk` FOREIGN KEY (`fixture_version_id`) REFERENCES `fixture_versions`(`id`),
+	CONSTRAINT `fk_fixture_change_log_fixture_round_id_fixture_rounds_id_fk` FOREIGN KEY (`fixture_round_id`) REFERENCES `fixture_rounds`(`id`),
+	CONSTRAINT `fk_fixture_change_log_match_id_matches_id_fk` FOREIGN KEY (`match_id`) REFERENCES `matches`(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `fixture_constraints` (
+	`id` integer PRIMARY KEY,
+	`tournament_id` integer NOT NULL,
+	`stage_id` integer,
+	`team_id` integer,
+	`venue_id` integer,
+	`constraint_type` text NOT NULL,
+	`rule` text NOT NULL,
+	`priority` integer DEFAULT 0 NOT NULL,
+	`is_active` integer DEFAULT true NOT NULL,
+	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	CONSTRAINT `fk_fixture_constraints_tournament_id_tournaments_id_fk` FOREIGN KEY (`tournament_id`) REFERENCES `tournaments`(`id`),
+	CONSTRAINT `fk_fixture_constraints_stage_id_tournament_stages_id_fk` FOREIGN KEY (`stage_id`) REFERENCES `tournament_stages`(`id`),
+	CONSTRAINT `fk_fixture_constraints_team_id_teams_id_fk` FOREIGN KEY (`team_id`) REFERENCES `teams`(`id`),
+	CONSTRAINT `fk_fixture_constraints_venue_id_venues_id_fk` FOREIGN KEY (`venue_id`) REFERENCES `venues`(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `fixture_rounds` (
+	`id` integer PRIMARY KEY,
+	`tournament_id` integer NOT NULL,
+	`stage_id` integer NOT NULL,
+	`stage_group_id` integer,
+	`fixture_version_id` integer,
+	`round_number` integer NOT NULL,
+	`round_name` text,
+	`pairing_method` text DEFAULT 'manual' NOT NULL,
+	`status` text DEFAULT 'draft' NOT NULL,
+	`scheduled_start_at` integer,
+	`scheduled_end_at` integer,
+	`lock_at` integer,
+	`published_at` integer,
+	`metadata` text,
+	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	CONSTRAINT `fk_fixture_rounds_tournament_id_tournaments_id_fk` FOREIGN KEY (`tournament_id`) REFERENCES `tournaments`(`id`),
+	CONSTRAINT `fk_fixture_rounds_stage_id_tournament_stages_id_fk` FOREIGN KEY (`stage_id`) REFERENCES `tournament_stages`(`id`),
+	CONSTRAINT `fk_fixture_rounds_stage_group_id_tournament_stage_groups_id_fk` FOREIGN KEY (`stage_group_id`) REFERENCES `tournament_stage_groups`(`id`),
+	CONSTRAINT `fk_fixture_rounds_fixture_version_id_fixture_versions_id_fk` FOREIGN KEY (`fixture_version_id`) REFERENCES `fixture_versions`(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `fixture_version_matches` (
+	`id` integer PRIMARY KEY,
+	`fixture_version_id` integer NOT NULL,
+	`match_id` integer NOT NULL,
+	`sequence` integer DEFAULT 1 NOT NULL,
+	`snapshot` text DEFAULT '{}' NOT NULL,
+	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	CONSTRAINT `fk_fixture_version_matches_fixture_version_id_fixture_versions_id_fk` FOREIGN KEY (`fixture_version_id`) REFERENCES `fixture_versions`(`id`),
+	CONSTRAINT `fk_fixture_version_matches_match_id_matches_id_fk` FOREIGN KEY (`match_id`) REFERENCES `matches`(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `fixture_versions` (
+	`id` integer PRIMARY KEY,
+	`tournament_id` integer NOT NULL,
+	`stage_id` integer,
+	`version_number` integer DEFAULT 1 NOT NULL,
+	`status` text DEFAULT 'draft' NOT NULL,
+	`label` text,
+	`published_at` integer,
+	`archived_at` integer,
+	`checksum` text,
+	`metadata` text,
+	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	CONSTRAINT `fk_fixture_versions_tournament_id_tournaments_id_fk` FOREIGN KEY (`tournament_id`) REFERENCES `tournaments`(`id`),
+	CONSTRAINT `fk_fixture_versions_stage_id_tournament_stages_id_fk` FOREIGN KEY (`stage_id`) REFERENCES `tournament_stages`(`id`)
+);
+--> statement-breakpoint
 CREATE TABLE `innings` (
 	`id` integer PRIMARY KEY,
 	`match_id` integer NOT NULL,
@@ -85,6 +174,8 @@ CREATE TABLE `match_formats` (
 	`players_per_side` integer DEFAULT 11 NOT NULL,
 	`is_draw_allowed` integer DEFAULT false NOT NULL,
 	`is_super_over_allowed` integer DEFAULT false NOT NULL,
+	`minutes_per_innings` integer,
+	`innings_break_minutes` integer,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL
 );
@@ -154,9 +245,18 @@ CREATE TABLE `matches` (
 	`player_of_the_match_id` integer,
 	`stage_id` integer,
 	`stage_group_id` integer,
+	`fixture_round_id` integer,
 	`stage_round` integer,
 	`stage_sequence` integer,
 	`knockout_leg` integer DEFAULT 1 NOT NULL,
+	`fixture_status` text DEFAULT 'draft' NOT NULL,
+	`scheduled_start_at` integer,
+	`scheduled_end_at` integer,
+	`time_zone` text DEFAULT 'UTC' NOT NULL,
+	`published_at` integer,
+	`fixture_version` integer DEFAULT 1 NOT NULL,
+	`previous_schedule_match_id` integer,
+	`reschedule_reason` text,
 	`has_lbw` integer DEFAULT false NOT NULL,
 	`has_bye` integer DEFAULT true NOT NULL,
 	`has_leg_bye` integer DEFAULT false NOT NULL,
@@ -179,7 +279,19 @@ CREATE TABLE `matches` (
 	CONSTRAINT `fk_matches_player_of_the_match_id_players_id_fk` FOREIGN KEY (`player_of_the_match_id`) REFERENCES `players`(`id`),
 	CONSTRAINT `fk_matches_stage_id_tournament_stages_id_fk` FOREIGN KEY (`stage_id`) REFERENCES `tournament_stages`(`id`),
 	CONSTRAINT `fk_matches_stage_group_id_tournament_stage_groups_id_fk` FOREIGN KEY (`stage_group_id`) REFERENCES `tournament_stage_groups`(`id`),
-	CONSTRAINT `fk_matches_venue_id_venues_id_fk` FOREIGN KEY (`venue_id`) REFERENCES `venues`(`id`)
+	CONSTRAINT `fk_matches_fixture_round_id_fixture_rounds_id_fk` FOREIGN KEY (`fixture_round_id`) REFERENCES `fixture_rounds`(`id`),
+	CONSTRAINT `fk_matches_venue_id_venues_id_fk` FOREIGN KEY (`venue_id`) REFERENCES `venues`(`id`),
+	CONSTRAINT `fk_matches_previous_schedule_match` FOREIGN KEY (`previous_schedule_match_id`) REFERENCES `matches`(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `organization_venues` (
+	`id` integer PRIMARY KEY,
+	`organization_id` integer NOT NULL,
+	`venue_id` integer NOT NULL,
+	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	CONSTRAINT `fk_organization_venues_organization_id_organizations_id_fk` FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`),
+	CONSTRAINT `fk_organization_venues_venue_id_venues_id_fk` FOREIGN KEY (`venue_id`) REFERENCES `venues`(`id`)
 );
 --> statement-breakpoint
 CREATE TABLE `organizations` (
@@ -354,6 +466,31 @@ CREATE TABLE `session` (
 	CONSTRAINT `fk_session_user_id_user_id_fk` FOREIGN KEY (`user_id`) REFERENCES `user`(`id`)
 );
 --> statement-breakpoint
+CREATE TABLE `swiss_round_standings` (
+	`id` integer PRIMARY KEY,
+	`tournament_id` integer NOT NULL,
+	`stage_id` integer NOT NULL,
+	`fixture_round_id` integer NOT NULL,
+	`team_id` integer NOT NULL,
+	`position` integer,
+	`points` real DEFAULT 0 NOT NULL,
+	`wins` integer DEFAULT 0 NOT NULL,
+	`losses` integer DEFAULT 0 NOT NULL,
+	`ties` integer DEFAULT 0 NOT NULL,
+	`byes` integer DEFAULT 0 NOT NULL,
+	`tie_break1` real DEFAULT 0 NOT NULL,
+	`tie_break2` real DEFAULT 0 NOT NULL,
+	`tie_break3` real DEFAULT 0 NOT NULL,
+	`opponent_team_ids` text DEFAULT '[]' NOT NULL,
+	`metadata` text,
+	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	CONSTRAINT `fk_swiss_round_standings_tournament_id_tournaments_id_fk` FOREIGN KEY (`tournament_id`) REFERENCES `tournaments`(`id`),
+	CONSTRAINT `fk_swiss_round_standings_stage_id_tournament_stages_id_fk` FOREIGN KEY (`stage_id`) REFERENCES `tournament_stages`(`id`),
+	CONSTRAINT `fk_swiss_round_standings_fixture_round_id_fixture_rounds_id_fk` FOREIGN KEY (`fixture_round_id`) REFERENCES `fixture_rounds`(`id`),
+	CONSTRAINT `fk_swiss_round_standings_team_id_teams_id_fk` FOREIGN KEY (`team_id`) REFERENCES `teams`(`id`)
+);
+--> statement-breakpoint
 CREATE TABLE `team_career_stats` (
 	`id` integer PRIMARY KEY,
 	`team_id` integer NOT NULL,
@@ -482,8 +619,14 @@ CREATE TABLE `tournament_stages` (
 	`format` text DEFAULT 'single_round_robin' NOT NULL,
 	`sequence` integer DEFAULT 1 NOT NULL,
 	`status` text DEFAULT 'upcoming' NOT NULL,
+	`fixture_status` text DEFAULT 'draft' NOT NULL,
 	`parent_stage_id` integer,
 	`qualification_slots` integer DEFAULT 0 NOT NULL,
+	`scheduled_start_at` integer,
+	`scheduled_end_at` integer,
+	`lock_at` integer,
+	`published_at` integer,
+	`fixture_version` integer DEFAULT 1 NOT NULL,
 	`match_format_id` integer NOT NULL,
 	`metadata` text,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
@@ -509,6 +652,16 @@ CREATE TABLE `tournament_teams` (
 	CONSTRAINT `fk_tournament_teams_team_id_teams_id_fk` FOREIGN KEY (`team_id`) REFERENCES `teams`(`id`)
 );
 --> statement-breakpoint
+CREATE TABLE `tournament_venues` (
+	`id` integer PRIMARY KEY,
+	`tournament_id` integer NOT NULL,
+	`venue_id` integer NOT NULL,
+	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	CONSTRAINT `fk_tournament_venues_tournament_id_tournaments_id_fk` FOREIGN KEY (`tournament_id`) REFERENCES `tournaments`(`id`),
+	CONSTRAINT `fk_tournament_venues_venue_id_venues_id_fk` FOREIGN KEY (`venue_id`) REFERENCES `venues`(`id`)
+);
+--> statement-breakpoint
 CREATE TABLE `tournaments` (
 	`id` integer PRIMARY KEY,
 	`name` text NOT NULL,
@@ -522,6 +675,8 @@ CREATE TABLE `tournaments` (
 	`end_date` integer NOT NULL,
 	`default_match_format_id` integer NOT NULL,
 	`champion_team_id` integer,
+	`fixture_published_at` integer,
+	`active_fixture_version` integer,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	CONSTRAINT `fk_tournaments_organization_id_organizations_id_fk` FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`),
@@ -557,6 +712,9 @@ CREATE TABLE `venues` (
 	`country` text,
 	`pincode` text,
 	`capacity` integer DEFAULT 0,
+	`lights` integer DEFAULT false NOT NULL,
+	`opening_time` integer DEFAULT 480 NOT NULL,
+	`closing_time` integer DEFAULT 1080 NOT NULL,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL
 );
@@ -575,6 +733,27 @@ CREATE INDEX `delivery_over_idx` ON `deliveries` (`innings_id`,`over_number`,`ba
 CREATE INDEX `delivery_bowler_idx` ON `deliveries` (`innings_id`,`bowler_id`);--> statement-breakpoint
 CREATE INDEX `delivery_striker_idx` ON `deliveries` (`innings_id`,`striker_id`);--> statement-breakpoint
 CREATE INDEX `delivery_innings_idx` ON `deliveries` (`innings_id`);--> statement-breakpoint
+CREATE INDEX `fixture_change_log_tournament_idx` ON `fixture_change_log` (`tournament_id`);--> statement-breakpoint
+CREATE INDEX `fixture_change_log_stage_idx` ON `fixture_change_log` (`stage_id`);--> statement-breakpoint
+CREATE INDEX `fixture_change_log_version_idx` ON `fixture_change_log` (`fixture_version_id`);--> statement-breakpoint
+CREATE INDEX `fixture_change_log_round_idx` ON `fixture_change_log` (`fixture_round_id`);--> statement-breakpoint
+CREATE INDEX `fixture_change_log_match_idx` ON `fixture_change_log` (`match_id`);--> statement-breakpoint
+CREATE INDEX `fixture_constraints_tournament_idx` ON `fixture_constraints` (`tournament_id`);--> statement-breakpoint
+CREATE INDEX `fixture_constraints_stage_idx` ON `fixture_constraints` (`stage_id`);--> statement-breakpoint
+CREATE INDEX `fixture_constraints_team_idx` ON `fixture_constraints` (`team_id`);--> statement-breakpoint
+CREATE INDEX `fixture_constraints_venue_idx` ON `fixture_constraints` (`venue_id`);--> statement-breakpoint
+CREATE INDEX `fixture_constraints_type_idx` ON `fixture_constraints` (`constraint_type`);--> statement-breakpoint
+CREATE UNIQUE INDEX `fixture_rounds_stage_group_round_unique` ON `fixture_rounds` (`stage_id`,`stage_group_id`,`round_number`);--> statement-breakpoint
+CREATE INDEX `fixture_rounds_tournament_idx` ON `fixture_rounds` (`tournament_id`);--> statement-breakpoint
+CREATE INDEX `fixture_rounds_stage_idx` ON `fixture_rounds` (`stage_id`);--> statement-breakpoint
+CREATE INDEX `fixture_rounds_fixture_version_idx` ON `fixture_rounds` (`fixture_version_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `fixture_version_matches_unique` ON `fixture_version_matches` (`fixture_version_id`,`match_id`);--> statement-breakpoint
+CREATE INDEX `fixture_version_matches_fixture_version_idx` ON `fixture_version_matches` (`fixture_version_id`);--> statement-breakpoint
+CREATE INDEX `fixture_version_matches_match_idx` ON `fixture_version_matches` (`match_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `fixture_versions_tournament_version_unique` ON `fixture_versions` (`tournament_id`,`version_number`);--> statement-breakpoint
+CREATE INDEX `fixture_versions_tournament_idx` ON `fixture_versions` (`tournament_id`);--> statement-breakpoint
+CREATE INDEX `fixture_versions_stage_idx` ON `fixture_versions` (`stage_id`);--> statement-breakpoint
+CREATE INDEX `fixture_versions_status_idx` ON `fixture_versions` (`status`);--> statement-breakpoint
 CREATE INDEX `innings_match_idx` ON `innings` (`match_id`);--> statement-breakpoint
 CREATE UNIQUE INDEX `unique_match_innings_number` ON `innings` (`match_id`,`innings_number`);--> statement-breakpoint
 CREATE UNIQUE INDEX `unique_match_lineup_player` ON `match_lineup` (`match_id`,`team_id`,`player_id`);--> statement-breakpoint
@@ -586,6 +765,12 @@ CREATE INDEX `match_participant_sources_source_match_idx` ON `match_participant_
 CREATE INDEX `match_participant_sources_source_stage_idx` ON `match_participant_sources` (`source_stage_id`);--> statement-breakpoint
 CREATE INDEX `rank_idx` ON `matches` (`winner_id`);--> statement-breakpoint
 CREATE INDEX `matches_format_idx` ON `matches` (`match_format_id`);--> statement-breakpoint
+CREATE INDEX `matches_tournament_date_idx` ON `matches` (`tournament_id`,`match_date`);--> statement-breakpoint
+CREATE INDEX `matches_stage_round_sequence_idx` ON `matches` (`stage_id`,`stage_round`,`stage_sequence`);--> statement-breakpoint
+CREATE INDEX `matches_venue_schedule_idx` ON `matches` (`venue_id`,`scheduled_start_at`);--> statement-breakpoint
+CREATE INDEX `matches_team1_schedule_idx` ON `matches` (`team1_id`,`scheduled_start_at`);--> statement-breakpoint
+CREATE INDEX `matches_team2_schedule_idx` ON `matches` (`team2_id`,`scheduled_start_at`);--> statement-breakpoint
+CREATE INDEX `matches_fixture_round_idx` ON `matches` (`fixture_round_id`);--> statement-breakpoint
 CREATE UNIQUE INDEX `organizations_slug_unique` ON `organizations` (`slug`);--> statement-breakpoint
 CREATE UNIQUE INDEX `organizations_code_unique` ON `organizations` (`code`);--> statement-breakpoint
 CREATE INDEX `organizations_parent_idx` ON `organizations` (`parent_organization_id`);--> statement-breakpoint
@@ -598,6 +783,10 @@ CREATE INDEX `player_innings_stats_team_idx` ON `player_innings_stats` (`team_id
 CREATE INDEX `player_innings_stats_player_idx` ON `player_innings_stats` (`player_id`);--> statement-breakpoint
 CREATE INDEX `session_user_idx` ON `session` (`user_id`);--> statement-breakpoint
 CREATE INDEX `session_expires_idx` ON `session` (`expires_at`);--> statement-breakpoint
+CREATE UNIQUE INDEX `swiss_round_standings_round_team_unique` ON `swiss_round_standings` (`fixture_round_id`,`team_id`);--> statement-breakpoint
+CREATE INDEX `swiss_round_standings_stage_idx` ON `swiss_round_standings` (`stage_id`);--> statement-breakpoint
+CREATE INDEX `swiss_round_standings_tournament_idx` ON `swiss_round_standings` (`tournament_id`);--> statement-breakpoint
+CREATE INDEX `swiss_round_standings_team_idx` ON `swiss_round_standings` (`team_id`);--> statement-breakpoint
 CREATE UNIQUE INDEX `team_career_stats_team_unique` ON `team_career_stats` (`team_id`);--> statement-breakpoint
 CREATE UNIQUE INDEX `unique_tournament_player` ON `team_players` (`tournament_id`,`player_id`);--> statement-breakpoint
 CREATE UNIQUE INDEX `team_tournament_stats_unique` ON `team_tournament_stats` (`tournament_id`,`team_id`);--> statement-breakpoint
