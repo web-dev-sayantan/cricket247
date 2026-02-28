@@ -222,19 +222,19 @@ export const relations = defineRelations(
         from: r.matches.tossWinnerId,
         to: r.teams.id,
         alias: "tossWinner",
-        optional: false,
+        optional: true,
       }),
       team1: r.one.teams({
         from: r.matches.team1Id,
         to: r.teams.id,
         alias: "homeTeam",
-        optional: false,
+        optional: true,
       }),
       team2: r.one.teams({
         from: r.matches.team2Id,
         to: r.teams.id,
         alias: "awayTeam",
-        optional: false,
+        optional: true,
       }),
       winner: r.one.teams({
         from: r.matches.winnerId,

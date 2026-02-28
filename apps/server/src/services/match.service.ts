@@ -8,36 +8,56 @@ import {
 } from "@/services/scorecard.service";
 import { getCurrentDate } from "@/utils";
 
+function hasResolvedParticipants<
+  T extends {
+    team1: unknown;
+    team2: unknown;
+    tossWinner: unknown;
+  },
+>(
+  match: T
+): match is T & {
+  team1: Exclude<T["team1"], null>;
+  team2: Exclude<T["team2"], null>;
+  tossWinner: Exclude<T["tossWinner"], null>;
+} {
+  return Boolean(match.team1 && match.team2 && match.tossWinner);
+}
+
 export function getLiveMatches() {
-  return db.query.matches.findMany({
-    where: {
-      isLive: true,
-    },
-    with: {
-      team1: true,
-      team2: true,
-      tossWinner: true,
-      innings: true,
-    },
-  });
+  return db.query.matches
+    .findMany({
+      where: {
+        isLive: true,
+      },
+      with: {
+        team1: true,
+        team2: true,
+        tossWinner: true,
+        innings: true,
+      },
+    })
+    .then((rows) => rows.filter(hasResolvedParticipants));
 }
 
 export function getCompletedMatches() {
-  return db.query.matches.findMany({
-    where: {
-      isCompleted: true,
-    },
-    with: {
-      team1: true,
-      team2: true,
-      tossWinner: true,
-      winner: true,
-      innings: true,
-    },
-    orderBy: {
-      matchDate: "desc",
-    },
-  });
+  return db.query.matches
+    .findMany({
+      where: {
+        isCompleted: true,
+      },
+      with: {
+        team1: true,
+        team2: true,
+        tossWinner: true,
+        winner: true,
+        innings: true,
+      },
+      orderBy: {
+        matchDate: "desc",
+      },
+    })
+    .then((rows) => rows.filter(hasResolvedParticipants));
 }
 
 export async function getAllMatches() {
@@ -49,7 +69,7 @@ export async function getAllMatches() {
       tossWinner: true,
     },
   });
-  return allMatches;
+  return allMatches.filter(hasResolvedParticipants);
 }
 
 export async function getMatchById(id: number) {
@@ -89,6 +109,9 @@ export async function getMatchById(id: number) {
     },
   });
   if (!match) {
+    return null;
+  }
+  if (!(match.team1 && match.team2)) {
     return null;
   }
 

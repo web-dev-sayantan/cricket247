@@ -138,7 +138,7 @@ export const playerVerification = sqliteTable("player_verification", {
 const DEFAULT_OPENING_TIME_MINUTES = 8 * 60;
 const DEFAULT_CLOSING_TIME_MINUTES = 18 * 60;
 
-export const venues = sqliteTable('venues', {
+export const venues = sqliteTable("venues", {
   id: integer().primaryKey().notNull(),
   name: text().notNull(),
   location: text(),
@@ -239,6 +239,7 @@ export const tournaments = sqliteTable(
       .references(() => organizations.id),
     startDate: integer({ mode: "timestamp" }).notNull(),
     endDate: integer({ mode: "timestamp" }).notNull(),
+    timeZone: text().notNull().default("UTC"),
     defaultMatchFormatId: integer()
       .notNull()
       .references(() => matchFormats.id),
@@ -502,16 +503,10 @@ export const matches = sqliteTable(
       .references(() => tournaments.id),
     matchFormatId: integer().references(() => matchFormats.id),
     matchDate: integer({ mode: "timestamp" }).notNull(),
-    tossWinnerId: integer()
-      .notNull()
-      .references(() => teams.id),
-    tossDecision: text().notNull(),
-    team1Id: integer()
-      .notNull()
-      .references(() => teams.id),
-    team2Id: integer()
-      .notNull()
-      .references(() => teams.id),
+    tossWinnerId: integer().references(() => teams.id),
+    tossDecision: text(),
+    team1Id: integer().references(() => teams.id),
+    team2Id: integer().references(() => teams.id),
     inningsPerSide: integer().notNull().default(1),
     oversPerSide: integer().notNull().default(20),
     maxOverPerBowler: integer().notNull().default(4),

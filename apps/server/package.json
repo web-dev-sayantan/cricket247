@@ -34,6 +34,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed:tournament": "bun run src/db/seeds/tournament-organization.seed.ts",
+    "db:seed:venues": "bun run src/db/seeds/venues.seed.ts",
     "openapi:generate": "bun run scripts/generate-openapi.ts",
     "openapi:validate": "bun run scripts/validate-openapi.ts"
   },

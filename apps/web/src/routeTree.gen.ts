@@ -19,6 +19,7 @@ import { Route as TeamsIndexRouteImport } from './routes/teams/index'
 import { Route as PlayersIndexRouteImport } from './routes/players/index'
 import { Route as MatchesIndexRouteImport } from './routes/matches/index'
 import { Route as TournamentsCreateRouteImport } from './routes/tournaments/create'
+import { Route as TournamentsTournamentIdRouteImport } from './routes/tournaments/$tournamentId'
 import { Route as TeamsCreateRouteImport } from './routes/teams/create'
 import { Route as TeamsTeamIdRouteImport } from './routes/teams/$teamId'
 import { Route as PlayersCreateRouteImport } from './routes/players/create'
@@ -79,6 +80,11 @@ const MatchesIndexRoute = MatchesIndexRouteImport.update({
 const TournamentsCreateRoute = TournamentsCreateRouteImport.update({
   id: '/tournaments/create',
   path: '/tournaments/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TournamentsTournamentIdRoute = TournamentsTournamentIdRouteImport.update({
+  id: '/tournaments/$tournamentId',
+  path: '/tournaments/$tournamentId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TeamsCreateRoute = TeamsCreateRouteImport.update({
@@ -151,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/players/create': typeof PlayersCreateRoute
   '/teams/$teamId': typeof TeamsTeamIdRouteWithChildren
   '/teams/create': typeof TeamsCreateRoute
+  '/tournaments/$tournamentId': typeof TournamentsTournamentIdRoute
   '/tournaments/create': typeof TournamentsCreateRoute
   '/matches/': typeof MatchesIndexRoute
   '/players/': typeof PlayersIndexRoute
@@ -174,6 +181,7 @@ export interface FileRoutesByTo {
   '/players/create': typeof PlayersCreateRoute
   '/teams/$teamId': typeof TeamsTeamIdRouteWithChildren
   '/teams/create': typeof TeamsCreateRoute
+  '/tournaments/$tournamentId': typeof TournamentsTournamentIdRoute
   '/tournaments/create': typeof TournamentsCreateRoute
   '/matches': typeof MatchesIndexRoute
   '/players': typeof PlayersIndexRoute
@@ -198,6 +206,7 @@ export interface FileRoutesById {
   '/players/create': typeof PlayersCreateRoute
   '/teams/$teamId': typeof TeamsTeamIdRouteWithChildren
   '/teams/create': typeof TeamsCreateRoute
+  '/tournaments/$tournamentId': typeof TournamentsTournamentIdRoute
   '/tournaments/create': typeof TournamentsCreateRoute
   '/matches/': typeof MatchesIndexRoute
   '/players/': typeof PlayersIndexRoute
@@ -223,6 +232,7 @@ export interface FileRouteTypes {
     | '/players/create'
     | '/teams/$teamId'
     | '/teams/create'
+    | '/tournaments/$tournamentId'
     | '/tournaments/create'
     | '/matches/'
     | '/players/'
@@ -246,6 +256,7 @@ export interface FileRouteTypes {
     | '/players/create'
     | '/teams/$teamId'
     | '/teams/create'
+    | '/tournaments/$tournamentId'
     | '/tournaments/create'
     | '/matches'
     | '/players'
@@ -269,6 +280,7 @@ export interface FileRouteTypes {
     | '/players/create'
     | '/teams/$teamId'
     | '/teams/create'
+    | '/tournaments/$tournamentId'
     | '/tournaments/create'
     | '/matches/'
     | '/players/'
@@ -293,6 +305,7 @@ export interface RootRouteChildren {
   PlayersCreateRoute: typeof PlayersCreateRoute
   TeamsTeamIdRoute: typeof TeamsTeamIdRouteWithChildren
   TeamsCreateRoute: typeof TeamsCreateRoute
+  TournamentsTournamentIdRoute: typeof TournamentsTournamentIdRoute
   TournamentsCreateRoute: typeof TournamentsCreateRoute
   MatchesIndexRoute: typeof MatchesIndexRoute
   PlayersIndexRoute: typeof PlayersIndexRoute
@@ -370,6 +383,13 @@ declare module '@tanstack/react-router' {
       path: '/tournaments/create'
       fullPath: '/tournaments/create'
       preLoaderRoute: typeof TournamentsCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tournaments/$tournamentId': {
+      id: '/tournaments/$tournamentId'
+      path: '/tournaments/$tournamentId'
+      fullPath: '/tournaments/$tournamentId'
+      preLoaderRoute: typeof TournamentsTournamentIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/teams/create': {
@@ -493,6 +513,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlayersCreateRoute: PlayersCreateRoute,
   TeamsTeamIdRoute: TeamsTeamIdRouteWithChildren,
   TeamsCreateRoute: TeamsCreateRoute,
+  TournamentsTournamentIdRoute: TournamentsTournamentIdRoute,
   TournamentsCreateRoute: TournamentsCreateRoute,
   MatchesIndexRoute: MatchesIndexRoute,
   PlayersIndexRoute: PlayersIndexRoute,

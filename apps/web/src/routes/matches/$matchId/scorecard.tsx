@@ -68,13 +68,15 @@ function RouteComponent() {
     );
   }
 
+  const team1ShortName = scorecard.match.team1?.shortName ?? "TBD";
+  const team2ShortName = scorecard.match.team2?.shortName ?? "TBD";
+
   return (
     <main className="mx-auto flex size-full max-w-6xl flex-col gap-4 p-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="font-bold text-2xl">
-            {scorecard.match.team1.shortName} vs{" "}
-            {scorecard.match.team2.shortName}
+            {team1ShortName} vs {team2ShortName}
           </h1>
           <p className="text-muted-foreground text-sm">
             {scorecard.match.format} • {scorecard.match.oversPerSide}{" "}

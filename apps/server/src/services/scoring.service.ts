@@ -425,6 +425,9 @@ export async function onSelectCurrentBattersAndBowler({
   if (!match) {
     throw new Error("Match not found");
   }
+  if (typeof match.team1Id !== "number" || typeof match.team2Id !== "number") {
+    throw new Error("Match participants are not finalized yet");
+  }
 
   const existingInnings = await db.query.innings.findMany({
     where: {

@@ -125,18 +125,18 @@ export interface MatchScorecard {
       id: number;
       name: string;
       shortName: string;
-    };
+    } | null;
     team2: {
       id: number;
       name: string;
       shortName: string;
-    };
-    tossDecision: string;
+    } | null;
+    tossDecision: null | string;
     tossWinner: {
       id: number;
       name: string;
       shortName: string;
-    };
+    } | null;
     winner: {
       id: number;
       name: string;
@@ -402,20 +402,34 @@ export async function getMatchScorecard(
 
     const battingTeam = inningsRow.battingTeam ?? match.team1;
     const bowlingTeam = inningsRow.bowlingTeam ?? match.team2;
+    const battingTeamPayload = battingTeam
+      ? {
+          id: battingTeam.id,
+          name: battingTeam.name,
+          shortName: battingTeam.shortName,
+        }
+      : {
+          id: inningsRow.battingTeamId,
+          name: `Team #${inningsRow.battingTeamId}`,
+          shortName: `T${String(inningsRow.battingTeamId)}`,
+        };
+    const bowlingTeamPayload = bowlingTeam
+      ? {
+          id: bowlingTeam.id,
+          name: bowlingTeam.name,
+          shortName: bowlingTeam.shortName,
+        }
+      : {
+          id: inningsRow.bowlingTeamId,
+          name: `Team #${inningsRow.bowlingTeamId}`,
+          shortName: `T${String(inningsRow.bowlingTeamId)}`,
+        };
 
     inningsPayload.push({
       id: inningsRow.id,
       inningsNumber: inningsRow.inningsNumber,
-      battingTeam: {
-        id: battingTeam.id,
-        name: battingTeam.name,
-        shortName: battingTeam.shortName,
-      },
-      bowlingTeam: {
-        id: bowlingTeam.id,
-        name: bowlingTeam.name,
-        shortName: bowlingTeam.shortName,
-      },
+      battingTeam: battingTeamPayload,
+      bowlingTeam: bowlingTeamPayload,
       summary: {
         totalScore: inningsRow.totalScore,
         wickets: inningsRow.wickets,
@@ -508,21 +522,27 @@ export async function getMatchScorecard(
       isTied: Boolean(match.isTied),
       result: match.result,
       margin: match.margin,
-      team1: {
-        id: match.team1.id,
-        name: match.team1.name,
-        shortName: match.team1.shortName,
-      },
-      team2: {
-        id: match.team2.id,
-        name: match.team2.name,
-        shortName: match.team2.shortName,
-      },
-      tossWinner: {
-        id: match.tossWinner.id,
-        name: match.tossWinner.name,
-        shortName: match.tossWinner.shortName,
-      },
+      team1: match.team1
+        ? {
+            id: match.team1.id,
+            name: match.team1.name,
+            shortName: match.team1.shortName,
+          }
+        : null,
+      team2: match.team2
+        ? {
+            id: match.team2.id,
+            name: match.team2.name,
+            shortName: match.team2.shortName,
+          }
+        : null,
+      tossWinner: match.tossWinner
+        ? {
+            id: match.tossWinner.id,
+            name: match.tossWinner.name,
+            shortName: match.tossWinner.shortName,
+          }
+        : null,
       tossDecision: match.tossDecision,
       winner: match.winner
         ? {
