@@ -1,9 +1,9 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "f1806750-04d6-45ad-aa7f-7c3c24d9b2d7",
+  "id": "361ee0e4-1343-475e-9e3e-52fe503bb213",
   "prevIds": [
-    "9c4a927f-4302-496f-90da-2dcc55eb3d40"
+    "00000000-0000-0000-0000-000000000000"
   ],
   "ddl": [
     {
@@ -19,7 +19,15 @@
       "entityType": "tables"
     },
     {
+      "name": "match_formats",
+      "entityType": "tables"
+    },
+    {
       "name": "match_lineup",
+      "entityType": "tables"
+    },
+    {
+      "name": "match_participant_sources",
       "entityType": "tables"
     },
     {
@@ -72,6 +80,22 @@
     },
     {
       "name": "teams",
+      "entityType": "tables"
+    },
+    {
+      "name": "tournament_stage_advancements",
+      "entityType": "tables"
+    },
+    {
+      "name": "tournament_stage_groups",
+      "entityType": "tables"
+    },
+    {
+      "name": "tournament_stage_team_entries",
+      "entityType": "tables"
+    },
+    {
+      "name": "tournament_stages",
       "entityType": "tables"
     },
     {
@@ -652,6 +676,136 @@
       "generated": null,
       "name": "id",
       "entityType": "columns",
+      "table": "match_formats"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "name",
+      "entityType": "columns",
+      "table": "match_formats"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "description",
+      "entityType": "columns",
+      "table": "match_formats"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "2",
+      "generated": null,
+      "name": "no_of_innings",
+      "entityType": "columns",
+      "table": "match_formats"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "20",
+      "generated": null,
+      "name": "no_of_overs",
+      "entityType": "columns",
+      "table": "match_formats"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "6",
+      "generated": null,
+      "name": "balls_per_over",
+      "entityType": "columns",
+      "table": "match_formats"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "max_legal_balls_per_innings",
+      "entityType": "columns",
+      "table": "match_formats"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "4",
+      "generated": null,
+      "name": "max_overs_per_bowler",
+      "entityType": "columns",
+      "table": "match_formats"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "11",
+      "generated": null,
+      "name": "players_per_side",
+      "entityType": "columns",
+      "table": "match_formats"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "name": "is_draw_allowed",
+      "entityType": "columns",
+      "table": "match_formats"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "name": "is_super_over_allowed",
+      "entityType": "columns",
+      "table": "match_formats"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "match_formats"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "match_formats"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
       "table": "match_lineup"
     },
     {
@@ -762,6 +916,116 @@
       "generated": null,
       "name": "id",
       "entityType": "columns",
+      "table": "match_participant_sources"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "match_id",
+      "entityType": "columns",
+      "table": "match_participant_sources"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "name": "team_slot",
+      "entityType": "columns",
+      "table": "match_participant_sources"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'team'",
+      "generated": null,
+      "name": "source_type",
+      "entityType": "columns",
+      "table": "match_participant_sources"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "source_team_id",
+      "entityType": "columns",
+      "table": "match_participant_sources"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "source_match_id",
+      "entityType": "columns",
+      "table": "match_participant_sources"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "source_stage_id",
+      "entityType": "columns",
+      "table": "match_participant_sources"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "source_stage_group_id",
+      "entityType": "columns",
+      "table": "match_participant_sources"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "source_position",
+      "entityType": "columns",
+      "table": "match_participant_sources"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "match_participant_sources"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "match_participant_sources"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
       "table": "matches"
     },
     {
@@ -771,6 +1035,16 @@
       "default": null,
       "generated": null,
       "name": "tournament_id",
+      "entityType": "columns",
+      "table": "matches"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "match_format_id",
       "entityType": "columns",
       "table": "matches"
     },
@@ -851,6 +1125,36 @@
       "default": "4",
       "generated": null,
       "name": "max_over_per_bowler",
+      "entityType": "columns",
+      "table": "matches"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "6",
+      "generated": null,
+      "name": "balls_per_over_snapshot",
+      "entityType": "columns",
+      "table": "matches"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "max_legal_balls_per_innings_snapshot",
+      "entityType": "columns",
+      "table": "matches"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "max_overs_per_bowler_snapshot",
       "entityType": "columns",
       "table": "matches"
     },
@@ -971,6 +1275,56 @@
       "default": null,
       "generated": null,
       "name": "player_of_the_match_id",
+      "entityType": "columns",
+      "table": "matches"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stage_id",
+      "entityType": "columns",
+      "table": "matches"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stage_group_id",
+      "entityType": "columns",
+      "table": "matches"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stage_round",
+      "entityType": "columns",
+      "table": "matches"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stage_sequence",
+      "entityType": "columns",
+      "table": "matches"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "name": "knockout_leg",
       "entityType": "columns",
       "table": "matches"
     },
@@ -2982,6 +3336,436 @@
       "generated": null,
       "name": "id",
       "entityType": "columns",
+      "table": "tournament_stage_advancements"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "from_stage_id",
+      "entityType": "columns",
+      "table": "tournament_stage_advancements"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "from_stage_group_id",
+      "entityType": "columns",
+      "table": "tournament_stage_advancements"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "position_from",
+      "entityType": "columns",
+      "table": "tournament_stage_advancements"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "to_stage_id",
+      "entityType": "columns",
+      "table": "tournament_stage_advancements"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "to_slot",
+      "entityType": "columns",
+      "table": "tournament_stage_advancements"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'position'",
+      "generated": null,
+      "name": "qualification_type",
+      "entityType": "columns",
+      "table": "tournament_stage_advancements"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "tournament_stage_advancements"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "tournament_stage_advancements"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "tournament_stage_groups"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stage_id",
+      "entityType": "columns",
+      "table": "tournament_stage_groups"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "name",
+      "entityType": "columns",
+      "table": "tournament_stage_groups"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "code",
+      "entityType": "columns",
+      "table": "tournament_stage_groups"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "name": "sequence",
+      "entityType": "columns",
+      "table": "tournament_stage_groups"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "name": "advancing_slots",
+      "entityType": "columns",
+      "table": "tournament_stage_groups"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "metadata",
+      "entityType": "columns",
+      "table": "tournament_stage_groups"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "tournament_stage_groups"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "tournament_stage_groups"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "tournament_stage_team_entries"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "tournament_id",
+      "entityType": "columns",
+      "table": "tournament_stage_team_entries"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stage_id",
+      "entityType": "columns",
+      "table": "tournament_stage_team_entries"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "stage_group_id",
+      "entityType": "columns",
+      "table": "tournament_stage_team_entries"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "team_id",
+      "entityType": "columns",
+      "table": "tournament_stage_team_entries"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "seed",
+      "entityType": "columns",
+      "table": "tournament_stage_team_entries"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'direct'",
+      "generated": null,
+      "name": "entry_source",
+      "entityType": "columns",
+      "table": "tournament_stage_team_entries"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "name": "is_qualified",
+      "entityType": "columns",
+      "table": "tournament_stage_team_entries"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "name": "is_eliminated",
+      "entityType": "columns",
+      "table": "tournament_stage_team_entries"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "tournament_stage_team_entries"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "tournament_stage_team_entries"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "tournament_stages"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "tournament_id",
+      "entityType": "columns",
+      "table": "tournament_stages"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "name",
+      "entityType": "columns",
+      "table": "tournament_stages"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "code",
+      "entityType": "columns",
+      "table": "tournament_stages"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'league'",
+      "generated": null,
+      "name": "stage_type",
+      "entityType": "columns",
+      "table": "tournament_stages"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'single_round_robin'",
+      "generated": null,
+      "name": "format",
+      "entityType": "columns",
+      "table": "tournament_stages"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "name": "sequence",
+      "entityType": "columns",
+      "table": "tournament_stages"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'upcoming'",
+      "generated": null,
+      "name": "status",
+      "entityType": "columns",
+      "table": "tournament_stages"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "parent_stage_id",
+      "entityType": "columns",
+      "table": "tournament_stages"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "name": "qualification_slots",
+      "entityType": "columns",
+      "table": "tournament_stages"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "match_format_id",
+      "entityType": "columns",
+      "table": "tournament_stages"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "metadata",
+      "entityType": "columns",
+      "table": "tournament_stages"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "table": "tournament_stages"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "table": "tournament_stages"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
       "table": "tournament_teams"
     },
     {
@@ -3115,6 +3899,46 @@
       "table": "tournaments"
     },
     {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "season",
+      "entityType": "columns",
+      "table": "tournaments"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'league'",
+      "generated": null,
+      "name": "type",
+      "entityType": "columns",
+      "table": "tournaments"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'open'",
+      "generated": null,
+      "name": "gender_allowed",
+      "entityType": "columns",
+      "table": "tournaments"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": "100",
+      "generated": null,
+      "name": "age_limit",
+      "entityType": "columns",
+      "table": "tournaments"
+    },
+    {
       "type": "integer",
       "notNull": true,
       "autoincrement": false,
@@ -3145,12 +3969,12 @@
       "table": "tournaments"
     },
     {
-      "type": "text",
+      "type": "integer",
       "notNull": true,
       "autoincrement": false,
       "default": null,
       "generated": null,
-      "name": "format",
+      "name": "default_match_format_id",
       "entityType": "columns",
       "table": "tournaments"
     },
@@ -3515,7 +4339,7 @@
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
-      "name": "fk_accounts_user_id_users_id_fk",
+      "name": "fk_account_user_id_user_id_fk",
       "entityType": "fks",
       "table": "account"
     },
@@ -3716,6 +4540,81 @@
     },
     {
       "columns": [
+        "match_id"
+      ],
+      "tableTo": "matches",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_match_participant_sources_match_id_matches_id_fk",
+      "entityType": "fks",
+      "table": "match_participant_sources"
+    },
+    {
+      "columns": [
+        "source_team_id"
+      ],
+      "tableTo": "teams",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_match_participant_sources_source_team_id_teams_id_fk",
+      "entityType": "fks",
+      "table": "match_participant_sources"
+    },
+    {
+      "columns": [
+        "source_match_id"
+      ],
+      "tableTo": "matches",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_match_participant_sources_source_match_id_matches_id_fk",
+      "entityType": "fks",
+      "table": "match_participant_sources"
+    },
+    {
+      "columns": [
+        "source_stage_id"
+      ],
+      "tableTo": "tournament_stages",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_match_participant_sources_source_stage_id_tournament_stages_id_fk",
+      "entityType": "fks",
+      "table": "match_participant_sources"
+    },
+    {
+      "columns": [
+        "source_stage_group_id"
+      ],
+      "tableTo": "tournament_stage_groups",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_match_participant_sources_source_stage_group_id_tournament_stage_groups_id_fk",
+      "entityType": "fks",
+      "table": "match_participant_sources"
+    },
+    {
+      "columns": [
         "tournament_id"
       ],
       "tableTo": "tournaments",
@@ -3726,6 +4625,21 @@
       "onDelete": "NO ACTION",
       "nameExplicit": false,
       "name": "fk_matches_tournament_id_tournaments_id_fk",
+      "entityType": "fks",
+      "table": "matches"
+    },
+    {
+      "columns": [
+        "match_format_id"
+      ],
+      "tableTo": "match_formats",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_matches_match_format_id_match_formats_id_fk",
       "entityType": "fks",
       "table": "matches"
     },
@@ -3806,6 +4720,36 @@
     },
     {
       "columns": [
+        "stage_id"
+      ],
+      "tableTo": "tournament_stages",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_matches_stage_id_tournament_stages_id_fk",
+      "entityType": "fks",
+      "table": "matches"
+    },
+    {
+      "columns": [
+        "stage_group_id"
+      ],
+      "tableTo": "tournament_stage_groups",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_matches_stage_group_id_tournament_stage_groups_id_fk",
+      "entityType": "fks",
+      "table": "matches"
+    },
+    {
+      "columns": [
         "venue_id"
       ],
       "tableTo": "venues",
@@ -3845,7 +4789,7 @@
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
-      "name": "fk_passkeys_user_id_users_id_fk",
+      "name": "fk_passkey_user_id_user_id_fk",
       "entityType": "fks",
       "table": "passkey"
     },
@@ -4040,7 +4984,7 @@
       "onUpdate": "NO ACTION",
       "onDelete": "NO ACTION",
       "nameExplicit": false,
-      "name": "fk_sessions_user_id_users_id_fk",
+      "name": "fk_session_user_id_user_id_fk",
       "entityType": "fks",
       "table": "session"
     },
@@ -4153,6 +5097,171 @@
     },
     {
       "columns": [
+        "from_stage_id"
+      ],
+      "tableTo": "tournament_stages",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_tournament_stage_advancements_from_stage_id_tournament_stages_id_fk",
+      "entityType": "fks",
+      "table": "tournament_stage_advancements"
+    },
+    {
+      "columns": [
+        "from_stage_group_id"
+      ],
+      "tableTo": "tournament_stage_groups",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_tournament_stage_advancements_from_stage_group_id_tournament_stage_groups_id_fk",
+      "entityType": "fks",
+      "table": "tournament_stage_advancements"
+    },
+    {
+      "columns": [
+        "to_stage_id"
+      ],
+      "tableTo": "tournament_stages",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_tournament_stage_advancements_to_stage_id_tournament_stages_id_fk",
+      "entityType": "fks",
+      "table": "tournament_stage_advancements"
+    },
+    {
+      "columns": [
+        "stage_id"
+      ],
+      "tableTo": "tournament_stages",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_tournament_stage_groups_stage_id_tournament_stages_id_fk",
+      "entityType": "fks",
+      "table": "tournament_stage_groups"
+    },
+    {
+      "columns": [
+        "tournament_id"
+      ],
+      "tableTo": "tournaments",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_tournament_stage_team_entries_tournament_id_tournaments_id_fk",
+      "entityType": "fks",
+      "table": "tournament_stage_team_entries"
+    },
+    {
+      "columns": [
+        "stage_id"
+      ],
+      "tableTo": "tournament_stages",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_tournament_stage_team_entries_stage_id_tournament_stages_id_fk",
+      "entityType": "fks",
+      "table": "tournament_stage_team_entries"
+    },
+    {
+      "columns": [
+        "stage_group_id"
+      ],
+      "tableTo": "tournament_stage_groups",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_tournament_stage_team_entries_stage_group_id_tournament_stage_groups_id_fk",
+      "entityType": "fks",
+      "table": "tournament_stage_team_entries"
+    },
+    {
+      "columns": [
+        "team_id"
+      ],
+      "tableTo": "teams",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_tournament_stage_team_entries_team_id_teams_id_fk",
+      "entityType": "fks",
+      "table": "tournament_stage_team_entries"
+    },
+    {
+      "columns": [
+        "tournament_id"
+      ],
+      "tableTo": "tournaments",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_tournament_stages_tournament_id_tournaments_id_fk",
+      "entityType": "fks",
+      "table": "tournament_stages"
+    },
+    {
+      "columns": [
+        "match_format_id"
+      ],
+      "tableTo": "match_formats",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_tournament_stages_match_format_id_match_formats_id_fk",
+      "entityType": "fks",
+      "table": "tournament_stages"
+    },
+    {
+      "columns": [
+        "parent_stage_id"
+      ],
+      "tableTo": "tournament_stages",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": true,
+      "name": "fk_tournament_stages_parent_stage",
+      "entityType": "fks",
+      "table": "tournament_stages"
+    },
+    {
+      "columns": [
         "tournament_id"
       ],
       "tableTo": "tournaments",
@@ -4198,6 +5307,21 @@
     },
     {
       "columns": [
+        "default_match_format_id"
+      ],
+      "tableTo": "match_formats",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_tournaments_default_match_format_id_match_formats_id_fk",
+      "entityType": "fks",
+      "table": "tournaments"
+    },
+    {
+      "columns": [
         "champion_team_id"
       ],
       "tableTo": "teams",
@@ -4216,7 +5340,7 @@
         "id"
       ],
       "nameExplicit": false,
-      "name": "accounts_pk",
+      "name": "account_pk",
       "table": "account",
       "entityType": "pks"
     },
@@ -4243,8 +5367,26 @@
         "id"
       ],
       "nameExplicit": false,
+      "name": "match_formats_pk",
+      "table": "match_formats",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
       "name": "match_lineup_pk",
       "table": "match_lineup",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "match_participant_sources_pk",
+      "table": "match_participant_sources",
       "entityType": "pks"
     },
     {
@@ -4270,7 +5412,7 @@
         "id"
       ],
       "nameExplicit": false,
-      "name": "passkeys_pk",
+      "name": "passkey_pk",
       "table": "passkey",
       "entityType": "pks"
     },
@@ -4324,7 +5466,7 @@
         "id"
       ],
       "nameExplicit": false,
-      "name": "sessions_pk",
+      "name": "session_pk",
       "table": "session",
       "entityType": "pks"
     },
@@ -4369,6 +5511,42 @@
         "id"
       ],
       "nameExplicit": false,
+      "name": "tournament_stage_advancements_pk",
+      "table": "tournament_stage_advancements",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "tournament_stage_groups_pk",
+      "table": "tournament_stage_groups",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "tournament_stage_team_entries_pk",
+      "table": "tournament_stage_team_entries",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "tournament_stages_pk",
+      "table": "tournament_stages",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
       "name": "tournament_teams_pk",
       "table": "tournament_teams",
       "entityType": "pks"
@@ -4387,7 +5565,7 @@
         "id"
       ],
       "nameExplicit": false,
-      "name": "users_pk",
+      "name": "user_pk",
       "table": "user",
       "entityType": "pks"
     },
@@ -4405,7 +5583,7 @@
         "id"
       ],
       "nameExplicit": false,
-      "name": "verifications_pk",
+      "name": "verification_pk",
       "table": "verification",
       "entityType": "pks"
     },
@@ -4606,6 +5784,52 @@
     {
       "columns": [
         {
+          "value": "match_id",
+          "isExpression": false
+        },
+        {
+          "value": "team_slot",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "name": "match_participant_sources_match_slot_unique",
+      "entityType": "indexes",
+      "table": "match_participant_sources"
+    },
+    {
+      "columns": [
+        {
+          "value": "source_match_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "match_participant_sources_source_match_idx",
+      "entityType": "indexes",
+      "table": "match_participant_sources"
+    },
+    {
+      "columns": [
+        {
+          "value": "source_stage_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "match_participant_sources_source_stage_idx",
+      "entityType": "indexes",
+      "table": "match_participant_sources"
+    },
+    {
+      "columns": [
+        {
           "value": "winner_id",
           "isExpression": false
         }
@@ -4614,6 +5838,20 @@
       "where": null,
       "origin": "manual",
       "name": "rank_idx",
+      "entityType": "indexes",
+      "table": "matches"
+    },
+    {
+      "columns": [
+        {
+          "value": "match_format_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "matches_format_idx",
       "entityType": "indexes",
       "table": "matches"
     },
@@ -4870,6 +6108,170 @@
     {
       "columns": [
         {
+          "value": "from_stage_id",
+          "isExpression": false
+        },
+        {
+          "value": "from_stage_group_id",
+          "isExpression": false
+        },
+        {
+          "value": "position_from",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "name": "tournament_stage_advancements_from_position_unique",
+      "entityType": "indexes",
+      "table": "tournament_stage_advancements"
+    },
+    {
+      "columns": [
+        {
+          "value": "to_stage_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "tournament_stage_advancements_to_stage_idx",
+      "entityType": "indexes",
+      "table": "tournament_stage_advancements"
+    },
+    {
+      "columns": [
+        {
+          "value": "stage_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "tournament_stage_groups_stage_idx",
+      "entityType": "indexes",
+      "table": "tournament_stage_groups"
+    },
+    {
+      "columns": [
+        {
+          "value": "stage_id",
+          "isExpression": false
+        },
+        {
+          "value": "sequence",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "name": "tournament_stage_groups_stage_sequence_unique",
+      "entityType": "indexes",
+      "table": "tournament_stage_groups"
+    },
+    {
+      "columns": [
+        {
+          "value": "stage_id",
+          "isExpression": false
+        },
+        {
+          "value": "team_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "name": "tournament_stage_team_entries_stage_team_unique",
+      "entityType": "indexes",
+      "table": "tournament_stage_team_entries"
+    },
+    {
+      "columns": [
+        {
+          "value": "tournament_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "tournament_stage_team_entries_tournament_idx",
+      "entityType": "indexes",
+      "table": "tournament_stage_team_entries"
+    },
+    {
+      "columns": [
+        {
+          "value": "stage_group_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "tournament_stage_team_entries_group_idx",
+      "entityType": "indexes",
+      "table": "tournament_stage_team_entries"
+    },
+    {
+      "columns": [
+        {
+          "value": "tournament_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "tournament_stages_tournament_idx",
+      "entityType": "indexes",
+      "table": "tournament_stages"
+    },
+    {
+      "columns": [
+        {
+          "value": "tournament_id",
+          "isExpression": false
+        },
+        {
+          "value": "sequence",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "tournament_stages_sequence_idx",
+      "entityType": "indexes",
+      "table": "tournament_stages"
+    },
+    {
+      "columns": [
+        {
+          "value": "tournament_id",
+          "isExpression": false
+        },
+        {
+          "value": "sequence",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "name": "tournament_stages_tournament_sequence_unique",
+      "entityType": "indexes",
+      "table": "tournament_stages"
+    },
+    {
+      "columns": [
+        {
           "value": "tournament_id",
           "isExpression": false
         },
@@ -4904,7 +6306,7 @@
         "username"
       ],
       "nameExplicit": false,
-      "name": "users_username_unique",
+      "name": "user_username_unique",
       "entityType": "uniques",
       "table": "user"
     },
@@ -4913,7 +6315,7 @@
         "display_username"
       ],
       "nameExplicit": false,
-      "name": "users_display_username_unique",
+      "name": "user_display_username_unique",
       "entityType": "uniques",
       "table": "user"
     },
@@ -4922,7 +6324,7 @@
         "email"
       ],
       "nameExplicit": false,
-      "name": "users_email_unique",
+      "name": "user_email_unique",
       "entityType": "uniques",
       "table": "user"
     },
@@ -4931,7 +6333,7 @@
         "phone_number"
       ],
       "nameExplicit": false,
-      "name": "users_phone_number_unique",
+      "name": "user_phone_number_unique",
       "entityType": "uniques",
       "table": "user"
     }

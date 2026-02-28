@@ -15,6 +15,10 @@ import {
 } from "@/services/innings.service";
 import { getMatchById } from "@/services/match.service";
 import {
+  getMatchFormatRulesByInningsId,
+  getMatchFormatRulesByMatchId,
+} from "@/services/match-format.service";
+import {
   createPlayerPerformanceAction,
   getPlayerMatchPerformance,
 } from "@/services/player.service";
@@ -37,18 +41,21 @@ interface LegacyBallInput {
   wicketType?: string;
 }
 
-function getSequenceMeta(sequenceNo: number) {
+function getSequenceMeta(sequenceNo: number, ballsPerOver: number) {
   const normalized = Math.max(1, sequenceNo);
   return {
     sequenceNo: normalized,
-    overNumber: Math.floor((normalized - 1) / 6) + 1,
-    ballInOver: ((normalized - 1) % 6) + 1,
+    overNumber: Math.floor((normalized - 1) / ballsPerOver) + 1,
+    ballInOver: ((normalized - 1) % ballsPerOver) + 1,
   };
 }
 
-function toDeliveryPayload(input: LegacyBallInput): Omit<NewDelivery, "id"> {
+function toDeliveryPayload(
+  input: LegacyBallInput,
+  ballsPerOver: number
+): Omit<NewDelivery, "id"> {
   const sequenceNo = input.ballNumber ?? 1;
-  const { overNumber, ballInOver } = getSequenceMeta(sequenceNo);
+  const { overNumber, ballInOver } = getSequenceMeta(sequenceNo, ballsPerOver);
 
   const runsScored = input.runsScored ?? 0;
   const isWide = Boolean(input.isWide);
@@ -93,6 +100,8 @@ function toDeliveryPayload(input: LegacyBallInput): Omit<NewDelivery, "id"> {
 }
 
 async function syncInningsAndStats(inningsId: number) {
+  const rules = await getMatchFormatRulesByInningsId(inningsId);
+
   // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Scoring state synchronization is intentionally centralized.
   await db.transaction(async (tx) => {
     const inningsRow = await tx.query.innings.findFirst({
@@ -336,7 +345,7 @@ async function syncInningsAndStats(inningsId: number) {
     }
 
     for (const [overKey, state] of overBowlerTracker.entries()) {
-      if (state.legalBalls === 6 && state.runs === 0) {
+      if (state.legalBalls === rules.ballsPerOver && state.runs === 0) {
         const [bowlerIdRaw] = overKey.split(":");
         const bowlerId = Number(bowlerIdRaw);
         const bowlerStats = statsByPlayer.get(bowlerId);
@@ -370,7 +379,8 @@ export async function saveBallData(
     matchId: number;
   }
 ) {
-  const payload = toDeliveryPayload(input);
+  const rules = await getMatchFormatRulesByInningsId(input.inningsId);
+  const payload = toDeliveryPayload(input, rules.ballsPerOver);
 
   await db.transaction(async (tx) => {
     if (input.id) {
@@ -436,7 +446,11 @@ export async function onSelectCurrentBattersAndBowler({
     throw new Error("Innings not created");
   }
 
-  const { sequenceNo, overNumber, ballInOver } = getSequenceMeta(ballNumber);
+  const rules = await getMatchFormatRulesByMatchId(matchId);
+  const { sequenceNo, overNumber, ballInOver } = getSequenceMeta(
+    ballNumber,
+    rules.ballsPerOver
+  );
 
   await createNewBallAction({
     inningsId: Number(inningsId),
@@ -513,8 +527,11 @@ export async function onSelectNewBatter({
   bowlerId: number;
 }) {
   const nextSequenceNo = isExtra ? ballNumber : ballNumber + 1;
-  const { sequenceNo, overNumber, ballInOver } =
-    getSequenceMeta(nextSequenceNo);
+  const rules = await getMatchFormatRulesByInningsId(inningsId);
+  const { sequenceNo, overNumber, ballInOver } = getSequenceMeta(
+    nextSequenceNo,
+    rules.ballsPerOver
+  );
 
   await createNewBallAction({
     inningsId,
@@ -571,8 +588,11 @@ export async function onSelectNewBowler({
   bowlerId: number;
 }) {
   const nextSequenceNo = ballNumber + 1;
-  const { sequenceNo, overNumber, ballInOver } =
-    getSequenceMeta(nextSequenceNo);
+  const rules = await getMatchFormatRulesByInningsId(inningsId);
+  const { sequenceNo, overNumber, ballInOver } = getSequenceMeta(
+    nextSequenceNo,
+    rules.ballsPerOver
+  );
 
   await createNewBallAction({
     inningsId,

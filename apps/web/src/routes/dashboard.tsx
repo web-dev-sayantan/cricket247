@@ -100,7 +100,7 @@ function DashboardComponent() {
             {liveTournaments.map((tournament) => (
               <TournamentCard
                 endDate={tournament.endDate}
-                format={tournament.format}
+                format={tournament.type}
                 id={tournament.id}
                 key={tournament.id}
                 name={tournament.name}

@@ -23,6 +23,8 @@ type FormCode = "W" | "L" | "T" | "D" | "A";
 interface MutableStats {
   ballsBowled: number;
   ballsFaced: number;
+  battingOversEquivalent: number;
+  bowlingOversEquivalent: number;
   matchesAbandoned: number;
   matchesDrawn: number;
   matchesLost: number;
@@ -48,6 +50,8 @@ function createEmptyStats(): MutableStats {
     runsConceded: 0,
     ballsFaced: 0,
     ballsBowled: 0,
+    battingOversEquivalent: 0,
+    bowlingOversEquivalent: 0,
     recentForm: [],
   };
 }
@@ -56,12 +60,12 @@ function roundTo2(value: number): number {
   return Number(value.toFixed(2));
 }
 
-function toOvers(balls: number): number {
+function toOvers(balls: number, ballsPerOver: number): number {
   if (balls <= 0) {
     return 0;
   }
 
-  return balls / 6;
+  return balls / ballsPerOver;
 }
 
 function computeWinPercentage(
@@ -77,13 +81,10 @@ function computeWinPercentage(
 
 function computeNetRunRate(
   runsScored: number,
-  ballsFaced: number,
+  oversFaced: number,
   runsConceded: number,
-  ballsBowled: number
+  oversBowled: number
 ): number {
-  const oversFaced = toOvers(ballsFaced);
-  const oversBowled = toOvers(ballsBowled);
-
   if (oversFaced <= 0 || oversBowled <= 0) {
     return 0;
   }
@@ -191,6 +192,9 @@ function aggregateStats(
   relevantInnings: (typeof innings.$inferSelect)[]
 ): MutableStats {
   const stats = createEmptyStats();
+  const matchesById = new Map(
+    relevantMatches.map((match) => [match.id, match])
+  );
   const sortedMatches = [...relevantMatches].sort((first, second) =>
     compareDesc(first.matchDate, second.matchDate)
   );
@@ -201,14 +205,19 @@ function aggregateStats(
   }
 
   for (const inning of relevantInnings) {
+    const match = matchesById.get(inning.matchId);
+    const ballsPerOver = match?.ballsPerOverSnapshot ?? 6;
+
     if (inning.battingTeamId === targetTeamId) {
       stats.runsScored += inning.totalScore;
       stats.ballsFaced += inning.ballsBowled;
+      stats.battingOversEquivalent += toOvers(inning.ballsBowled, ballsPerOver);
     }
 
     if (inning.bowlingTeamId === targetTeamId) {
       stats.runsConceded += inning.totalScore;
       stats.ballsBowled += inning.ballsBowled;
+      stats.bowlingOversEquivalent += toOvers(inning.ballsBowled, ballsPerOver);
     }
   }
 
@@ -227,9 +236,9 @@ async function upsertCareerStats(
   );
   const netRunRate = computeNetRunRate(
     stats.runsScored,
-    stats.ballsFaced,
+    stats.battingOversEquivalent,
     stats.runsConceded,
-    stats.ballsBowled
+    stats.bowlingOversEquivalent
   );
   const recentForm = JSON.stringify(stats.recentForm);
 
@@ -307,9 +316,9 @@ async function upsertTournamentStatsForTeam(
     );
     const netRunRate = computeNetRunRate(
       stats.runsScored,
-      stats.ballsFaced,
+      stats.battingOversEquivalent,
       stats.runsConceded,
-      stats.ballsBowled
+      stats.bowlingOversEquivalent
     );
     const recentForm = JSON.stringify(stats.recentForm);
 

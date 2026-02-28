@@ -1,7 +1,15 @@
 import type { Team } from "@cricket247/server/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { FilterX, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import {
+  FilterX,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  UserPlus,
+  X,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -33,7 +41,7 @@ const DESKTOP_SKELETON_ROWS = 8;
 const MOBILE_SKELETON_CARDS = 5;
 
 const DESKTOP_ROW_BASE = "grid items-center gap-4 px-5 py-3";
-const DESKTOP_ROW_WITH_ACTIONS = `${DESKTOP_ROW_BASE} grid-cols-[minmax(0,1fr)_120px_280px]`;
+const DESKTOP_ROW_WITH_ACTIONS = `${DESKTOP_ROW_BASE} grid-cols-[minmax(0,1fr)_120px_400px]`;
 const DESKTOP_ROW_NO_ACTIONS = `${DESKTOP_ROW_BASE} grid-cols-[minmax(0,1fr)_120px_120px]`;
 
 type SortOption = "name-asc" | "name-desc" | "short-asc" | "short-desc";
@@ -487,6 +495,17 @@ function RouteComponent() {
                             variant: "secondary",
                           })}
                           params={{ teamId: String(team.id) }}
+                          to="/teams/$teamId/assign-players"
+                        >
+                          <UserPlus />
+                          Assign
+                        </Link>
+                        <Link
+                          className={buttonVariants({
+                            size: "sm",
+                            variant: "secondary",
+                          })}
+                          params={{ teamId: String(team.id) }}
                           to="/teams/$teamId/stats"
                         >
                           Stats
@@ -615,10 +634,22 @@ function RouteComponent() {
                       </div>
 
                       {isAdmin ? (
-                        <div className="flex gap-2 border-t pt-3">
+                        <div className="flex flex-wrap gap-2 border-t pt-3">
                           <Link
                             className={buttonVariants({
-                              className: "flex-1",
+                              className: "min-w-24 flex-1",
+                              size: "sm",
+                              variant: "secondary",
+                            })}
+                            params={{ teamId: String(team.id) }}
+                            to="/teams/$teamId/assign-players"
+                          >
+                            <UserPlus />
+                            Assign
+                          </Link>
+                          <Link
+                            className={buttonVariants({
+                              className: "min-w-24 flex-1",
                               size: "sm",
                               variant: "secondary",
                             })}
@@ -628,7 +659,7 @@ function RouteComponent() {
                             Stats
                           </Link>
                           <Button
-                            className="flex-1"
+                            className="min-w-24 flex-1"
                             disabled={isCardPending}
                             onClick={() => handleEditStart(team)}
                             size="sm"
@@ -639,7 +670,7 @@ function RouteComponent() {
                             Edit
                           </Button>
                           <Button
-                            className="flex-1"
+                            className="min-w-24 flex-1"
                             disabled={isCardPending}
                             onClick={() => handleDelete(team)}
                             size="sm"

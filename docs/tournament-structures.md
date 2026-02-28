@@ -1,10 +1,10 @@
-# Tournament Structures — Architecture & Design Reference
+# Tournament Structures — Architecture & Schema Reference
 
 ## Overview
 
-Cricket247 supports flexible, multi-stage tournament structures capable of modelling any real-world cricket competition format: straight leagues, knockout brackets, hybrid group-stage-then-knockout events, and multi-leg ties.
+Cricket247 uses a stage-based tournament model designed to support league, grouped, knockout, and hybrid competitions.
 
-This document records the architectural decisions made during the implementation of the stage-based tournament system, the reasoning behind each choice, the formats currently supported, and concrete examples of how to create and seed each format.
+This document keeps the original architectural rationale while aligning all structural details to the current Drizzle schema in `apps/server/src/db/schema/index.ts`.
 
 ---
 
@@ -12,284 +12,367 @@ This document records the architectural decisions made during the implementation
 
 ### 1. Stage-Based Decomposition
 
-**Decision:** Model a tournament as a sequence of *stages* rather than a monolithic structure.
+**Decision:** Model tournaments as an ordered sequence of stages (`tournament_stages`) instead of a single flat tournament format.
 
-**Reasoning:**
+**Why this helps:**
 
-- Most real cricket tournaments are naturally multi-phase (group stage → Super 8s → knockouts).
-- A single-level model cannot represent advancement from one phase to another without either hard-coding phase logic or forcing denormalisation in the `matches` table.
-- Stages can be independently typed (`league`, `group`, `knockout`, `round_robin`, `super_over`) and formatted (`single_elimination`, `double_elimination`, `round_robin`, `swiss`), giving maximum flexibility without schema changes.
+- Real competitions are often multi-phase (for example, group stage then knockouts).
+- Stage boundaries provide a clean way to represent transitions and qualification.
+- Per-stage metadata (`stageType`, `format`, `sequence`, `status`, `qualificationSlots`) avoids overloading the match record.
 
-**Schema:**
+**Schema-aligned stage fields:**
 
-```sql
-tournament_stages (
-  id, tournament_id, name, code,
-  stage_type, format, sequence, status,
-  parent_stage_id,   -- self-FK for derived/sub-stages
-  qualification_slots,
-  metadata           -- arbitrary JSON for extra config
-)
-```
+- `id`, `tournamentId`, `name`, `code`
+- `stageType` (default: `league`)
+- `format` (default: `single_round_robin`)
+- `sequence` (default: `1`)
+- `status` (default: `upcoming`)
+- `parentStageId` (self FK)
+- `qualificationSlots` (default: `0`)
+- `matchFormatId` (FK -> `match_formats.id`)
+- `metadata` (json text)
 
 ---
 
 ### 2. Groups Within a Stage
 
-**Decision:** Introduce a `tournament_stage_groups` table as a child of `tournament_stages`.
+**Decision:** Represent groups in `tournament_stage_groups` rather than embedding group data directly in stages.
 
-**Reasoning:**
+**Why this helps:**
 
-- League stages routinely split teams into named pools (Group A, Group B, Pool 1 …).
-- Groups are optional: a stage with no groups is treated as a single pool.
-- Keeping groups as a separate table (rather than a column on stages) avoids null-heavy schemas and enables querying group standings independently.
+- Grouped and non-grouped stages can coexist cleanly.
+- Group-level ordering and qualification can be managed independently.
+- Group records stay queryable for standings/advancement logic.
 
-**Schema:**
+**Schema-aligned group fields:**
 
-```sql
-tournament_stage_groups (
-  id, stage_id, name, code,
-  sequence, advancing_slots, metadata
-)
-```
+- `id`, `stageId`, `name`, `code`
+- `sequence` (default: `1`)
+- `advancingSlots` (default: `0`)
+- `metadata` (json text)
 
----
+Constraint highlights:
 
-### 3. Explicit Team Entry Records
-
-**Decision:** Record each team's presence in a specific stage (and optionally a group) via `tournament_stage_team_entries`, separate from the top-level `tournament_teams`.
-
-**Reasoning:**
-
-- A team registered for a tournament may not participate in every stage (e.g., eliminated before Super 8s).
-- Tracking entry per stage allows proper seeding (`seed` column), clear qualification/elimination flags, and an audit trail of *how* a team entered (`direct`, `qualified_from_stage`, `wildcard`).
-- The unique constraint on `(stage_id, team_id)` prevents duplicate assignments while still allowing a team to appear in different stages.
+- Unique sequence per stage: `tournament_stage_groups_stage_sequence_unique` on (`stageId`, `sequence`)
 
 ---
 
-### 4. Advancement Rules as First-Class Data
+### 3. Explicit Team Entries Per Stage
 
-**Decision:** Store inter-stage progression rules in a dedicated `tournament_stage_advancements` table rather than embedding them in code or the stage record.
+**Decision:** Keep stage participation in `tournament_stage_team_entries` rather than inferring from `tournament_teams`.
 
-**Reasoning:**
+**Why this helps:**
 
-- Advancement logic is highly variable: "top 2 from each group", "3rd-place play-offs", "best runner-up wild cards".
-- Encoding this as data means the seeding service can read and apply rules without knowing the specific tournament structure in advance.
-- It also makes the rules inspectable and editable via the admin API without deploying code.
+- Tournament registration and stage participation are distinct concepts.
+- Teams can be seeded and tracked per stage/group.
+- Qualification/elimination state is explicit and auditable.
 
-**Schema:**
+**Schema-aligned entry fields:**
 
-```sql
-tournament_stage_advancements (
-  id,
-  from_stage_id, from_stage_group_id, position_from,
-  to_stage_id, to_slot,
-  qualification_type  -- 'automatic' | 'playoff' | 'wildcard'
-)
-```
+- `tournamentId`, `stageId`, `stageGroupId`, `teamId`
+- `seed`
+- `entrySource` (default: `direct`)
+- `isQualified` (boolean integer, default: `false`)
+- `isEliminated` (boolean integer, default: `false`)
+
+Constraint highlights:
+
+- Unique team per stage: `tournament_stage_team_entries_stage_team_unique` on (`stageId`, `teamId`)
+
+---
+
+### 4. Advancement Rules as Data
+
+**Decision:** Store stage-to-stage qualification mapping in `tournament_stage_advancements`.
+
+**Why this helps:**
+
+- Progression rules vary by tournament design.
+- Qualification becomes inspectable and editable as records.
+- Seeding/scheduling logic can resolve transitions from data.
+
+**Schema-aligned advancement fields:**
+
+- `fromStageId`, `fromStageGroupId`, `positionFrom`
+- `toStageId`, `toSlot`
+- `qualificationType` (default: `position`)
+
+Constraint highlights:
+
+- Unique progression source key: `tournament_stage_advancements_from_position_unique` on (`fromStageId`, `fromStageGroupId`, `positionFrom`)
 
 ---
 
 ### 5. Match Participant Source Resolution
 
-**Decision:** Add a `match_participant_sources` table to record where each team slot in a match comes from.
+**Decision:** Use `match_participant_sources` to describe how each team slot in a match is derived.
 
-**Reasoning:**
+**Why this helps:**
 
-- In knockout brackets, match slots are often "winner of match X" or "1st in Group B" rather than a known team at scheduling time.
-- Storing this separately from the match itself means matches can be created speculatively (for bracket generation) before results are known, and the source can be resolved lazily once prerequisites are complete.
+- Bracket matches can be created before exact teams are known.
+- Slot origin can reference team, prior match, stage, and position.
+- Deferred resolution supports dynamic bracket advancement.
 
----
+**Schema-aligned source fields:**
 
-### 6. Lightweight Stage Metadata on Matches
+- `matchId`, `teamSlot` (default: `1`)
+- `sourceType` (default: `team`)
+- `sourceTeamId`, `sourceMatchId`, `sourceStageId`, `sourceStageGroupId`, `sourcePosition`
 
-**Decision:** Extend the `matches` table with `stage_id`, `stage_group_id`, `stage_round`, `stage_sequence`, and `knockout_leg` columns.
+Constraint highlights:
 
-**Reasoning:**
-
-- Joining back to stages on every match query is expensive and verbose.
-- Denormalising these five columns onto `matches` gives instant context for scorecards, fixtures lists, and standings calculations.
-- `knockout_leg` (default `1`) enables two-legged ties (SuperSeries, bilateral finals) without a separate table.
-
----
-
-### 7. Tournament-Level Metadata Additions
-
-**Decision:** Add `type`, `gender_allowed`, and `age_limit` to `tournaments`.
-
-**Reasoning:**
-
-- `type` (`league`, `knockout`, `hybrid`, `bilateral`) classifies the competition at the highest level for filtering and UI display.
-- `gender_allowed` (`open`, `men`, `women`, `mixed`) enables gender-specific tournament browsing.
-- `age_limit` (default `100`, meaning unlimited) supports age-group events (U19, U23) without a separate entity.
+- Unique per match slot: `match_participant_sources_match_slot_unique` on (`matchId`, `teamSlot`)
 
 ---
 
-### 8. Template Seeding as a Single RPC Call
+### 6. Stage Metadata on Matches
 
-**Decision:** Implement a `seedTournamentTemplate` admin RPC that creates all stages, groups, team entries, and advancement rules in one transaction-like call.
+**Decision:** Keep stage context directly on `matches` using nullable stage columns.
 
-**Reasoning:**
+**Why this helps:**
 
-- Creating a tournament structure manually (stage → group → entries → advancements) requires 10–30 sequential API calls; a template reduces this to one.
-- Templates encode opinionated but common configurations that cover 90% of real tournaments.
-- Escaping the template is still possible: seed first, then patch individual records via the granular CRUD endpoints.
-- `resetExisting: true` (default) makes re-seeding idempotent — safe to repeat without leaving orphaned records.
+- Stage-aware fixture queries are straightforward.
+- Match rows preserve where each game belongs in tournament flow.
+- Knockout legs are represented without a separate tie table.
 
----
+**Schema-aligned stage columns on matches:**
 
-## Supported Formats
-
-### Format 1 — Straight League (`straight_league`)
-
-All registered teams compete in a single round-robin pool. Every team plays every other team (home, away, or neutral depending on tournament config). Final standings determine the winner.
-
-**Stages created:** 1 (`league` stage, `round_robin` format)  
-**Groups created:** 0 (single pool)  
-**Advancement rules:** 0 (no further stage)
-
-**Example call:**
-
-```typescript
-await rpc.seedTournamentTemplate({
-  tournamentId: 5,
-  template: "straight_league",
-});
-```
-
-**Typical use:** Bilateral series, domestic league (IPL, BBL regular season), club round-robins.
+- `stageId`, `stageGroupId`
+- `stageRound`, `stageSequence`
+- `knockoutLeg` (default: `1`)
 
 ---
 
-### Format 2 — Straight Knockout (`straight_knockout`)
+### 7. Tournament-Level Classification and Defaults
 
-All (or a selected subset of) teams enter a single-elimination bracket. Matches are seeded 1 vs N, 2 vs N-1, etc. Teams must be a power of 2, or byes are added.
+**Decision:** Keep high-level tournament metadata in `tournaments`.
 
-**Stages created:** 1 (`knockout` stage, `single_elimination` format)  
-**Groups created:** 0  
-**Advancement rules:** 0
+**Why this helps:**
 
-**Example call:**
+- Enables filtering and presentation by competition type.
+- Supports demographic constraints and age categories.
+- Provides tournament-wide default match format.
 
-```typescript
-// All registered teams
-await rpc.seedTournamentTemplate({
-  tournamentId: 8,
-  template: "straight_knockout",
-});
+**Schema-aligned fields:**
 
-// Specific 8-team bracket
-await rpc.seedTournamentTemplate({
-  tournamentId: 8,
-  template: "straight_knockout",
-  teamIds: [3, 7, 12, 15, 18, 21, 24, 27],
-});
-```
-
-**Typical use:** Cup competitions, finals days, one-off tournaments.
+- `type` (default: `league`)
+- `genderAllowed` (default: `open`)
+- `ageLimit` (default: `100`)
+- `defaultMatchFormatId` (FK -> `match_formats.id`)
 
 ---
 
-### Format 3 — Grouped League with Playoffs (`grouped_league_with_playoffs`)
+### 8. Match Format Flexibility Across Tournament Levels
 
-Teams are distributed across N groups (default 2). Each group plays a round-robin. The top `advancingPerGroup` teams from each group qualify to a knockout playoff stage. Advancement rules are automatically created with a cross-seeding pattern (1st Group A vs 2nd Group B, etc.) for 2-group formats, and sequential seeding for larger group counts.
+**Decision:** Allow match format to be set at tournament, stage, and match levels.
 
-**Stages created:** 2 (`group` stage + `knockout` playoffs stage)  
-**Groups created:** `groupCount` (default 2) under the group stage  
-**Advancement rules:** `groupCount × advancingPerGroup` rows  
+**Why this helps:**
 
-**Example calls:**
+- Different stages can have different playing conditions.
+- Individual matches can override format where needed.
+- Snapshot fields preserve match-time rules for stats/scoring stability.
 
-```typescript
-// 4 groups, top 2 advance → 8-team knockout
-await rpc.seedTournamentTemplate({
-  tournamentId: 12,
-  template: "grouped_league_with_playoffs",
-  groupCount: 4,
-  advancingPerGroup: 2,
-});
+**Schema-aligned representation:**
 
-// 2 groups, top 4 advance → 8-team knockout (ICC T20 World Cup style)
-await rpc.seedTournamentTemplate({
-  tournamentId: 14,
-  template: "grouped_league_with_playoffs",
-  groupCount: 2,
-  advancingPerGroup: 4,
-});
+- Tournament default: `tournaments.defaultMatchFormatId`
+- Stage-level format: `tournament_stages.matchFormatId`
+- Match override: `matches.matchFormatId`
+- Snapshot fields on `matches`:
+  - `inningsPerSide`, `oversPerSide`, `maxOverPerBowler`
+  - `ballsPerOverSnapshot`, `maxLegalBallsPerInningsSnapshot`, `maxOversPerBowlerSnapshot`, `playersPerSide`
 
-// Only seed from specific enrolled teams
-await rpc.seedTournamentTemplate({
-  tournamentId: 14,
-  template: "grouped_league_with_playoffs",
-  teamIds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-  groupCount: 3,
-  advancingPerGroup: 2,
-});
-```
+---
 
-**Typical use:** ICC World Cups (group stage → Super 8s/knockouts), domestic cups with group phases, club tournaments with large team counts.
+## Exact Table Reference (Current Schema)
+
+### `tournaments`
+
+- `id` (PK, not null)
+- `name` (text, not null)
+- `category` (text, not null, default: `competitive`)
+- `season` (text, nullable)
+- `type` (text, not null, default: `league`)
+- `genderAllowed` (text, not null, default: `open`)
+- `ageLimit` (integer, nullable, default: `100`)
+- `organizationId` (FK -> `organizations.id`, not null)
+- `startDate` (timestamp, not null)
+- `endDate` (timestamp, not null)
+- `defaultMatchFormatId` (FK -> `match_formats.id`, not null)
+- `championTeamId` (FK -> `teams.id`, nullable)
+- `createdAt`, `updatedAt` (timestamp_ms, not null)
+
+Index:
+
+- `tournament_organization_idx` on (`organizationId`)
+
+---
+
+### `tournament_teams`
+
+- `id` (PK)
+- `tournamentId` (FK -> `tournaments.id`, not null)
+- `teamId` (FK -> `teams.id`, not null)
+- `points` (integer, default: `0`)
+- `matchesPlayed` (integer, default: `0`)
+- `matchesWon` (integer, default: `0`)
+- `matchesLost` (integer, default: `0`)
+- `matchesTied` (integer, default: `0`)
+- `matchesDrawn` (integer, default: `0`)
+- `createdAt`, `updatedAt` (timestamp_ms, not null)
+
+Constraint:
+
+- `unique_tournament_team` on (`tournamentId`, `teamId`)
+
+---
+
+### `tournament_stages`
+
+- `id` (PK, not null)
+- `tournamentId` (FK -> `tournaments.id`, not null)
+- `name` (text, not null)
+- `code` (text, nullable)
+- `stageType` (text, not null, default: `league`)
+- `format` (text, not null, default: `single_round_robin`)
+- `sequence` (integer, not null, default: `1`)
+- `status` (text, not null, default: `upcoming`)
+- `parentStageId` (self FK -> `tournament_stages.id`, nullable)
+- `qualificationSlots` (integer, not null, default: `0`)
+- `matchFormatId` (FK -> `match_formats.id`, not null)
+- `metadata` (json text, nullable)
+- `createdAt`, `updatedAt` (timestamp_ms, not null)
+
+Indexes/constraints:
+
+- `tournament_stages_tournament_idx` on (`tournamentId`)
+- `tournament_stages_sequence_idx` on (`tournamentId`, `sequence`)
+- `tournament_stages_tournament_sequence_unique` on (`tournamentId`, `sequence`)
+- `fk_tournament_stages_parent_stage` (`parentStageId` -> `id`)
+
+---
+
+### `tournament_stage_groups`
+
+- `id` (PK, not null)
+- `stageId` (FK -> `tournament_stages.id`, not null)
+- `name` (text, not null)
+- `code` (text, nullable)
+- `sequence` (integer, not null, default: `1`)
+- `advancingSlots` (integer, not null, default: `0`)
+- `metadata` (json text, nullable)
+- `createdAt`, `updatedAt` (timestamp_ms, not null)
+
+Indexes/constraints:
+
+- `tournament_stage_groups_stage_idx` on (`stageId`)
+- `tournament_stage_groups_stage_sequence_unique` on (`stageId`, `sequence`)
+
+---
+
+### `tournament_stage_team_entries`
+
+- `id` (PK, not null)
+- `tournamentId` (FK -> `tournaments.id`, not null)
+- `stageId` (FK -> `tournament_stages.id`, not null)
+- `stageGroupId` (FK -> `tournament_stage_groups.id`, nullable)
+- `teamId` (FK -> `teams.id`, not null)
+- `seed` (integer, nullable)
+- `entrySource` (text, not null, default: `direct`)
+- `isQualified` (boolean integer, not null, default: `false`)
+- `isEliminated` (boolean integer, not null, default: `false`)
+- `createdAt`, `updatedAt` (timestamp_ms, not null)
+
+Indexes/constraints:
+
+- `tournament_stage_team_entries_stage_team_unique` on (`stageId`, `teamId`)
+- `tournament_stage_team_entries_tournament_idx` on (`tournamentId`)
+- `tournament_stage_team_entries_group_idx` on (`stageGroupId`)
+
+---
+
+### `tournament_stage_advancements`
+
+- `id` (PK, not null)
+- `fromStageId` (FK -> `tournament_stages.id`, not null)
+- `fromStageGroupId` (FK -> `tournament_stage_groups.id`, nullable)
+- `positionFrom` (integer, not null)
+- `toStageId` (FK -> `tournament_stages.id`, not null)
+- `toSlot` (integer, not null)
+- `qualificationType` (text, not null, default: `position`)
+- `createdAt`, `updatedAt` (timestamp_ms, not null)
+
+Indexes/constraints:
+
+- `tournament_stage_advancements_from_position_unique` on (`fromStageId`, `fromStageGroupId`, `positionFrom`)
+- `tournament_stage_advancements_to_stage_idx` on (`toStageId`)
+
+---
+
+### `matches` (tournament-stage related fields)
+
+- `tournamentId` (FK -> `tournaments.id`, not null)
+- `matchFormatId` (FK -> `match_formats.id`, nullable)
+- `stageId` (FK -> `tournament_stages.id`, nullable)
+- `stageGroupId` (FK -> `tournament_stage_groups.id`, nullable)
+- `stageRound` (integer, nullable)
+- `stageSequence` (integer, nullable)
+- `knockoutLeg` (integer, not null, default: `1`)
+
+Format/snapshot fields:
+
+- `inningsPerSide` (default: `1`)
+- `oversPerSide` (default: `20`)
+- `maxOverPerBowler` (default: `4`)
+- `ballsPerOverSnapshot` (default: `6`)
+- `maxLegalBallsPerInningsSnapshot` (nullable)
+- `maxOversPerBowlerSnapshot` (nullable)
+- `playersPerSide` (default: `11`)
+
+Index:
+
+- `matches_format_idx` on (`matchFormatId`)
+
+---
+
+### `match_participant_sources`
+
+- `id` (PK, not null)
+- `matchId` (FK -> `matches.id`, not null)
+- `teamSlot` (integer, not null, default: `1`)
+- `sourceType` (text, not null, default: `team`)
+- `sourceTeamId` (FK -> `teams.id`, nullable)
+- `sourceMatchId` (FK -> `matches.id`, nullable)
+- `sourceStageId` (FK -> `tournament_stages.id`, nullable)
+- `sourceStageGroupId` (FK -> `tournament_stage_groups.id`, nullable)
+- `sourcePosition` (integer, nullable)
+- `createdAt`, `updatedAt` (timestamp_ms, not null)
+
+Indexes/constraints:
+
+- `match_participant_sources_match_slot_unique` on (`matchId`, `teamSlot`)
+- `match_participant_sources_source_match_idx` on (`sourceMatchId`)
+- `match_participant_sources_source_stage_idx` on (`sourceStageId`)
 
 ---
 
 ## Data Model Summary
 
-```
+```text
 tournaments
-  └── tournament_stages          (sequence-ordered)
-        ├── tournament_stage_groups    (sequence-ordered within stage)
+  ├── tournament_teams
+  └── tournament_stages          (ordered by sequence)
+        ├── tournament_stage_groups (ordered by sequence)
         │     └── tournament_stage_team_entries
-        ├── tournament_stage_team_entries  (entries without a group)
-        └── tournament_stage_advancements  (from → to rules)
+        ├── tournament_stage_team_entries
+        └── tournament_stage_advancements
 
 matches
-  ├── stage_id  ──────────────────► tournament_stages
-  ├── stage_group_id  ────────────► tournament_stage_groups
-  └── match_participant_sources   (per-slot source resolution)
+  ├── stageId / stageGroupId
+  └── match_participant_sources
 ```
 
----
+## Notes
 
-## API Reference
-
-### RPC Endpoints (ORPC — admin required)
-
-| Procedure | Input | Description |
-|---|---|---|
-| `seedTournamentTemplate` | `{ tournamentId, template, teamIds?, resetExisting?, groupCount?, advancingPerGroup? }` | Seed a full structure from a template |
-| `createTournamentStage` | Stage body | Create a single stage |
-| `updateTournamentStage` | `{ id, data }` | Update a stage |
-| `deleteTournamentStage` | `{ id }` | Delete a stage |
-| `createTournamentStageGroup` | Group body | Create a group within a stage |
-| `updateTournamentStageGroup` | `{ id, data }` | Update a group |
-| `deleteTournamentStageGroup` | `{ id }` | Delete a group |
-
-### RPC Endpoints (public read)
-
-| Procedure | Input | Description |
-|---|---|---|
-| `tournamentStructure` | `{ tournamentId }` | Full structure with stages, groups, entries, advancements |
-| `stageGroupsByStage` | `{ stageId }` | Groups belonging to a stage, ordered by sequence |
-
-### REST Management Routes
-
-All standard CRUD operations are also available under `/management/tournament-stages` and `/management/tournament-stage-groups` via the server's REST management router.
-
----
-
-## Error Codes (`SeedTournamentTemplateError`)
-
-| Code | Meaning |
-|---|---|
-| `TOURNAMENT_NOT_FOUND` | No tournament with the given id |
-| `NO_TOURNAMENT_TEAMS` | Tournament has no registered teams to seed from |
-| `INVALID_TEAM_SELECTION` | One or more provided `teamIds` are not registered for this tournament |
-| `INVALID_TEMPLATE_CONFIGURATION` | `groupCount` / `advancingPerGroup` yields an impossible structure (e.g. more advancing than teams per group) |
-
----
-
-## Extending the System
-
-1. **Add a new stage type or format**: Update the `stageType` / `format` check constraints in the schema and add a new template branch in `tournament-template.service.ts`.
-2. **Custom advancement logic**: Insert rows into `tournament_stage_advancements` manually via CRUD endpoints after seeding.
-3. **Two-legged ties**: Set `knockout_leg = 2` on the second match in a pair; aggregate scoring is handled at the service layer.
-4. **Sub-stages (Super Over, Play-offs)**: Use `parent_stage_id` to attach a sub-stage to its parent stage.
+- Categorical fields are stored as `text` with defaults; this schema file does not define enum/check constraints for them.
+- Booleans are represented as SQLite integer booleans (`integer({ mode: 'boolean' })`).
+- Timestamp columns `createdAt`/`updatedAt` are shared across these tables via common helpers.

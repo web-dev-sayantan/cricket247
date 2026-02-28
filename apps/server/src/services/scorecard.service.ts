@@ -1,4 +1,5 @@
 import { db } from "@/db";
+import { getMatchFormatRulesByMatchId } from "@/services/match-format.service";
 import { formatOvers } from "@/utils/cricket.utils";
 
 export interface ScorecardQuery {
@@ -151,11 +152,15 @@ function calculateStrikeRate(runs: number, ballsFaced: number): number {
   return Number(((runs / ballsFaced) * 100).toFixed(2));
 }
 
-function calculateEconomy(runsConceded: number, ballsBowled: number): number {
+function calculateEconomy(
+  runsConceded: number,
+  ballsBowled: number,
+  ballsPerOver: number
+): number {
   if (ballsBowled === 0) {
     return 0;
   }
-  return Number(((runsConceded * 6) / ballsBowled).toFixed(2));
+  return Number(((runsConceded * ballsPerOver) / ballsBowled).toFixed(2));
 }
 
 function resolveBatterStatus({
@@ -206,6 +211,9 @@ export async function getMatchScorecard(
   if (!match) {
     return null;
   }
+
+  const formatRules = await getMatchFormatRulesByMatchId(match.id);
+  const ballsPerOver = formatRules.ballsPerOver;
 
   const allInnings = await db.query.innings.findMany({
     where: {
@@ -341,14 +349,18 @@ export async function getMatchScorecard(
           name: row.player?.name ?? "Unknown",
         },
         ballsBowled: row.ballsBowled,
-        overs: formatOvers(row.ballsBowled),
+        overs: formatOvers(row.ballsBowled, ballsPerOver),
         maidens: row.maidens,
         runsConceded: row.runsConceded,
         wicketsTaken: row.wicketsTaken,
         wides: row.wides,
         noBalls: row.noBalls,
         dotBalls: row.dotBalls,
-        economy: calculateEconomy(row.runsConceded, row.ballsBowled),
+        economy: calculateEconomy(
+          row.runsConceded,
+          row.ballsBowled,
+          ballsPerOver
+        ),
       }));
 
     const fallOfWickets: ScorecardFallOfWicket[] = [];
@@ -408,7 +420,7 @@ export async function getMatchScorecard(
         totalScore: inningsRow.totalScore,
         wickets: inningsRow.wickets,
         ballsBowled: inningsRow.ballsBowled,
-        overs: formatOvers(inningsRow.ballsBowled),
+        overs: formatOvers(inningsRow.ballsBowled, ballsPerOver),
         target: derivedTarget,
         status: inningsRow.status,
         isCompleted: Boolean(inningsRow.isCompleted),

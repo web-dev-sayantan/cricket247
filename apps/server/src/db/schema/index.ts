@@ -177,12 +177,28 @@ export const organizations = sqliteTable(
   ]
 );
 
+export const matchFormats = sqliteTable("match_formats", {
+  id: integer().primaryKey().notNull(),
+  name: text().notNull(),
+  description: text(),
+  noOfInnings: integer().notNull().default(2),
+  noOfOvers: integer().notNull().default(20),
+  ballsPerOver: integer().notNull().default(6),
+  maxLegalBallsPerInnings: integer(),
+  maxOversPerBowler: integer().notNull().default(4),
+  playersPerSide: integer().notNull().default(11),
+  isDrawAllowed: booleanFlag().default(false),
+  isSuperOverAllowed: booleanFlag().default(false),
+  ...timestampCols,
+});
+
 export const tournaments = sqliteTable(
   "tournaments",
   {
     id: integer().primaryKey().notNull(),
     name: text().notNull(),
     category: text().notNull().default("competitive"),
+    season: text(),
     type: text().notNull().default("league"), // "league", "knockout", "round_robin", "swiss", "custom"
     genderAllowed: text().notNull().default("open"), // "male", "female", "open"
     ageLimit: integer().default(100),
@@ -191,7 +207,9 @@ export const tournaments = sqliteTable(
       .references(() => organizations.id),
     startDate: integer({ mode: "timestamp" }).notNull(),
     endDate: integer({ mode: "timestamp" }).notNull(),
-    format: text().notNull(),
+    defaultMatchFormatId: integer()
+      .notNull()
+      .references(() => matchFormats.id),
     championTeamId: integer().references(() => teams.id),
     ...timestampCols,
   },
@@ -234,6 +252,9 @@ export const tournamentStages = sqliteTable(
     status: text().notNull().default("upcoming"),
     parentStageId: integer(),
     qualificationSlots: integer().notNull().default(0),
+    matchFormatId: integer()
+      .notNull()
+      .references(() => matchFormats.id),
     metadata: text({ mode: "json" }),
     ...timestampCols,
   },
@@ -378,6 +399,7 @@ export const matches = sqliteTable(
     tournamentId: integer()
       .notNull()
       .references(() => tournaments.id),
+    matchFormatId: integer().references(() => matchFormats.id),
     matchDate: integer({ mode: "timestamp" }).notNull(),
     tossWinnerId: integer()
       .notNull()
@@ -392,6 +414,9 @@ export const matches = sqliteTable(
     inningsPerSide: integer().notNull().default(1),
     oversPerSide: integer().notNull().default(20),
     maxOverPerBowler: integer().notNull().default(4),
+    ballsPerOverSnapshot: integer().notNull().default(6),
+    maxLegalBallsPerInningsSnapshot: integer(),
+    maxOversPerBowlerSnapshot: integer(),
     playersPerSide: integer().notNull().default(11),
     hasSuperSub: booleanFlag(),
     substitutesPerSide: integer().notNull().default(0),
@@ -422,7 +447,10 @@ export const matches = sqliteTable(
     notes: text(),
     ...timestampCols,
   },
-  (t) => [index("rank_idx").on(t.winnerId)]
+  (t) => [
+    index("rank_idx").on(t.winnerId),
+    index("matches_format_idx").on(t.matchFormatId),
+  ]
 );
 
 export const matchParticipantSources = sqliteTable(

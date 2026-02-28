@@ -27,6 +27,7 @@ import { Route as MatchesCreateRouteImport } from './routes/matches/create'
 import { Route as MatchesCompletedRouteImport } from './routes/matches/completed'
 import { Route as MatchesMatchIdRouteImport } from './routes/matches/$matchId'
 import { Route as TeamsTeamIdStatsRouteImport } from './routes/teams/$teamId/stats'
+import { Route as TeamsTeamIdAssignPlayersRouteImport } from './routes/teams/$teamId/assign-players'
 import { Route as MatchesMatchIdScorecardRouteImport } from './routes/matches/$matchId/scorecard'
 import { Route as MatchesMatchIdScoreRouteImport } from './routes/matches/$matchId/score'
 
@@ -120,6 +121,12 @@ const TeamsTeamIdStatsRoute = TeamsTeamIdStatsRouteImport.update({
   path: '/stats',
   getParentRoute: () => TeamsTeamIdRoute,
 } as any)
+const TeamsTeamIdAssignPlayersRoute =
+  TeamsTeamIdAssignPlayersRouteImport.update({
+    id: '/assign-players',
+    path: '/assign-players',
+    getParentRoute: () => TeamsTeamIdRoute,
+  } as any)
 const MatchesMatchIdScorecardRoute = MatchesMatchIdScorecardRouteImport.update({
   id: '/scorecard',
   path: '/scorecard',
@@ -151,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/tournaments/': typeof TournamentsIndexRoute
   '/matches/$matchId/score': typeof MatchesMatchIdScoreRoute
   '/matches/$matchId/scorecard': typeof MatchesMatchIdScorecardRoute
+  '/teams/$teamId/assign-players': typeof TeamsTeamIdAssignPlayersRoute
   '/teams/$teamId/stats': typeof TeamsTeamIdStatsRoute
 }
 export interface FileRoutesByTo {
@@ -173,6 +181,7 @@ export interface FileRoutesByTo {
   '/tournaments': typeof TournamentsIndexRoute
   '/matches/$matchId/score': typeof MatchesMatchIdScoreRoute
   '/matches/$matchId/scorecard': typeof MatchesMatchIdScorecardRoute
+  '/teams/$teamId/assign-players': typeof TeamsTeamIdAssignPlayersRoute
   '/teams/$teamId/stats': typeof TeamsTeamIdStatsRoute
 }
 export interface FileRoutesById {
@@ -196,6 +205,7 @@ export interface FileRoutesById {
   '/tournaments/': typeof TournamentsIndexRoute
   '/matches/$matchId/score': typeof MatchesMatchIdScoreRoute
   '/matches/$matchId/scorecard': typeof MatchesMatchIdScorecardRoute
+  '/teams/$teamId/assign-players': typeof TeamsTeamIdAssignPlayersRoute
   '/teams/$teamId/stats': typeof TeamsTeamIdStatsRoute
 }
 export interface FileRouteTypes {
@@ -220,6 +230,7 @@ export interface FileRouteTypes {
     | '/tournaments/'
     | '/matches/$matchId/score'
     | '/matches/$matchId/scorecard'
+    | '/teams/$teamId/assign-players'
     | '/teams/$teamId/stats'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -242,6 +253,7 @@ export interface FileRouteTypes {
     | '/tournaments'
     | '/matches/$matchId/score'
     | '/matches/$matchId/scorecard'
+    | '/teams/$teamId/assign-players'
     | '/teams/$teamId/stats'
   id:
     | '__root__'
@@ -264,6 +276,7 @@ export interface FileRouteTypes {
     | '/tournaments/'
     | '/matches/$matchId/score'
     | '/matches/$matchId/scorecard'
+    | '/teams/$teamId/assign-players'
     | '/teams/$teamId/stats'
   fileRoutesById: FileRoutesById
 }
@@ -415,6 +428,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamsTeamIdStatsRouteImport
       parentRoute: typeof TeamsTeamIdRoute
     }
+    '/teams/$teamId/assign-players': {
+      id: '/teams/$teamId/assign-players'
+      path: '/assign-players'
+      fullPath: '/teams/$teamId/assign-players'
+      preLoaderRoute: typeof TeamsTeamIdAssignPlayersRouteImport
+      parentRoute: typeof TeamsTeamIdRoute
+    }
     '/matches/$matchId/scorecard': {
       id: '/matches/$matchId/scorecard'
       path: '/scorecard'
@@ -447,10 +467,12 @@ const MatchesMatchIdRouteWithChildren = MatchesMatchIdRoute._addFileChildren(
 )
 
 interface TeamsTeamIdRouteChildren {
+  TeamsTeamIdAssignPlayersRoute: typeof TeamsTeamIdAssignPlayersRoute
   TeamsTeamIdStatsRoute: typeof TeamsTeamIdStatsRoute
 }
 
 const TeamsTeamIdRouteChildren: TeamsTeamIdRouteChildren = {
+  TeamsTeamIdAssignPlayersRoute: TeamsTeamIdAssignPlayersRoute,
   TeamsTeamIdStatsRoute: TeamsTeamIdStatsRoute,
 }
 

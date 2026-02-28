@@ -221,6 +221,7 @@ export async function seedTournamentTemplate(
         sequence: 1,
         status: "upcoming",
         qualificationSlots: 0,
+        matchFormatId: tournament.defaultMatchFormatId,
       })
       .returning();
 
@@ -250,6 +251,7 @@ export async function seedTournamentTemplate(
         sequence: 1,
         status: "upcoming",
         qualificationSlots: 0,
+        matchFormatId: tournament.defaultMatchFormatId,
       })
       .returning();
 
@@ -279,6 +281,7 @@ export async function seedTournamentTemplate(
         sequence: 1,
         status: "upcoming",
         qualificationSlots: groupCount * advancingPerGroup,
+        matchFormatId: tournament.defaultMatchFormatId,
       })
       .returning();
 
@@ -321,6 +324,7 @@ export async function seedTournamentTemplate(
         status: "upcoming",
         parentStageId: groupStage.id,
         qualificationSlots: 0,
+        matchFormatId: tournament.defaultMatchFormatId,
       })
       .returning();
 

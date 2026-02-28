@@ -2,6 +2,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { deliveries } from "@/db/schema";
 import type { Delivery, NewDelivery, Player } from "@/db/types";
+import { getMatchFormatRulesByInningsId } from "@/services/match-format.service";
 
 export async function getBallById(id: number) {
   return await db.query.deliveries.findFirst({
@@ -44,7 +45,9 @@ export async function getBallsOfSameOver(
   ballNumber: number
 ) {
   const normalizedBallNumber = Math.max(1, ballNumber);
-  const overNumber = Math.floor((normalizedBallNumber - 1) / 6) + 1;
+  const rules = await getMatchFormatRulesByInningsId(inningsId);
+  const overNumber =
+    Math.floor((normalizedBallNumber - 1) / rules.ballsPerOver) + 1;
 
   return await db.query.deliveries.findMany({
     where: {

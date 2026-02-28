@@ -39,20 +39,20 @@ export function calculateNetRunRate(
   return Number((runRate - concededRate).toFixed(2));
 }
 
-export function formatOvers(balls: number): string {
-  const overs = Math.floor(balls / 6);
-  const remainingBalls = balls % 6;
+export function formatOvers(balls: number, ballsPerOver = 6): string {
+  const overs = Math.floor(balls / ballsPerOver);
+  const remainingBalls = balls % ballsPerOver;
   return `${overs}.${remainingBalls}`;
 }
 
-export function ballsToOvers(balls: number): number {
-  const overs = Math.floor(balls / 6);
-  const remainingBalls = balls % 6;
+export function ballsToOvers(balls: number, ballsPerOver = 6): number {
+  const overs = Math.floor(balls / ballsPerOver);
+  const remainingBalls = balls % ballsPerOver;
   return Number((overs + remainingBalls / 10).toFixed(1));
 }
 
-export function oversToTotalBalls(overs: number): number {
+export function oversToTotalBalls(overs: number, ballsPerOver = 6): number {
   const completeOvers = Math.floor(overs);
   const remainingBalls = Math.round((overs - completeOvers) * 10);
-  return completeOvers * 6 + remainingBalls;
+  return completeOvers * ballsPerOver + remainingBalls;
 }

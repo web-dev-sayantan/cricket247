@@ -1,6 +1,7 @@
 import { toDate } from "date-fns";
 import { db } from "@/db";
 import { matches } from "@/db/schema";
+import { resolveMatchFormatForCreation } from "@/services/match-format.service";
 import {
   getMatchScorecard as getMatchScorecardService,
   type ScorecardQuery,
@@ -115,8 +116,10 @@ export async function createMatchAction({
   tossDecision,
   team1Id,
   team2Id,
+  matchFormatId,
   oversPerSide,
   maxOverPerBowler,
+  format,
   winnerId,
   result,
   ranked,
@@ -139,8 +142,10 @@ export async function createMatchAction({
   tossDecision: string;
   team1Id: number;
   team2Id: number;
+  matchFormatId?: number;
   oversPerSide: number;
   maxOverPerBowler: number;
+  format?: string;
   winnerId?: number;
   result?: string;
   ranked?: boolean;
@@ -157,6 +162,16 @@ export async function createMatchAction({
   stageSequence?: number;
   knockoutLeg?: number;
 }) {
+  const resolvedFormat = await resolveMatchFormatForCreation({
+    tournamentId,
+    stageId,
+    matchFormatId,
+  });
+
+  const effectiveOversPerSide = resolvedFormat?.noOfOvers ?? oversPerSide;
+  const effectiveMaxOverPerBowler =
+    resolvedFormat?.maxOversPerBowler ?? maxOverPerBowler;
+
   const newMatch = await db.insert(matches).values({
     matchDate: matchDate ? toDate(matchDate) : getCurrentDate(),
     tournamentId,
@@ -164,10 +179,17 @@ export async function createMatchAction({
     tossDecision,
     team1Id,
     team2Id,
-    oversPerSide,
-    maxOverPerBowler,
+    matchFormatId: resolvedFormat?.matchFormatId ?? matchFormatId ?? null,
+    oversPerSide: effectiveOversPerSide,
+    maxOverPerBowler: effectiveMaxOverPerBowler,
+    ballsPerOverSnapshot: resolvedFormat?.ballsPerOver ?? 6,
+    maxLegalBallsPerInningsSnapshot:
+      resolvedFormat?.maxLegalBallsPerInnings ??
+      effectiveOversPerSide * (resolvedFormat?.ballsPerOver ?? 6),
+    maxOversPerBowlerSnapshot: effectiveMaxOverPerBowler,
     winnerId,
     result,
+    format: resolvedFormat?.formatLabel ?? format ?? "Custom",
     ranked,
     hasLBW,
     hasBye,

@@ -1,4 +1,4 @@
-CREATE TABLE `accounts` (
+CREATE TABLE `account` (
 	`id` integer PRIMARY KEY,
 	`user_id` integer NOT NULL,
 	`account_id` text NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE `accounts` (
 	`password` text,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
-	CONSTRAINT `fk_accounts_user_id_users_id_fk` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`)
+	CONSTRAINT `fk_account_user_id_user_id_fk` FOREIGN KEY (`user_id`) REFERENCES `user`(`id`)
 );
 --> statement-breakpoint
 CREATE TABLE `deliveries` (
@@ -73,6 +73,22 @@ CREATE TABLE `innings` (
 	CONSTRAINT `fk_innings_bowling_team_id_teams_id_fk` FOREIGN KEY (`bowling_team_id`) REFERENCES `teams`(`id`)
 );
 --> statement-breakpoint
+CREATE TABLE `match_formats` (
+	`id` integer PRIMARY KEY,
+	`name` text NOT NULL,
+	`description` text,
+	`no_of_innings` integer DEFAULT 2 NOT NULL,
+	`no_of_overs` integer DEFAULT 20 NOT NULL,
+	`balls_per_over` integer DEFAULT 6 NOT NULL,
+	`max_legal_balls_per_innings` integer,
+	`max_overs_per_bowler` integer DEFAULT 4 NOT NULL,
+	`players_per_side` integer DEFAULT 11 NOT NULL,
+	`is_draw_allowed` integer DEFAULT false NOT NULL,
+	`is_super_over_allowed` integer DEFAULT false NOT NULL,
+	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE `match_lineup` (
 	`id` integer PRIMARY KEY,
 	`match_id` integer NOT NULL,
@@ -90,9 +106,29 @@ CREATE TABLE `match_lineup` (
 	CONSTRAINT `fk_match_lineup_player_id_players_id_fk` FOREIGN KEY (`player_id`) REFERENCES `players`(`id`)
 );
 --> statement-breakpoint
+CREATE TABLE `match_participant_sources` (
+	`id` integer PRIMARY KEY,
+	`match_id` integer NOT NULL,
+	`team_slot` integer DEFAULT 1 NOT NULL,
+	`source_type` text DEFAULT 'team' NOT NULL,
+	`source_team_id` integer,
+	`source_match_id` integer,
+	`source_stage_id` integer,
+	`source_stage_group_id` integer,
+	`source_position` integer,
+	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	CONSTRAINT `fk_match_participant_sources_match_id_matches_id_fk` FOREIGN KEY (`match_id`) REFERENCES `matches`(`id`),
+	CONSTRAINT `fk_match_participant_sources_source_team_id_teams_id_fk` FOREIGN KEY (`source_team_id`) REFERENCES `teams`(`id`),
+	CONSTRAINT `fk_match_participant_sources_source_match_id_matches_id_fk` FOREIGN KEY (`source_match_id`) REFERENCES `matches`(`id`),
+	CONSTRAINT `fk_match_participant_sources_source_stage_id_tournament_stages_id_fk` FOREIGN KEY (`source_stage_id`) REFERENCES `tournament_stages`(`id`),
+	CONSTRAINT `fk_match_participant_sources_source_stage_group_id_tournament_stage_groups_id_fk` FOREIGN KEY (`source_stage_group_id`) REFERENCES `tournament_stage_groups`(`id`)
+);
+--> statement-breakpoint
 CREATE TABLE `matches` (
 	`id` integer PRIMARY KEY,
-	`tournament_id` integer,
+	`tournament_id` integer NOT NULL,
+	`match_format_id` integer,
 	`match_date` integer NOT NULL,
 	`toss_winner_id` integer NOT NULL,
 	`toss_decision` text NOT NULL,
@@ -101,6 +137,9 @@ CREATE TABLE `matches` (
 	`innings_per_side` integer DEFAULT 1 NOT NULL,
 	`overs_per_side` integer DEFAULT 20 NOT NULL,
 	`max_over_per_bowler` integer DEFAULT 4 NOT NULL,
+	`balls_per_over_snapshot` integer DEFAULT 6 NOT NULL,
+	`max_legal_balls_per_innings_snapshot` integer,
+	`max_overs_per_bowler_snapshot` integer,
 	`players_per_side` integer DEFAULT 11 NOT NULL,
 	`has_super_sub` integer DEFAULT false NOT NULL,
 	`substitutes_per_side` integer DEFAULT 0 NOT NULL,
@@ -113,6 +152,11 @@ CREATE TABLE `matches` (
 	`is_tied` integer DEFAULT false NOT NULL,
 	`margin` text,
 	`player_of_the_match_id` integer,
+	`stage_id` integer,
+	`stage_group_id` integer,
+	`stage_round` integer,
+	`stage_sequence` integer,
+	`knockout_leg` integer DEFAULT 1 NOT NULL,
 	`has_lbw` integer DEFAULT false NOT NULL,
 	`has_bye` integer DEFAULT true NOT NULL,
 	`has_leg_bye` integer DEFAULT false NOT NULL,
@@ -127,15 +171,38 @@ CREATE TABLE `matches` (
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	CONSTRAINT `fk_matches_tournament_id_tournaments_id_fk` FOREIGN KEY (`tournament_id`) REFERENCES `tournaments`(`id`),
+	CONSTRAINT `fk_matches_match_format_id_match_formats_id_fk` FOREIGN KEY (`match_format_id`) REFERENCES `match_formats`(`id`),
 	CONSTRAINT `fk_matches_toss_winner_id_teams_id_fk` FOREIGN KEY (`toss_winner_id`) REFERENCES `teams`(`id`),
 	CONSTRAINT `fk_matches_team1_id_teams_id_fk` FOREIGN KEY (`team1_id`) REFERENCES `teams`(`id`),
 	CONSTRAINT `fk_matches_team2_id_teams_id_fk` FOREIGN KEY (`team2_id`) REFERENCES `teams`(`id`),
 	CONSTRAINT `fk_matches_winner_id_teams_id_fk` FOREIGN KEY (`winner_id`) REFERENCES `teams`(`id`),
 	CONSTRAINT `fk_matches_player_of_the_match_id_players_id_fk` FOREIGN KEY (`player_of_the_match_id`) REFERENCES `players`(`id`),
+	CONSTRAINT `fk_matches_stage_id_tournament_stages_id_fk` FOREIGN KEY (`stage_id`) REFERENCES `tournament_stages`(`id`),
+	CONSTRAINT `fk_matches_stage_group_id_tournament_stage_groups_id_fk` FOREIGN KEY (`stage_group_id`) REFERENCES `tournament_stage_groups`(`id`),
 	CONSTRAINT `fk_matches_venue_id_venues_id_fk` FOREIGN KEY (`venue_id`) REFERENCES `venues`(`id`)
 );
 --> statement-breakpoint
-CREATE TABLE `passkeys` (
+CREATE TABLE `organizations` (
+	`id` integer PRIMARY KEY,
+	`name` text NOT NULL,
+	`short_name` text,
+	`slug` text NOT NULL,
+	`code` text,
+	`type` text DEFAULT 'association' NOT NULL,
+	`scope` text DEFAULT 'local' NOT NULL,
+	`country` text,
+	`website` text,
+	`logo` text,
+	`description` text,
+	`is_system` integer DEFAULT false NOT NULL,
+	`is_active` integer DEFAULT true NOT NULL,
+	`parent_organization_id` integer,
+	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	CONSTRAINT `fk_organizations_parent_organization` FOREIGN KEY (`parent_organization_id`) REFERENCES `organizations`(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `passkey` (
 	`id` integer PRIMARY KEY,
 	`name` text,
 	`public_key` text NOT NULL,
@@ -148,7 +215,7 @@ CREATE TABLE `passkeys` (
 	`aaguid` text,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
-	CONSTRAINT `fk_passkeys_user_id_users_id_fk` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`)
+	CONSTRAINT `fk_passkey_user_id_user_id_fk` FOREIGN KEY (`user_id`) REFERENCES `user`(`id`)
 );
 --> statement-breakpoint
 CREATE TABLE `player_career_stats` (
@@ -255,6 +322,7 @@ CREATE TABLE `player_verification` (
 --> statement-breakpoint
 CREATE TABLE `players` (
 	`id` integer PRIMARY KEY,
+	`user_id` integer,
 	`name` text NOT NULL,
 	`age` integer DEFAULT 0 NOT NULL,
 	`dob` integer DEFAULT (unixepoch()) NOT NULL,
@@ -268,10 +336,11 @@ CREATE TABLE `players` (
 	`bowling_stance` text,
 	`is_wicket_keeper` integer DEFAULT false NOT NULL,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
-	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL
+	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	CONSTRAINT `fk_players_user_id_user_id_fk` FOREIGN KEY (`user_id`) REFERENCES `user`(`id`)
 );
 --> statement-breakpoint
-CREATE TABLE `sessions` (
+CREATE TABLE `session` (
 	`id` integer PRIMARY KEY,
 	`user_id` integer NOT NULL,
 	`token` text NOT NULL,
@@ -282,19 +351,69 @@ CREATE TABLE `sessions` (
 	`last_active_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
-	CONSTRAINT `fk_sessions_user_id_users_id_fk` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`)
+	CONSTRAINT `fk_session_user_id_user_id_fk` FOREIGN KEY (`user_id`) REFERENCES `user`(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `team_career_stats` (
+	`id` integer PRIMARY KEY,
+	`team_id` integer NOT NULL,
+	`matches_played` integer DEFAULT 0 NOT NULL,
+	`matches_won` integer DEFAULT 0 NOT NULL,
+	`matches_lost` integer DEFAULT 0 NOT NULL,
+	`matches_tied` integer DEFAULT 0 NOT NULL,
+	`matches_drawn` integer DEFAULT 0 NOT NULL,
+	`matches_abandoned` integer DEFAULT 0 NOT NULL,
+	`points` integer DEFAULT 0 NOT NULL,
+	`win_percentage` real DEFAULT 0 NOT NULL,
+	`runs_scored` integer DEFAULT 0 NOT NULL,
+	`runs_conceded` integer DEFAULT 0 NOT NULL,
+	`balls_faced` integer DEFAULT 0 NOT NULL,
+	`balls_bowled` integer DEFAULT 0 NOT NULL,
+	`net_run_rate` real DEFAULT 0 NOT NULL,
+	`trophies_won` integer DEFAULT 0 NOT NULL,
+	`recent_form` text DEFAULT '[]' NOT NULL,
+	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	CONSTRAINT `fk_team_career_stats_team_id_teams_id_fk` FOREIGN KEY (`team_id`) REFERENCES `teams`(`id`)
 );
 --> statement-breakpoint
 CREATE TABLE `team_players` (
 	`id` integer PRIMARY KEY,
+	`tournament_id` integer NOT NULL,
 	`team_id` integer NOT NULL,
 	`player_id` integer NOT NULL,
 	`is_captain` integer DEFAULT false NOT NULL,
 	`is_vice_captain` integer DEFAULT false NOT NULL,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	CONSTRAINT `fk_team_players_tournament_id_tournaments_id_fk` FOREIGN KEY (`tournament_id`) REFERENCES `tournaments`(`id`),
 	CONSTRAINT `fk_team_players_team_id_teams_id_fk` FOREIGN KEY (`team_id`) REFERENCES `teams`(`id`),
-	CONSTRAINT `fk_team_players_player_id_players_id_fk` FOREIGN KEY (`player_id`) REFERENCES `players`(`id`)
+	CONSTRAINT `fk_team_players_player_id_players_id_fk` FOREIGN KEY (`player_id`) REFERENCES `players`(`id`),
+	CONSTRAINT `fk_team_players_tournament_team` FOREIGN KEY (`tournament_id`,`team_id`) REFERENCES `tournament_teams`(`tournament_id`,`team_id`)
+);
+--> statement-breakpoint
+CREATE TABLE `team_tournament_stats` (
+	`id` integer PRIMARY KEY,
+	`tournament_id` integer NOT NULL,
+	`team_id` integer NOT NULL,
+	`matches_played` integer DEFAULT 0 NOT NULL,
+	`matches_won` integer DEFAULT 0 NOT NULL,
+	`matches_lost` integer DEFAULT 0 NOT NULL,
+	`matches_tied` integer DEFAULT 0 NOT NULL,
+	`matches_drawn` integer DEFAULT 0 NOT NULL,
+	`matches_abandoned` integer DEFAULT 0 NOT NULL,
+	`points` integer DEFAULT 0 NOT NULL,
+	`win_percentage` real DEFAULT 0 NOT NULL,
+	`runs_scored` integer DEFAULT 0 NOT NULL,
+	`runs_conceded` integer DEFAULT 0 NOT NULL,
+	`balls_faced` integer DEFAULT 0 NOT NULL,
+	`balls_bowled` integer DEFAULT 0 NOT NULL,
+	`net_run_rate` real DEFAULT 0 NOT NULL,
+	`recent_form` text DEFAULT '[]' NOT NULL,
+	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	CONSTRAINT `fk_team_tournament_stats_tournament_id_tournaments_id_fk` FOREIGN KEY (`tournament_id`) REFERENCES `tournaments`(`id`),
+	CONSTRAINT `fk_team_tournament_stats_team_id_teams_id_fk` FOREIGN KEY (`team_id`) REFERENCES `teams`(`id`)
 );
 --> statement-breakpoint
 CREATE TABLE `teams` (
@@ -303,8 +422,75 @@ CREATE TABLE `teams` (
 	`short_name` text NOT NULL,
 	`base_location` text,
 	`country` text DEFAULT 'Unknown' NOT NULL,
+	`logo` text,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE `tournament_stage_advancements` (
+	`id` integer PRIMARY KEY,
+	`from_stage_id` integer NOT NULL,
+	`from_stage_group_id` integer,
+	`position_from` integer NOT NULL,
+	`to_stage_id` integer NOT NULL,
+	`to_slot` integer NOT NULL,
+	`qualification_type` text DEFAULT 'position' NOT NULL,
+	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	CONSTRAINT `fk_tournament_stage_advancements_from_stage_id_tournament_stages_id_fk` FOREIGN KEY (`from_stage_id`) REFERENCES `tournament_stages`(`id`),
+	CONSTRAINT `fk_tournament_stage_advancements_from_stage_group_id_tournament_stage_groups_id_fk` FOREIGN KEY (`from_stage_group_id`) REFERENCES `tournament_stage_groups`(`id`),
+	CONSTRAINT `fk_tournament_stage_advancements_to_stage_id_tournament_stages_id_fk` FOREIGN KEY (`to_stage_id`) REFERENCES `tournament_stages`(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `tournament_stage_groups` (
+	`id` integer PRIMARY KEY,
+	`stage_id` integer NOT NULL,
+	`name` text NOT NULL,
+	`code` text,
+	`sequence` integer DEFAULT 1 NOT NULL,
+	`advancing_slots` integer DEFAULT 0 NOT NULL,
+	`metadata` text,
+	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	CONSTRAINT `fk_tournament_stage_groups_stage_id_tournament_stages_id_fk` FOREIGN KEY (`stage_id`) REFERENCES `tournament_stages`(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `tournament_stage_team_entries` (
+	`id` integer PRIMARY KEY,
+	`tournament_id` integer NOT NULL,
+	`stage_id` integer NOT NULL,
+	`stage_group_id` integer,
+	`team_id` integer NOT NULL,
+	`seed` integer,
+	`entry_source` text DEFAULT 'direct' NOT NULL,
+	`is_qualified` integer DEFAULT false NOT NULL,
+	`is_eliminated` integer DEFAULT false NOT NULL,
+	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	CONSTRAINT `fk_tournament_stage_team_entries_tournament_id_tournaments_id_fk` FOREIGN KEY (`tournament_id`) REFERENCES `tournaments`(`id`),
+	CONSTRAINT `fk_tournament_stage_team_entries_stage_id_tournament_stages_id_fk` FOREIGN KEY (`stage_id`) REFERENCES `tournament_stages`(`id`),
+	CONSTRAINT `fk_tournament_stage_team_entries_stage_group_id_tournament_stage_groups_id_fk` FOREIGN KEY (`stage_group_id`) REFERENCES `tournament_stage_groups`(`id`),
+	CONSTRAINT `fk_tournament_stage_team_entries_team_id_teams_id_fk` FOREIGN KEY (`team_id`) REFERENCES `teams`(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `tournament_stages` (
+	`id` integer PRIMARY KEY,
+	`tournament_id` integer NOT NULL,
+	`name` text NOT NULL,
+	`code` text,
+	`stage_type` text DEFAULT 'league' NOT NULL,
+	`format` text DEFAULT 'single_round_robin' NOT NULL,
+	`sequence` integer DEFAULT 1 NOT NULL,
+	`status` text DEFAULT 'upcoming' NOT NULL,
+	`parent_stage_id` integer,
+	`qualification_slots` integer DEFAULT 0 NOT NULL,
+	`match_format_id` integer NOT NULL,
+	`metadata` text,
+	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	CONSTRAINT `fk_tournament_stages_tournament_id_tournaments_id_fk` FOREIGN KEY (`tournament_id`) REFERENCES `tournaments`(`id`),
+	CONSTRAINT `fk_tournament_stages_match_format_id_match_formats_id_fk` FOREIGN KEY (`match_format_id`) REFERENCES `match_formats`(`id`),
+	CONSTRAINT `fk_tournament_stages_parent_stage` FOREIGN KEY (`parent_stage_id`) REFERENCES `tournament_stages`(`id`)
 );
 --> statement-breakpoint
 CREATE TABLE `tournament_teams` (
@@ -326,20 +512,32 @@ CREATE TABLE `tournament_teams` (
 CREATE TABLE `tournaments` (
 	`id` integer PRIMARY KEY,
 	`name` text NOT NULL,
+	`category` text DEFAULT 'competitive' NOT NULL,
+	`season` text,
+	`type` text DEFAULT 'league' NOT NULL,
+	`gender_allowed` text DEFAULT 'open' NOT NULL,
+	`age_limit` integer DEFAULT 100,
+	`organization_id` integer NOT NULL,
 	`start_date` integer NOT NULL,
 	`end_date` integer NOT NULL,
-	`format` text NOT NULL,
+	`default_match_format_id` integer NOT NULL,
+	`champion_team_id` integer,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
-	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL
+	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	CONSTRAINT `fk_tournaments_organization_id_organizations_id_fk` FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`),
+	CONSTRAINT `fk_tournaments_default_match_format_id_match_formats_id_fk` FOREIGN KEY (`default_match_format_id`) REFERENCES `match_formats`(`id`),
+	CONSTRAINT `fk_tournaments_champion_team_id_teams_id_fk` FOREIGN KEY (`champion_team_id`) REFERENCES `teams`(`id`)
 );
 --> statement-breakpoint
-CREATE TABLE `users` (
+CREATE TABLE `user` (
 	`id` integer PRIMARY KEY,
 	`name` text NOT NULL,
 	`username` text UNIQUE,
 	`display_username` text UNIQUE,
 	`email` text NOT NULL UNIQUE,
 	`email_verified` integer DEFAULT false NOT NULL,
+	`onboarding_seen_at` integer,
+	`onboarding_completed_at` integer,
 	`image` text,
 	`phone_number` text UNIQUE,
 	`phone_number_verified` integer DEFAULT false NOT NULL,
@@ -363,7 +561,7 @@ CREATE TABLE `venues` (
 	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE `verifications` (
+CREATE TABLE `verification` (
 	`id` integer PRIMARY KEY,
 	`identifier` text NOT NULL,
 	`value` text NOT NULL,
@@ -383,13 +581,37 @@ CREATE UNIQUE INDEX `unique_match_lineup_player` ON `match_lineup` (`match_id`,`
 CREATE UNIQUE INDEX `unique_match_lineup_batting_order` ON `match_lineup` (`match_id`,`team_id`,`batting_order`);--> statement-breakpoint
 CREATE INDEX `match_lineup_match_idx` ON `match_lineup` (`match_id`);--> statement-breakpoint
 CREATE INDEX `match_lineup_team_idx` ON `match_lineup` (`team_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `match_participant_sources_match_slot_unique` ON `match_participant_sources` (`match_id`,`team_slot`);--> statement-breakpoint
+CREATE INDEX `match_participant_sources_source_match_idx` ON `match_participant_sources` (`source_match_id`);--> statement-breakpoint
+CREATE INDEX `match_participant_sources_source_stage_idx` ON `match_participant_sources` (`source_stage_id`);--> statement-breakpoint
 CREATE INDEX `rank_idx` ON `matches` (`winner_id`);--> statement-breakpoint
-CREATE INDEX `passkey_user_idx` ON `passkeys` (`user_id`);--> statement-breakpoint
-CREATE INDEX `passkey_credential_idx` ON `passkeys` (`credential_id`);--> statement-breakpoint
+CREATE INDEX `matches_format_idx` ON `matches` (`match_format_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `organizations_slug_unique` ON `organizations` (`slug`);--> statement-breakpoint
+CREATE UNIQUE INDEX `organizations_code_unique` ON `organizations` (`code`);--> statement-breakpoint
+CREATE INDEX `organizations_parent_idx` ON `organizations` (`parent_organization_id`);--> statement-breakpoint
+CREATE INDEX `organizations_active_idx` ON `organizations` (`is_active`);--> statement-breakpoint
+CREATE INDEX `passkey_user_idx` ON `passkey` (`user_id`);--> statement-breakpoint
+CREATE INDEX `passkey_credential_idx` ON `passkey` (`credential_id`);--> statement-breakpoint
 CREATE UNIQUE INDEX `unique_player_innings_stats` ON `player_innings_stats` (`innings_id`,`player_id`);--> statement-breakpoint
 CREATE INDEX `player_innings_stats_match_idx` ON `player_innings_stats` (`match_id`);--> statement-breakpoint
 CREATE INDEX `player_innings_stats_team_idx` ON `player_innings_stats` (`team_id`);--> statement-breakpoint
 CREATE INDEX `player_innings_stats_player_idx` ON `player_innings_stats` (`player_id`);--> statement-breakpoint
-CREATE INDEX `session_user_idx` ON `sessions` (`user_id`);--> statement-breakpoint
-CREATE INDEX `session_expires_idx` ON `sessions` (`expires_at`);--> statement-breakpoint
-CREATE UNIQUE INDEX `unique_team_player` ON `team_players` (`team_id`,`player_id`);
+CREATE INDEX `session_user_idx` ON `session` (`user_id`);--> statement-breakpoint
+CREATE INDEX `session_expires_idx` ON `session` (`expires_at`);--> statement-breakpoint
+CREATE UNIQUE INDEX `team_career_stats_team_unique` ON `team_career_stats` (`team_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `unique_tournament_player` ON `team_players` (`tournament_id`,`player_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `team_tournament_stats_unique` ON `team_tournament_stats` (`tournament_id`,`team_id`);--> statement-breakpoint
+CREATE INDEX `team_tournament_stats_team_idx` ON `team_tournament_stats` (`team_id`);--> statement-breakpoint
+CREATE INDEX `team_tournament_stats_tournament_idx` ON `team_tournament_stats` (`tournament_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `tournament_stage_advancements_from_position_unique` ON `tournament_stage_advancements` (`from_stage_id`,`from_stage_group_id`,`position_from`);--> statement-breakpoint
+CREATE INDEX `tournament_stage_advancements_to_stage_idx` ON `tournament_stage_advancements` (`to_stage_id`);--> statement-breakpoint
+CREATE INDEX `tournament_stage_groups_stage_idx` ON `tournament_stage_groups` (`stage_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `tournament_stage_groups_stage_sequence_unique` ON `tournament_stage_groups` (`stage_id`,`sequence`);--> statement-breakpoint
+CREATE UNIQUE INDEX `tournament_stage_team_entries_stage_team_unique` ON `tournament_stage_team_entries` (`stage_id`,`team_id`);--> statement-breakpoint
+CREATE INDEX `tournament_stage_team_entries_tournament_idx` ON `tournament_stage_team_entries` (`tournament_id`);--> statement-breakpoint
+CREATE INDEX `tournament_stage_team_entries_group_idx` ON `tournament_stage_team_entries` (`stage_group_id`);--> statement-breakpoint
+CREATE INDEX `tournament_stages_tournament_idx` ON `tournament_stages` (`tournament_id`);--> statement-breakpoint
+CREATE INDEX `tournament_stages_sequence_idx` ON `tournament_stages` (`tournament_id`,`sequence`);--> statement-breakpoint
+CREATE UNIQUE INDEX `tournament_stages_tournament_sequence_unique` ON `tournament_stages` (`tournament_id`,`sequence`);--> statement-breakpoint
+CREATE UNIQUE INDEX `unique_tournament_team` ON `tournament_teams` (`tournament_id`,`team_id`);--> statement-breakpoint
+CREATE INDEX `tournament_organization_idx` ON `tournaments` (`organization_id`);

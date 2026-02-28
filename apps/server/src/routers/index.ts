@@ -31,8 +31,13 @@ import {
   getAllTeams,
   getTeamById,
   getTeamsByName,
+  getTeamTournaments,
+  getTournamentTeamRoster,
+  reassignPlayerInTournament,
   registerPlayerForTournamentTeam,
   TeamPlayerRegistrationError,
+  TeamRosterManagementError,
+  unassignPlayerFromTournamentTeam,
 } from "@/services/team.service";
 import {
   getTeamStatsById,
@@ -76,6 +81,7 @@ const CreateMatchInputSchema = z.object({
   tossDecision: z.string(),
   team1Id: z.number(),
   team2Id: z.number(),
+  matchFormatId: z.number().int().positive().optional(),
   oversPerSide: z.number().min(1),
   maxOverPerBowler: z.number().min(1),
   winnerId: z.number().optional(),
@@ -86,7 +92,7 @@ const CreateMatchInputSchema = z.object({
   hasBoundaryOut: z.boolean().optional(),
   hasSuperOver: z.boolean().optional(),
   venueId: z.number().optional(),
-  format: z.string(),
+  format: z.string().optional(),
   notes: z.string().optional(),
   ranked: z.boolean().optional(),
   isLive: z.boolean().optional(),
@@ -108,6 +114,29 @@ const RegisterTournamentTeamPlayerInputSchema = z.object({
   playerId: z.number().int().positive(),
   isCaptain: z.boolean().optional(),
   isViceCaptain: z.boolean().optional(),
+});
+
+const TeamTournamentsInputSchema = z.object({
+  teamId: z.number().int().positive(),
+});
+
+const TournamentTeamRosterInputSchema = z.object({
+  tournamentId: z.number().int().positive(),
+  teamId: z.number().int().positive(),
+});
+
+const UnassignTournamentTeamPlayerInputSchema = z.object({
+  tournamentId: z.number().int().positive(),
+  teamId: z.number().int().positive(),
+  playerId: z.number().int().positive(),
+});
+
+const ReassignTournamentTeamPlayerInputSchema = z.object({
+  tournamentId: z.number().int().positive(),
+  toTeamId: z.number().int().positive(),
+  playerId: z.number().int().positive(),
+  confirmReassign: z.boolean(),
+  expectedFromTeamId: z.number().int().positive().optional(),
 });
 
 const TeamTournamentStatsInputSchema = z.object({
@@ -268,6 +297,30 @@ export const appRouter = {
   getTeamById: publicProcedure
     .input(z.number().int().positive())
     .handler(({ input }) => getTeamById(input)),
+  teamTournaments: publicProcedure
+    .input(TeamTournamentsInputSchema)
+    .handler(({ input }) => getTeamTournaments(input.teamId)),
+  getTournamentTeamRoster: sensitiveProcedure
+    .input(TournamentTeamRosterInputSchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      try {
+        return await getTournamentTeamRoster(input);
+      } catch (error) {
+        if (error instanceof TeamRosterManagementError) {
+          if (error.code === "TOURNAMENT_NOT_FOUND") {
+            throw new ORPCError("NOT_FOUND");
+          }
+
+          if (error.code === "TEAM_NOT_IN_TOURNAMENT") {
+            throw new ORPCError("BAD_REQUEST");
+          }
+        }
+
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
+      }
+    }),
   listTeamStats: publicProcedure.handler(() => listTeamStats()),
   getTeamStatsById: publicProcedure
     .input(z.number().int().positive())
@@ -498,6 +551,59 @@ export const appRouter = {
           }
 
           if (error.code === "TEAM_NOT_IN_TOURNAMENT") {
+            throw new ORPCError("BAD_REQUEST");
+          }
+        }
+
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
+      }
+    }),
+  unassignTournamentTeamPlayer: sensitiveProcedure
+    .input(UnassignTournamentTeamPlayerInputSchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      try {
+        return await unassignPlayerFromTournamentTeam(input);
+      } catch (error) {
+        if (error instanceof TeamRosterManagementError) {
+          if (error.code === "ASSIGNMENT_NOT_FOUND") {
+            throw new ORPCError("NOT_FOUND");
+          }
+
+          if (error.code === "TEAM_NOT_IN_TOURNAMENT") {
+            throw new ORPCError("BAD_REQUEST");
+          }
+        }
+
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
+      }
+    }),
+  reassignTournamentTeamPlayer: sensitiveProcedure
+    .input(ReassignTournamentTeamPlayerInputSchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      try {
+        return await reassignPlayerInTournament(input);
+      } catch (error) {
+        if (error instanceof TeamRosterManagementError) {
+          if (
+            error.code === "PLAYER_NOT_REGISTERED_IN_TOURNAMENT" ||
+            error.code === "TOURNAMENT_NOT_FOUND"
+          ) {
+            throw new ORPCError("NOT_FOUND");
+          }
+
+          if (error.code === "ASSIGNMENT_CHANGED") {
+            throw new ORPCError("CONFLICT");
+          }
+
+          if (
+            error.code === "TEAM_NOT_IN_TOURNAMENT" ||
+            error.code === "REASSIGN_CONFIRMATION_REQUIRED" ||
+            error.code === "REASSIGN_NOT_ALLOWED_AFTER_START"
+          ) {
             throw new ORPCError("BAD_REQUEST");
           }
         }

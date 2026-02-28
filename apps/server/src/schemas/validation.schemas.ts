@@ -144,7 +144,7 @@ export const recordBallSchema = z.object({
   fielder1Id: z.number().int().positive().optional(),
   fielder2Id: z.number().int().positive().optional(),
   overNumber: z.number().min(0),
-  ballNumber: z.number().int().min(1).max(6),
+  ballNumber: z.number().int().min(1),
 });
 
 export const updateBallSchema = recordBallSchema.partial();

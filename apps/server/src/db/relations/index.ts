@@ -3,6 +3,7 @@ import {
   deliveries,
   innings,
   matches,
+  matchFormats,
   matchLineup,
   matchParticipantSources,
   organizations,
@@ -29,6 +30,7 @@ export const relations = defineRelations(
     matchLineup,
     matchParticipantSources,
     matches,
+    matchFormats,
     organizations,
     teamCareerStats,
     playerCareerStats,
@@ -73,6 +75,10 @@ export const relations = defineRelations(
       championTeam: r.one.teams({
         from: r.tournaments.championTeamId,
         to: r.teams.id,
+      }),
+      defaultMatchFormat: r.one.matchFormats({
+        from: r.tournaments.defaultMatchFormatId,
+        to: r.matchFormats.id,
       }),
       teamTournamentStats: r.many.teamTournamentStats(),
     },
@@ -175,6 +181,10 @@ export const relations = defineRelations(
         from: r.matches.tournamentId,
         to: r.tournaments.id,
       }),
+      matchFormat: r.one.matchFormats({
+        from: r.matches.matchFormatId,
+        to: r.matchFormats.id,
+      }),
       stage: r.one.tournamentStages({
         from: r.matches.stageId,
         to: r.tournamentStages.id,
@@ -219,6 +229,15 @@ export const relations = defineRelations(
         alias: "sourceMatch",
       }),
       playerInningsStats: r.many.playerInningsStats(),
+    },
+    matchFormats: {
+      tournaments: r.many.tournaments({
+        from: r.matchFormats.id,
+        to: r.tournaments.defaultMatchFormatId,
+        alias: "defaultMatchFormat",
+      }),
+      stages: r.many.tournamentStages(),
+      matches: r.many.matches(),
     },
     innings: {
       match: r.one.matches({
@@ -315,6 +334,10 @@ export const relations = defineRelations(
       tournament: r.one.tournaments({
         from: r.tournamentStages.tournamentId,
         to: r.tournaments.id,
+      }),
+      matchFormat: r.one.matchFormats({
+        from: r.tournamentStages.matchFormatId,
+        to: r.matchFormats.id,
       }),
       parentStage: r.one.tournamentStages({
         from: r.tournamentStages.parentStageId,
