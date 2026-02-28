@@ -1,125 +1,129 @@
-import { db } from '@/db';
+import { db } from "@/db";
 import {
   matchFormats,
   organizations,
   teams,
   tournamentStageAdvancements,
   tournamentStageGroups,
-  tournamentStageTeamEntries,
   tournamentStages,
+  tournamentStageTeamEntries,
   tournaments,
   tournamentTeams,
-} from '@/db/schema';
+} from "@/db/schema";
 
-const MATCH_FORMAT_ID = 91001;
-const ORGANIZATION_ID = 91001;
-const TOURNAMENT_ID = 91001;
+const MATCH_FORMAT_ID = 91_001;
+const ORGANIZATION_ID = 91_001;
+const TOURNAMENT_ID = 91_001;
 
-const GROUP_STAGE_ID = 91001;
-const QUARTER_FINAL_STAGE_ID = 91002;
-const SEMI_FINAL_STAGE_ID = 91003;
-const FINAL_STAGE_ID = 91004;
+const GROUP_STAGE_ID = 91_001;
+const QUARTER_FINAL_STAGE_ID = 91_002;
+const SEMI_FINAL_STAGE_ID = 91_003;
+const FINAL_STAGE_ID = 91_004;
 
-const GROUP_A_ID = 91001;
-const GROUP_B_ID = 91002;
+const GROUP_A_ID = 91_001;
+const GROUP_B_ID = 91_002;
 
 const TEAM_SEEDS = [
   {
-    country: 'India',
-    id: 91101,
-    name: 'Mumbai Mariners',
-    shortName: 'MMR',
+    country: "India",
+    id: 91_101,
+    name: "Mumbai Mariners",
+    shortName: "MMR",
   },
   {
-    country: 'India',
-    id: 91102,
-    name: 'Delhi Dynamos',
-    shortName: 'DDY',
+    country: "India",
+    id: 91_102,
+    name: "Delhi Dynamos",
+    shortName: "DDY",
   },
   {
-    country: 'India',
-    id: 91103,
-    name: 'Bengaluru Blazers',
-    shortName: 'BBZ',
+    country: "India",
+    id: 91_103,
+    name: "Bengaluru Blazers",
+    shortName: "BBZ",
   },
   {
-    country: 'India',
-    id: 91104,
-    name: 'Chennai Chargers',
-    shortName: 'CHG',
+    country: "India",
+    id: 91_104,
+    name: "Chennai Chargers",
+    shortName: "CHG",
   },
   {
-    country: 'India',
-    id: 91105,
-    name: 'Pune Panthers',
-    shortName: 'PPT',
+    country: "India",
+    id: 91_105,
+    name: "Pune Panthers",
+    shortName: "PPT",
   },
   {
-    country: 'India',
-    id: 91106,
-    name: 'Hyderabad Hawks',
-    shortName: 'HHK',
+    country: "India",
+    id: 91_106,
+    name: "Hyderabad Hawks",
+    shortName: "HHK",
   },
   {
-    country: 'India',
-    id: 91107,
-    name: 'Kolkata Kings',
-    shortName: 'KKS',
+    country: "India",
+    id: 91_107,
+    name: "Kolkata Kings",
+    shortName: "KKS",
   },
   {
-    country: 'India',
-    id: 91108,
-    name: 'Jaipur Jaguars',
-    shortName: 'JJR',
+    country: "India",
+    id: 91_108,
+    name: "Jaipur Jaguars",
+    shortName: "JJR",
   },
   {
-    country: 'India',
-    id: 91109,
-    name: 'Lucknow Leopards',
-    shortName: 'LLP',
+    country: "India",
+    id: 91_109,
+    name: "Lucknow Leopards",
+    shortName: "LLP",
   },
   {
-    country: 'India',
-    id: 91110,
-    name: 'Ahmedabad Aces',
-    shortName: 'AAC',
+    country: "India",
+    id: 91_110,
+    name: "Ahmedabad Aces",
+    shortName: "AAC",
   },
   {
-    country: 'India',
-    id: 91111,
-    name: 'Goa Guardians',
-    shortName: 'GGD',
+    country: "India",
+    id: 91_111,
+    name: "Goa Guardians",
+    shortName: "GGD",
   },
   {
-    country: 'India',
-    id: 91112,
-    name: 'Kochi Knights',
-    shortName: 'KKN',
+    country: "India",
+    id: 91_112,
+    name: "Kochi Knights",
+    shortName: "KKN",
   },
 ] as const;
 
-const GROUP_A_TEAM_IDS = [91101, 91102, 91103, 91104, 91105, 91106] as const;
-const GROUP_B_TEAM_IDS = [91107, 91108, 91109, 91110, 91111, 91112] as const;
+const GROUP_A_TEAM_IDS = [
+  91_101, 91_102, 91_103, 91_104, 91_105, 91_106,
+] as const;
+const GROUP_B_TEAM_IDS = [
+  91_107, 91_108, 91_109, 91_110, 91_111, 91_112,
+] as const;
 
-const GROUP_A_QUALIFIER_IDS = [91101, 91102, 91103, 91104] as const;
-const GROUP_B_QUALIFIER_IDS = [91107, 91108, 91109, 91110] as const;
+const GROUP_A_QUALIFIER_IDS = [91_101, 91_102, 91_103, 91_104] as const;
+const GROUP_B_QUALIFIER_IDS = [91_107, 91_108, 91_109, 91_110] as const;
 
 const seedTournamentData = async () => {
-  const tournamentStartDate = new Date('2026-04-01T00:00:00.000Z');
-  const tournamentEndDate = new Date('2026-05-20T00:00:00.000Z');
+  const tournamentStartDate = new Date("2026-04-01T00:00:00.000Z");
+  const tournamentEndDate = new Date("2026-05-20T00:00:00.000Z");
 
   await db.transaction(async (tx) => {
     await tx
       .insert(matchFormats)
       .values({
         ballsPerOver: 6,
-        description: 'Standard T20 format for seeded organization tournament.',
+        description: "Standard T20 format for seeded organization tournament.",
         id: MATCH_FORMAT_ID,
         isDrawAllowed: false,
         isSuperOverAllowed: true,
         maxLegalBallsPerInnings: 120,
         maxOversPerBowler: 4,
-        name: 'T20 Seed Format',
+        name: "T20 Seed Format",
         noOfInnings: 2,
         noOfOvers: 20,
         playersPerSide: 11,
@@ -127,12 +131,13 @@ const seedTournamentData = async () => {
       .onConflictDoUpdate({
         set: {
           ballsPerOver: 6,
-          description: 'Standard T20 format for seeded organization tournament.',
+          description:
+            "Standard T20 format for seeded organization tournament.",
           isDrawAllowed: false,
           isSuperOverAllowed: true,
           maxLegalBallsPerInnings: 120,
           maxOversPerBowler: 4,
-          name: 'T20 Seed Format',
+          name: "T20 Seed Format",
           noOfInnings: 2,
           noOfOvers: 20,
           playersPerSide: 11,
@@ -143,28 +148,28 @@ const seedTournamentData = async () => {
     await tx
       .insert(organizations)
       .values({
-        code: 'C247A',
-        country: 'India',
-        description: 'Seeded organization for tournament structure testing.',
+        code: "C247A",
+        country: "India",
+        description: "Seeded organization for tournament structure testing.",
         id: ORGANIZATION_ID,
-        name: 'Cricket247 Association',
-        scope: 'regional',
-        shortName: 'C247A',
-        slug: 'cricket247-association',
-        type: 'association',
-        website: 'https://cricket247.local/association',
+        name: "Cricket247 Association",
+        scope: "regional",
+        shortName: "C247A",
+        slug: "cricket247-association",
+        type: "association",
+        website: "https://cricket247.local/association",
       })
       .onConflictDoUpdate({
         set: {
-          code: 'C247A',
-          country: 'India',
-          description: 'Seeded organization for tournament structure testing.',
-          name: 'Cricket247 Association',
-          scope: 'regional',
-          shortName: 'C247A',
-          slug: 'cricket247-association',
-          type: 'association',
-          website: 'https://cricket247.local/association',
+          code: "C247A",
+          country: "India",
+          description: "Seeded organization for tournament structure testing.",
+          name: "Cricket247 Association",
+          scope: "regional",
+          shortName: "C247A",
+          slug: "cricket247-association",
+          type: "association",
+          website: "https://cricket247.local/association",
         },
         target: organizations.id,
       });
@@ -187,29 +192,29 @@ const seedTournamentData = async () => {
       .insert(tournaments)
       .values({
         ageLimit: 100,
-        category: 'competitive',
+        category: "competitive",
         defaultMatchFormatId: MATCH_FORMAT_ID,
         endDate: tournamentEndDate,
-        genderAllowed: 'open',
+        genderAllowed: "open",
         id: TOURNAMENT_ID,
-        name: 'Cricket247 Champions Cup 2026',
+        name: "Cricket247 Champions Cup 2026",
         organizationId: ORGANIZATION_ID,
-        season: '2026',
+        season: "2026",
         startDate: tournamentStartDate,
-        type: 'custom',
+        type: "custom",
       })
       .onConflictDoUpdate({
         set: {
           ageLimit: 100,
-          category: 'competitive',
+          category: "competitive",
           defaultMatchFormatId: MATCH_FORMAT_ID,
           endDate: tournamentEndDate,
-          genderAllowed: 'open',
-          name: 'Cricket247 Champions Cup 2026',
+          genderAllowed: "open",
+          name: "Cricket247 Champions Cup 2026",
           organizationId: ORGANIZATION_ID,
-          season: '2026',
+          season: "2026",
           startDate: tournamentStartDate,
-          type: 'custom',
+          type: "custom",
         },
         target: tournaments.id,
       });
@@ -218,7 +223,7 @@ const seedTournamentData = async () => {
       await tx
         .insert(tournamentTeams)
         .values({
-          id: 91201 + index,
+          id: 91_201 + index,
           teamId: team.id,
           tournamentId: TOURNAMENT_ID,
         })
@@ -233,51 +238,51 @@ const seedTournamentData = async () => {
 
     const stageSeeds = [
       {
-        code: 'GROUP',
-        format: 'single_round_robin',
+        code: "GROUP",
+        format: "single_round_robin",
         id: GROUP_STAGE_ID,
         matchFormatId: MATCH_FORMAT_ID,
-        name: 'Group Stage',
+        name: "Group Stage",
         qualificationSlots: 8,
         sequence: 1,
-        stageType: 'group',
-        status: 'upcoming',
+        stageType: "group",
+        status: "upcoming",
         tournamentId: TOURNAMENT_ID,
       },
       {
-        code: 'QF',
-        format: 'single_elimination',
+        code: "QF",
+        format: "single_elimination",
         id: QUARTER_FINAL_STAGE_ID,
         matchFormatId: MATCH_FORMAT_ID,
-        name: 'Quarter Finals',
+        name: "Quarter Finals",
         qualificationSlots: 4,
         sequence: 2,
-        stageType: 'knockout',
-        status: 'upcoming',
+        stageType: "knockout",
+        status: "upcoming",
         tournamentId: TOURNAMENT_ID,
       },
       {
-        code: 'SF',
-        format: 'single_elimination',
+        code: "SF",
+        format: "single_elimination",
         id: SEMI_FINAL_STAGE_ID,
         matchFormatId: MATCH_FORMAT_ID,
-        name: 'Semi Finals',
+        name: "Semi Finals",
         qualificationSlots: 2,
         sequence: 3,
-        stageType: 'knockout',
-        status: 'upcoming',
+        stageType: "knockout",
+        status: "upcoming",
         tournamentId: TOURNAMENT_ID,
       },
       {
-        code: 'F',
-        format: 'single_elimination',
+        code: "F",
+        format: "single_elimination",
         id: FINAL_STAGE_ID,
         matchFormatId: MATCH_FORMAT_ID,
-        name: 'Final',
+        name: "Final",
         qualificationSlots: 1,
         sequence: 4,
-        stageType: 'knockout',
-        status: 'upcoming',
+        stageType: "knockout",
+        status: "upcoming",
         tournamentId: TOURNAMENT_ID,
       },
     ] as const;
@@ -307,17 +312,17 @@ const seedTournamentData = async () => {
       .values([
         {
           advancingSlots: 4,
-          code: 'A',
+          code: "A",
           id: GROUP_A_ID,
-          name: 'Group A',
+          name: "Group A",
           sequence: 1,
           stageId: GROUP_STAGE_ID,
         },
         {
           advancingSlots: 4,
-          code: 'B',
+          code: "B",
           id: GROUP_B_ID,
-          name: 'Group B',
+          name: "Group B",
           sequence: 2,
           stageId: GROUP_STAGE_ID,
         },
@@ -333,8 +338,8 @@ const seedTournamentData = async () => {
       await tx
         .insert(tournamentStageTeamEntries)
         .values({
-          entrySource: 'direct',
-          id: 91301 + index,
+          entrySource: "direct",
+          id: 91_301 + index,
           isEliminated: false,
           isQualified: false,
           seed: index + 1,
@@ -345,7 +350,7 @@ const seedTournamentData = async () => {
         })
         .onConflictDoUpdate({
           set: {
-            entrySource: 'direct',
+            entrySource: "direct",
             isEliminated: false,
             isQualified: false,
             seed: index + 1,
@@ -362,8 +367,8 @@ const seedTournamentData = async () => {
       await tx
         .insert(tournamentStageTeamEntries)
         .values({
-          entrySource: 'direct',
-          id: 91311 + index,
+          entrySource: "direct",
+          id: 91_311 + index,
           isEliminated: false,
           isQualified: false,
           seed: index + 1,
@@ -374,7 +379,7 @@ const seedTournamentData = async () => {
         })
         .onConflictDoUpdate({
           set: {
-            entrySource: 'direct',
+            entrySource: "direct",
             isEliminated: false,
             isQualified: false,
             seed: index + 1,
@@ -391,8 +396,8 @@ const seedTournamentData = async () => {
       await tx
         .insert(tournamentStageTeamEntries)
         .values({
-          entrySource: 'qualified',
-          id: 91321 + index,
+          entrySource: "qualified",
+          id: 91_321 + index,
           isEliminated: false,
           isQualified: true,
           seed: index + 1,
@@ -402,7 +407,7 @@ const seedTournamentData = async () => {
         })
         .onConflictDoUpdate({
           set: {
-            entrySource: 'qualified',
+            entrySource: "qualified",
             isEliminated: false,
             isQualified: true,
             seed: index + 1,
@@ -418,8 +423,8 @@ const seedTournamentData = async () => {
       await tx
         .insert(tournamentStageTeamEntries)
         .values({
-          entrySource: 'qualified',
-          id: 91325 + index,
+          entrySource: "qualified",
+          id: 91_325 + index,
           isEliminated: false,
           isQualified: true,
           seed: index + 5,
@@ -429,7 +434,7 @@ const seedTournamentData = async () => {
         })
         .onConflictDoUpdate({
           set: {
-            entrySource: 'qualified',
+            entrySource: "qualified",
             isEliminated: false,
             isQualified: true,
             seed: index + 5,
@@ -445,120 +450,120 @@ const seedTournamentData = async () => {
       {
         fromStageGroupId: GROUP_A_ID,
         fromStageId: GROUP_STAGE_ID,
-        id: 91401,
+        id: 91_401,
         positionFrom: 1,
-        qualificationType: 'position',
+        qualificationType: "position",
         toSlot: 1,
         toStageId: QUARTER_FINAL_STAGE_ID,
       },
       {
         fromStageGroupId: GROUP_A_ID,
         fromStageId: GROUP_STAGE_ID,
-        id: 91402,
+        id: 91_402,
         positionFrom: 2,
-        qualificationType: 'position',
+        qualificationType: "position",
         toSlot: 2,
         toStageId: QUARTER_FINAL_STAGE_ID,
       },
       {
         fromStageGroupId: GROUP_A_ID,
         fromStageId: GROUP_STAGE_ID,
-        id: 91403,
+        id: 91_403,
         positionFrom: 3,
-        qualificationType: 'position',
+        qualificationType: "position",
         toSlot: 3,
         toStageId: QUARTER_FINAL_STAGE_ID,
       },
       {
         fromStageGroupId: GROUP_A_ID,
         fromStageId: GROUP_STAGE_ID,
-        id: 91404,
+        id: 91_404,
         positionFrom: 4,
-        qualificationType: 'position',
+        qualificationType: "position",
         toSlot: 4,
         toStageId: QUARTER_FINAL_STAGE_ID,
       },
       {
         fromStageGroupId: GROUP_B_ID,
         fromStageId: GROUP_STAGE_ID,
-        id: 91405,
+        id: 91_405,
         positionFrom: 1,
-        qualificationType: 'position',
+        qualificationType: "position",
         toSlot: 5,
         toStageId: QUARTER_FINAL_STAGE_ID,
       },
       {
         fromStageGroupId: GROUP_B_ID,
         fromStageId: GROUP_STAGE_ID,
-        id: 91406,
+        id: 91_406,
         positionFrom: 2,
-        qualificationType: 'position',
+        qualificationType: "position",
         toSlot: 6,
         toStageId: QUARTER_FINAL_STAGE_ID,
       },
       {
         fromStageGroupId: GROUP_B_ID,
         fromStageId: GROUP_STAGE_ID,
-        id: 91407,
+        id: 91_407,
         positionFrom: 3,
-        qualificationType: 'position',
+        qualificationType: "position",
         toSlot: 7,
         toStageId: QUARTER_FINAL_STAGE_ID,
       },
       {
         fromStageGroupId: GROUP_B_ID,
         fromStageId: GROUP_STAGE_ID,
-        id: 91408,
+        id: 91_408,
         positionFrom: 4,
-        qualificationType: 'position',
+        qualificationType: "position",
         toSlot: 8,
         toStageId: QUARTER_FINAL_STAGE_ID,
       },
       {
         fromStageId: QUARTER_FINAL_STAGE_ID,
-        id: 91409,
+        id: 91_409,
         positionFrom: 1,
-        qualificationType: 'knockout_winner',
+        qualificationType: "knockout_winner",
         toSlot: 1,
         toStageId: SEMI_FINAL_STAGE_ID,
       },
       {
         fromStageId: QUARTER_FINAL_STAGE_ID,
-        id: 91410,
+        id: 91_410,
         positionFrom: 2,
-        qualificationType: 'knockout_winner',
+        qualificationType: "knockout_winner",
         toSlot: 2,
         toStageId: SEMI_FINAL_STAGE_ID,
       },
       {
         fromStageId: QUARTER_FINAL_STAGE_ID,
-        id: 91411,
+        id: 91_411,
         positionFrom: 3,
-        qualificationType: 'knockout_winner',
+        qualificationType: "knockout_winner",
         toSlot: 3,
         toStageId: SEMI_FINAL_STAGE_ID,
       },
       {
         fromStageId: QUARTER_FINAL_STAGE_ID,
-        id: 91412,
+        id: 91_412,
         positionFrom: 4,
-        qualificationType: 'knockout_winner',
+        qualificationType: "knockout_winner",
         toSlot: 4,
         toStageId: SEMI_FINAL_STAGE_ID,
       },
       {
         fromStageId: SEMI_FINAL_STAGE_ID,
-        id: 91413,
+        id: 91_413,
         positionFrom: 1,
-        qualificationType: 'knockout_winner',
+        qualificationType: "knockout_winner",
         toSlot: 1,
         toStageId: FINAL_STAGE_ID,
       },
       {
         fromStageId: SEMI_FINAL_STAGE_ID,
-        id: 91414,
+        id: 91_414,
         positionFrom: 2,
-        qualificationType: 'knockout_winner',
+        qualificationType: "knockout_winner",
         toSlot: 2,
         toStageId: FINAL_STAGE_ID,
       },
@@ -566,9 +571,7 @@ const seedTournamentData = async () => {
 
     for (const advancement of advancementSeeds) {
       const fromStageGroupId =
-        'fromStageGroupId' in advancement
-          ? advancement.fromStageGroupId
-          : null;
+        "fromStageGroupId" in advancement ? advancement.fromStageGroupId : null;
 
       await tx
         .insert(tournamentStageAdvancements)

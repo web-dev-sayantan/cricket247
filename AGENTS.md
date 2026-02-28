@@ -7,6 +7,7 @@
 - **Lint & Format**: `bun run check` - Runs Biome check with auto-fix
 - **Build All**: `bun run build` - Builds all apps via Turbo
 - **Type Check**: `bun run check-types` - TypeScript checking across all apps
+- **Test**: `bun run test` - Run test suites
 - **Dev All**: `bun run dev` - Starts all apps in development mode
 - **Database Studio**: `bun run db:studio` - Open Drizzle Studio for database management
 - **Database Generate**: `bun run db:generate` - Generate database migrations
@@ -23,12 +24,14 @@
 
 - **Build**: `bun run build` - Vite production build
 - **Type Check**: `bun run check-types` - TypeScript checking
+- **Test**: `bun run test` - Run tests (from `apps/web`)
+- **Test Watch**: `bun run test:watch` - Run tests in watch mode (from `apps/web`)
 - **Dev**: `bun run dev` - Vite dev server on port 3001
 - **Deploy**: `bun run deploy` - Build and deploy to Cloudflare
 
 ### Testing
 
-No test framework currently configured. Run linting and type checking before commits.
+Run `bun run test` at the root. For web tests, run `bun run test` or `bun run test:watch` from `apps/web`.
 
 ## Code Style Guidelines
 
@@ -178,7 +181,7 @@ Follow all rules from `.rules` and `.github/copilot-instructions.md`:
 
 ### Project Structure
 
-```
+```text
 apps/
   server/     # Hono API server
   web/        # React SPA
@@ -236,12 +239,4 @@ const form = useForm({
 const result = await db.select().from(table).where(condition);
 ```
 
-Remember: Always run `bun run check` before committing to catch style and correctness issues.</content>
-<parameter name="filePath">/Users/sayantan/Developer/webapps/cricket247/AGENTS.md
-
-### Misc
-
-- Always use bun for package management
-- Always use bun for running scripts
-- Assume dev server is already running on port 3001
-- Assume backend server is already running on port 3000
+Remember: Always run `bun run check` before committing to catch style and correctness issues.

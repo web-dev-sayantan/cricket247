@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { RosterListSkeleton } from "./assign-players-views";
+import { RosterListSkeleton } from "./-assign-players-views";
 import type { AvailablePlayer } from "./types";
 import { VirtualizedPlayerList } from "./virtualized-player-list";
 

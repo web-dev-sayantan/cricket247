@@ -82,7 +82,7 @@ function DashboardComponent() {
             ))}
 
             {liveMatches.length === 1 && (
-              <div className="group relative flex min-h-[212px] w-[85vw] max-w-[320px] shrink-0 snap-center flex-col items-center justify-center rounded-xl border-2 border-border/40 border-dashed bg-card/20 md:max-w-[350px]">
+              <div className="group relative flex min-h-53 w-[85vw] max-w-[320px] shrink-0 snap-center flex-col items-center justify-center rounded-xl border-2 border-border/40 border-dashed bg-card/20 md:max-w-87.5">
                 <div className="flex flex-col items-center justify-center gap-4 text-muted-foreground/60 transition-transform duration-500 ease-in-out group-hover:translate-x-2">
                   <ArrowRightIcon className="h-10 w-10 animate-pulse duration-2000" />
                   <span className="font-medium text-sm uppercase tracking-wide">
@@ -147,7 +147,7 @@ function DashboardSkeleton() {
         <SectionScroll title="Live Matches">
           {["live-1", "live-2", "live-3"].map((key) => (
             <Skeleton
-              className="h-[212px] w-[85vw] max-w-[320px] shrink-0 snap-center rounded-xl bg-card/50 md:max-w-[350px]"
+              className="h-53 w-[85vw] max-w-[320px] shrink-0 snap-center rounded-xl bg-card/50 md:max-w-87.5"
               key={key}
             />
           ))}
@@ -156,7 +156,7 @@ function DashboardSkeleton() {
         <SectionScroll title="Live Tournaments">
           {["tourney-1", "tourney-2", "tourney-3"].map((key) => (
             <Skeleton
-              className="h-[188px] w-[85vw] max-w-[300px] shrink-0 snap-center rounded-xl bg-card/50 md:max-w-[320px]"
+              className="h-47 w-[85vw] max-w-75 shrink-0 snap-center rounded-xl bg-card/50 md:max-w-[320px]"
               key={key}
             />
           ))}
@@ -165,14 +165,14 @@ function DashboardSkeleton() {
         <SectionScroll title="Recently Concluded">
           {["recent-1", "recent-2", "recent-3"].map((key) => (
             <Skeleton
-              className="h-[212px] w-[85vw] max-w-[320px] shrink-0 snap-center rounded-xl bg-card/50 md:max-w-[350px]"
+              className="h-53 w-[85vw] max-w-[320px] shrink-0 snap-center rounded-xl bg-card/50 md:max-w-87.5"
               key={key}
             />
           ))}
         </SectionScroll>
 
         <div className="px-4 md:px-8">
-          <Skeleton className="h-[140px] w-full rounded-xl bg-card/50" />
+          <Skeleton className="h-35 w-full rounded-xl bg-card/50" />
         </div>
       </main>
     </div>

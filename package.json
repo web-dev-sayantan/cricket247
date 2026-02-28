@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
+    "test": "turbo test",
     "check": "ultracite check",
     "fix": "ultracite fix",
     "check-types": "turbo check-types",

@@ -5,10 +5,15 @@ import { db } from "@/db";
 import { players, tournamentTeams, user } from "@/db/schema";
 import { getBallsOfSameOver } from "@/services/ball.service";
 import {
+  CrudServiceError,
   playerCrudService,
   teamCrudService,
+  tournamentCrudService,
+  tournamentStageAdvancementCrudService,
   tournamentStageCrudService,
   tournamentStageGroupCrudService,
+  tournamentStageTeamEntryCrudService,
+  tournamentTeamCrudService,
 } from "@/services/crud.service";
 import {
   createMatchAction,
@@ -65,11 +70,19 @@ import {
   createOwnPlayerBodySchema,
   createPlayerBodySchema,
   createTeamBodySchema,
+  createTournamentBodySchema,
+  createTournamentStageAdvancementBodySchema,
   createTournamentStageBodySchema,
   createTournamentStageGroupBodySchema,
+  createTournamentStageTeamEntryBodySchema,
+  createTournamentTeamBodySchema,
   listClaimablePlayersQuerySchema,
+  updateTournamentBodySchema,
+  updateTournamentStageAdvancementBodySchema,
   updateTournamentStageBodySchema,
   updateTournamentStageGroupBodySchema,
+  updateTournamentStageTeamEntryBodySchema,
+  updateTournamentTeamBodySchema,
 } from "../schemas/crud.schemas";
 import { calculateAgeFromDob } from "../utils";
 
@@ -201,6 +214,46 @@ const UpdateTeamInputSchema = z
     path: ["data"],
   });
 
+const UpdateTournamentInputSchema = z
+  .object({
+    id: z.number().int().positive(),
+    data: updateTournamentBodySchema,
+  })
+  .refine(({ data }) => Object.keys(data).length > 0, {
+    message: "At least one field is required for update",
+    path: ["data"],
+  });
+
+const UpdateTournamentTeamInputSchema = z
+  .object({
+    id: z.number().int().positive(),
+    data: updateTournamentTeamBodySchema,
+  })
+  .refine(({ data }) => Object.keys(data).length > 0, {
+    message: "At least one field is required for update",
+    path: ["data"],
+  });
+
+const UpdateTournamentStageTeamEntryInputSchema = z
+  .object({
+    id: z.number().int().positive(),
+    data: updateTournamentStageTeamEntryBodySchema,
+  })
+  .refine(({ data }) => Object.keys(data).length > 0, {
+    message: "At least one field is required for update",
+    path: ["data"],
+  });
+
+const UpdateTournamentStageAdvancementInputSchema = z
+  .object({
+    id: z.number().int().positive(),
+    data: updateTournamentStageAdvancementBodySchema,
+  })
+  .refine(({ data }) => Object.keys(data).length > 0, {
+    message: "At least one field is required for update",
+    path: ["data"],
+  });
+
 async function getUserRoleByEmail(email: string) {
   const rows = await db
     .select({ role: user.role })
@@ -223,6 +276,17 @@ function getPlayerDuplicateKey(params: { name: string; dob: Date }) {
   return `${normalizedName}|${params.dob.toISOString()}`;
 }
 
+function mapTournamentCrudServiceError(error: unknown) {
+  if (
+    error instanceof CrudServiceError &&
+    error.code === "TOURNAMENT_ORGANIZATION_REQUIRED"
+  ) {
+    return new ORPCError("BAD_REQUEST");
+  }
+
+  return new ORPCError("INTERNAL_SERVER_ERROR");
+}
+
 export const appRouter = {
   healthCheck: publicProcedure.handler(() => "OK"),
   privateData: protectedProcedure.handler(({ context }) => ({
@@ -235,6 +299,265 @@ export const appRouter = {
   ),
   liveTournaments: publicProcedure.handler(() => getLiveTournaments()),
   tournaments: publicProcedure.handler(() => getAllTournaments()),
+  managementTournaments: publicProcedure.handler(() =>
+    tournamentCrudService.list()
+  ),
+  managementTournamentById: publicProcedure
+    .input(z.number().int().positive())
+    .handler(async ({ input }) => {
+      const tournament = await tournamentCrudService.getById(input);
+      if (!tournament) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      return tournament;
+    }),
+  createTournament: sensitiveProcedure
+    .input(createTournamentBodySchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      try {
+        const tournament = await tournamentCrudService.create(input);
+        if (!tournament) {
+          throw new ORPCError("INTERNAL_SERVER_ERROR");
+        }
+
+        return tournament;
+      } catch (error) {
+        throw mapTournamentCrudServiceError(error);
+      }
+    }),
+  updateTournament: sensitiveProcedure
+    .input(UpdateTournamentInputSchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      try {
+        const tournament = await tournamentCrudService.update(
+          input.id,
+          input.data
+        );
+        if (!tournament) {
+          throw new ORPCError("NOT_FOUND");
+        }
+
+        return tournament;
+      } catch (error) {
+        if (error instanceof ORPCError) {
+          throw error;
+        }
+
+        throw mapTournamentCrudServiceError(error);
+      }
+    }),
+  deleteTournament: sensitiveProcedure
+    .input(z.number().int().positive())
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      try {
+        const deleted = await tournamentCrudService.remove(input);
+        if (!deleted) {
+          throw new ORPCError("NOT_FOUND");
+        }
+
+        return { id: input };
+      } catch (error) {
+        if (error instanceof ORPCError) {
+          throw error;
+        }
+
+        throw mapTournamentCrudServiceError(error);
+      }
+    }),
+  tournamentTeams: publicProcedure.handler(() =>
+    tournamentTeamCrudService.list()
+  ),
+  tournamentTeamById: publicProcedure
+    .input(z.number().int().positive())
+    .handler(async ({ input }) => {
+      const tournamentTeam = await tournamentTeamCrudService.getById(input);
+      if (!tournamentTeam) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      return tournamentTeam;
+    }),
+  createTournamentTeam: sensitiveProcedure
+    .input(createTournamentTeamBodySchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      const tournamentTeam = await tournamentTeamCrudService.create(input);
+      if (!tournamentTeam) {
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
+      }
+
+      return tournamentTeam;
+    }),
+  updateTournamentTeam: sensitiveProcedure
+    .input(UpdateTournamentTeamInputSchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      const tournamentTeam = await tournamentTeamCrudService.update(
+        input.id,
+        input.data
+      );
+      if (!tournamentTeam) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      return tournamentTeam;
+    }),
+  deleteTournamentTeam: sensitiveProcedure
+    .input(z.number().int().positive())
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      const deleted = await tournamentTeamCrudService.remove(input);
+      if (!deleted) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      return { id: input };
+    }),
+  tournamentStages: publicProcedure.handler(() =>
+    tournamentStageCrudService.list()
+  ),
+  tournamentStageById: publicProcedure
+    .input(z.number().int().positive())
+    .handler(async ({ input }) => {
+      const stage = await tournamentStageCrudService.getById(input);
+      if (!stage) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      return stage;
+    }),
+  tournamentStageGroups: publicProcedure.handler(() =>
+    tournamentStageGroupCrudService.list()
+  ),
+  tournamentStageGroupById: publicProcedure
+    .input(z.number().int().positive())
+    .handler(async ({ input }) => {
+      const group = await tournamentStageGroupCrudService.getById(input);
+      if (!group) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      return group;
+    }),
+  tournamentStageTeamEntries: publicProcedure.handler(() =>
+    tournamentStageTeamEntryCrudService.list()
+  ),
+  tournamentStageTeamEntryById: publicProcedure
+    .input(z.number().int().positive())
+    .handler(async ({ input }) => {
+      const stageTeamEntry =
+        await tournamentStageTeamEntryCrudService.getById(input);
+      if (!stageTeamEntry) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      return stageTeamEntry;
+    }),
+  createTournamentStageTeamEntry: sensitiveProcedure
+    .input(createTournamentStageTeamEntryBodySchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      const stageTeamEntry =
+        await tournamentStageTeamEntryCrudService.create(input);
+      if (!stageTeamEntry) {
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
+      }
+
+      return stageTeamEntry;
+    }),
+  updateTournamentStageTeamEntry: sensitiveProcedure
+    .input(UpdateTournamentStageTeamEntryInputSchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      const stageTeamEntry = await tournamentStageTeamEntryCrudService.update(
+        input.id,
+        input.data
+      );
+      if (!stageTeamEntry) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      return stageTeamEntry;
+    }),
+  deleteTournamentStageTeamEntry: sensitiveProcedure
+    .input(z.number().int().positive())
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      const deleted = await tournamentStageTeamEntryCrudService.remove(input);
+      if (!deleted) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      return { id: input };
+    }),
+  tournamentStageAdvancements: publicProcedure.handler(() =>
+    tournamentStageAdvancementCrudService.list()
+  ),
+  tournamentStageAdvancementById: publicProcedure
+    .input(z.number().int().positive())
+    .handler(async ({ input }) => {
+      const stageAdvancement =
+        await tournamentStageAdvancementCrudService.getById(input);
+      if (!stageAdvancement) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      return stageAdvancement;
+    }),
+  createTournamentStageAdvancement: sensitiveProcedure
+    .input(createTournamentStageAdvancementBodySchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      const stageAdvancement =
+        await tournamentStageAdvancementCrudService.create(input);
+      if (!stageAdvancement) {
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
+      }
+
+      return stageAdvancement;
+    }),
+  updateTournamentStageAdvancement: sensitiveProcedure
+    .input(UpdateTournamentStageAdvancementInputSchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      const stageAdvancement =
+        await tournamentStageAdvancementCrudService.update(
+          input.id,
+          input.data
+        );
+      if (!stageAdvancement) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      return stageAdvancement;
+    }),
+  deleteTournamentStageAdvancement: sensitiveProcedure
+    .input(z.number().int().positive())
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      const deleted = await tournamentStageAdvancementCrudService.remove(input);
+      if (!deleted) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      return { id: input };
+    }),
   tournamentStructure: publicProcedure
     .input(TournamentStructureInputSchema)
     .handler(({ input }) => getTournamentStructure(input.tournamentId)),

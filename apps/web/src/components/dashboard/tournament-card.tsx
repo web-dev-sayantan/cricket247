@@ -21,7 +21,7 @@ export function TournamentCard({
   const isLive = isDateWithinInclusiveRange(new Date(), startDate, endDate);
 
   return (
-    <Card className="group relative w-[85vw] max-w-[300px] shrink-0 snap-center overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-primary/20 hover:shadow-xl md:max-w-[320px]">
+    <Card className="group relative w-[85vw] max-w-75 shrink-0 snap-center overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-primary/20 hover:shadow-xl md:max-w-[320px]">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 px-5 pt-5 pb-2">
         <CardTitle className="font-semibold text-muted-foreground text-xs uppercase tracking-wider">
           {format}

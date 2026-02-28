@@ -11,24 +11,24 @@ export interface TeamTournament {
 }
 
 export interface AssignedPlayer {
-  playerId: number;
-  name: string;
-  role: string;
   isCaptain: boolean | null;
   isViceCaptain: boolean | null;
+  name: string;
+  playerId: number;
+  role: string;
 }
 
 export interface AvailablePlayer {
-  playerId: number;
   name: string;
-  role: string;
   nationality: string | null;
+  playerId: number;
+  role: string;
 }
 
 export interface ConflictedPlayer {
-  playerId: number;
-  name: string;
-  role: string;
   assignedTeamId: number | null;
   assignedTeamName: string | null;
+  name: string;
+  playerId: number;
+  role: string;
 }

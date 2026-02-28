@@ -15,7 +15,7 @@ A modern, type-safe REST API built with Hono for managing cricket matches, live 
 
 ## 📁 Project Structure
 
-```
+```text
 src/
 ├── config/           # Configuration files
 │   ├── constants.ts  # Application constants
@@ -90,13 +90,13 @@ src/
 bun install
 ```
 
-2. Copy environment variables:
+1. Copy environment variables:
 
 ```bash
 cp .env.example .env
 ```
 
-3. Configure your `.env` file with required values:
+1. Configure your `.env` file with required values:
 
 ```env
 DATABASE_URL=libsql://your-database-url
@@ -111,13 +111,13 @@ FACEBOOK_CLIENT_ID=your-facebook-client-id
 FACEBOOK_CLIENT_SECRET=your-facebook-client-secret
 ```
 
-4. Generate database schema:
+1. Generate database schema:
 
 ```bash
 bun run db:generate
 ```
 
-5. Push schema to database:
+1. Push schema to database:
 
 ```bash
 bun run db:push
@@ -147,6 +147,21 @@ Run production build:
 bun run start
 ```
 
+### Testing
+
+Run unit tests for the server app:
+
+```bash
+bun run test
+```
+
+Testing conventions:
+
+- Use co-located test files with `*.test.ts`
+- Prefer unit tests for `src/utils` and service logic
+- Mock `@/db` for DB-coupled service unit tests
+- Do not import app entry files in unit tests
+
 ## 📡 API Endpoints
 
 ### Base URL: `/api/v1`
@@ -155,6 +170,16 @@ bun run start
 
 - `GET /api/v1/health` - Public health check
 - `GET /api/v1/health/detailed` - Protected health check with DB status
+
+### Tournament Management
+
+- `GET /api/v1/tournaments` - List tournaments (public)
+- `GET /api/v1/tournaments/:id` - Get tournament by ID (public)
+- `POST /api/v1/tournaments` - Create tournament (authenticated admin only)
+- `PATCH /api/v1/tournaments/:id` - Update tournament (authenticated admin only)
+- `DELETE /api/v1/tournaments/:id` - Delete tournament (authenticated admin only)
+
+Equivalent ORPC management procedures are available in `src/routers/index.ts` (`managementTournaments`, `managementTournamentById`, `createTournament`, `updateTournament`, `deleteTournament`) with the same admin expectation for write operations.
 
 ### Matches
 
@@ -238,7 +263,7 @@ myRoutes.get("/", async (c) => {
 export default myRoutes;
 ```
 
-2. Register in `src/routes/index.ts`:
+1. Register in `src/routes/index.ts`:
 
 ```typescript
 import myRoutes from "./my.routes";

@@ -37,9 +37,12 @@ cricket247/
 - `bun run check` - Lint & format with Biome (run before committing)
 - `bun run build` - Build all apps via Turbo
 - `bun run check-types` - TypeScript checking across all apps
+- `bun run test` - Run test suites from the repo root
 - `bun run dev` - Start all apps in development mode
 - `bun run dev:web` - Start only web app (port 3001)
 - `bun run dev:server` - Start only server (port 3000)
+- From `apps/web`: `bun run test` - Run web tests
+- From `apps/web`: `bun run test:watch` - Run web tests in watch mode
 - `bun run db:push` - Push schema changes to database
 - `bun run db:studio` - Open Drizzle Studio for database management
 - `bun run db:generate` - Generate database migrations
@@ -49,7 +52,7 @@ cricket247/
 1. **Before coding**: Read `AGENTS.md` and analyze existing patterns in similar files
 2. **During coding**: Follow Ultracite rules strictly (enforced by Biome)
 3. **Before commit**: Run `bun run check` and `bun run check-types`
-4. **Testing**: Manual testing + accessibility audit (no test framework currently configured)
+4. **Testing**: Run `bun run test`; for web, run `bun run test` or `bun run test:watch` from `apps/web`, then do manual accessibility audit
 
 ## Task Guidelines
 **Good tasks for AI coding agents:**

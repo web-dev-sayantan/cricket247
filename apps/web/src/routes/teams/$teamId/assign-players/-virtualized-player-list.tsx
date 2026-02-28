@@ -1,5 +1,5 @@
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { type ReactNode, useRef } from 'react';
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { type ReactNode, useRef } from "react";
 
 const VIRTUAL_ROW_ESTIMATE = 96;
 const VIRTUALIZATION_THRESHOLD = 20;
@@ -24,9 +24,9 @@ export function VirtualizedPlayerList<TItem>({
 
   if (items.length <= VIRTUALIZATION_THRESHOLD) {
     return (
-      <div className='space-y-2'>
+      <div className="space-y-2">
         {items.map((item) => (
-          <div className='py-1' key={String(getItemKey(item))}>
+          <div className="py-1" key={String(getItemKey(item))}>
             {renderItem(item)}
           </div>
         ))}
@@ -38,10 +38,10 @@ export function VirtualizedPlayerList<TItem>({
 
   if (virtualItems.length === 0) {
     return (
-      <div className='h-96 overflow-y-auto'>
-        <div className='space-y-2'>
+      <div className="h-96 overflow-y-auto">
+        <div className="space-y-2">
           {items.map((item) => (
-            <div className='py-1' key={String(getItemKey(item))}>
+            <div className="py-1" key={String(getItemKey(item))}>
               {renderItem(item)}
             </div>
           ))}
@@ -55,7 +55,7 @@ export function VirtualizedPlayerList<TItem>({
   const paddingBottom = rowVirtualizer.getTotalSize() - lastItemEnd;
 
   return (
-    <div className='h-96 overflow-y-auto' ref={scrollElementRef}>
+    <div className="h-96 overflow-y-auto" ref={scrollElementRef}>
       <div
         style={{
           paddingBottom: `${paddingBottom}px`,
@@ -70,7 +70,7 @@ export function VirtualizedPlayerList<TItem>({
           }
 
           return (
-            <div className='py-1' key={String(getItemKey(item))}>
+            <div className="py-1" key={String(getItemKey(item))}>
               {renderItem(item)}
             </div>
           );
