@@ -8,7 +8,15 @@ function getRequiredEnv(key: string): string {
   return value;
 }
 
-const resend = new Resend(getRequiredEnv("RESEND_API_KEY"));
+let resendClient: Resend | null = null;
+
+const getResendClient = () => {
+  if (!resendClient) {
+    resendClient = new Resend(getRequiredEnv("RESEND_API_KEY"));
+  }
+
+  return resendClient;
+};
 
 export const sendEmailOtp = async ({
   email,
@@ -21,6 +29,8 @@ export const sendEmailOtp = async ({
   from?: string;
   subject?: string;
 }) => {
+  const resend = getResendClient();
+
   await resend.emails.send({
     from,
     to: email,

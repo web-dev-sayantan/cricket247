@@ -1,5 +1,4 @@
 import { ORPCError, os } from "@orpc/server";
-import { auth } from "./auth";
 import type { Context } from "./context";
 
 export const o = os.$context<Context>();
@@ -19,6 +18,8 @@ const requireAuth = o.middleware(({ context, next }) => {
 });
 
 const requireSensitiveAuth = o.middleware(async ({ context, next }) => {
+  const { auth } = await import("./auth");
+
   const session = await auth.api.getSession({
     headers: context.headers,
     query: {
