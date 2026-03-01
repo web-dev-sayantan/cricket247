@@ -1,4 +1,6 @@
 import { ArrowLeft } from "lucide-react";
+import { PageHeader } from "@/components/layout/page-header";
+import { PageShell } from "@/components/layout/page-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,40 +11,34 @@ export function UnauthorizedView({
   navigateToTeams: () => void;
 }) {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto w-full max-w-4xl space-y-4 px-4 py-6 md:px-6 md:py-8">
-        <header className="space-y-1">
-          <h1 className="font-semibold text-2xl tracking-tight md:text-3xl">
-            Assign Players
-          </h1>
-          <p className="text-muted-foreground text-sm md:text-base">
-            You need admin access to manage team roster assignments.
+    <PageShell>
+      <PageHeader
+        description="You need admin access to manage team roster assignments."
+        title="Assign Players"
+      />
+      <Card className="rounded-xl border-dashed">
+        <CardContent className="space-y-4 p-6">
+          <p className="text-muted-foreground text-sm">
+            Your account does not have permission to assign team players.
           </p>
-        </header>
-        <Card className="rounded-xl border-dashed">
-          <CardContent className="space-y-4 p-6">
-            <p className="text-muted-foreground text-sm">
-              Your account does not have permission to assign team players.
-            </p>
-            <Button
-              onClick={navigateToTeams}
-              size="sm"
-              type="button"
-              variant="outline"
-            >
-              <ArrowLeft />
-              Back to teams
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+          <Button
+            onClick={navigateToTeams}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            <ArrowLeft />
+            Back to teams
+          </Button>
+        </CardContent>
+      </Card>
+    </PageShell>
   );
 }
 
 export function AssignPlayersSkeleton() {
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-5 px-4 py-6 md:px-6 md:py-8">
+    <div className="mx-auto w-full max-w-6xl space-y-5 px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
       <Skeleton className="h-8 w-44" />
       <Skeleton className="h-16 w-full" />
       <div className="grid gap-4 lg:grid-cols-2">

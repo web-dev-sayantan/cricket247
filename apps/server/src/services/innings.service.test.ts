@@ -23,7 +23,7 @@ interface InningsUpdateRow {
 }
 
 interface InningsInsertResult {
-  lastInsertRowid: number;
+  lastInsertRowid: bigint | number;
 }
 
 interface InningsMockState {
@@ -139,7 +139,10 @@ describe("innings.service", () => {
       bowlingTeamId: 3,
     });
 
-    expect(createdId).toBe(77n);
+    const normalizedCreatedId =
+      typeof createdId === "bigint" ? Number(createdId) : createdId;
+
+    expect(normalizedCreatedId).toBe(77);
   });
 
   it("returns first updated row for update action", async () => {

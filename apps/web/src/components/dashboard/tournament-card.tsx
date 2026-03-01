@@ -32,7 +32,7 @@ export function TournamentCard({
     >
       <Card
         className={cn(
-          "group relative w-[85vw] max-w-75 shrink-0 snap-center overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-primary/20 hover:shadow-xl md:max-w-[320px]",
+          "group relative w-[clamp(16rem,82vw,20rem)] shrink-0 snap-center overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:border-primary/20 hover:shadow-xl",
           className
         )}
       >

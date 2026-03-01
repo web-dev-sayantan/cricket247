@@ -3,6 +3,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { useMemo } from "react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/layout/page-header";
+import { PageShell } from "@/components/layout/page-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -145,85 +147,72 @@ function RouteComponent() {
 
   if (!Number.isFinite(numericTournamentId) || numericTournamentId <= 0) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="mx-auto w-full max-w-4xl px-4 py-6 md:px-6 md:py-8">
-          <Card className="rounded-xl border-destructive/40">
-            <CardContent className="space-y-4 p-6">
-              <h1 className="font-semibold text-xl">Invalid Tournament ID</h1>
-              <p className="text-muted-foreground text-sm">
-                The tournament id in the URL is invalid.
-              </p>
-              <Button
-                onClick={() => navigate({ to: "/tournaments" })}
-                size="sm"
-              >
-                <ArrowLeft />
-                Back to tournaments
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      <PageShell>
+        <Card className="rounded-xl border-destructive/40">
+          <CardContent className="space-y-4 p-6">
+            <h1 className="font-semibold text-xl">Invalid Tournament ID</h1>
+            <p className="text-muted-foreground text-sm">
+              The tournament id in the URL is invalid.
+            </p>
+            <Button onClick={() => navigate({ to: "/tournaments" })} size="sm">
+              <ArrowLeft />
+              Back to tournaments
+            </Button>
+          </CardContent>
+        </Card>
+      </PageShell>
     );
   }
 
   if (isSessionPending) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="mx-auto w-full max-w-4xl space-y-4 px-4 py-6 md:px-6 md:py-8">
-          <Skeleton className="h-8 w-60" />
-          <Card className="rounded-xl">
-            <CardHeader className="space-y-2">
-              <Skeleton className="h-6 w-64" />
-              <Skeleton className="h-4 w-80" />
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      <PageShell>
+        <Skeleton className="h-8 w-60" />
+        <Card className="rounded-xl">
+          <CardHeader className="space-y-2">
+            <Skeleton className="h-6 w-64" />
+            <Skeleton className="h-4 w-80" />
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </CardContent>
+        </Card>
+      </PageShell>
     );
   }
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="mx-auto w-full max-w-2xl space-y-4 px-4 py-6 md:px-6 md:py-8">
-          <header className="space-y-1">
-            <h1 className="font-semibold text-2xl tracking-tight md:text-3xl">
-              Edit Tournament
-            </h1>
-            <p className="text-muted-foreground text-sm md:text-base">
-              You need admin access to edit tournaments.
+      <PageShell maxWidth="form">
+        <PageHeader
+          description="You need admin access to edit tournaments."
+          title="Edit Tournament"
+        />
+        <Card className="rounded-xl border-dashed">
+          <CardContent className="space-y-4 p-6">
+            <p className="text-muted-foreground text-sm">
+              Your account does not have permission to edit tournaments.
             </p>
-          </header>
-          <Card className="rounded-xl border-dashed">
-            <CardContent className="space-y-4 p-6">
-              <p className="text-muted-foreground text-sm">
-                Your account does not have permission to edit tournaments.
-              </p>
-              <Button
-                onClick={() =>
-                  navigate({
-                    params: { tournamentId: String(numericTournamentId) },
-                    to: "/tournaments/$tournamentId",
-                  })
-                }
-                size="sm"
-                type="button"
-                variant="outline"
-              >
-                <ArrowLeft />
-                Back to tournament
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+            <Button
+              onClick={() =>
+                navigate({
+                  params: { tournamentId: String(numericTournamentId) },
+                  to: "/tournaments/$tournamentId",
+                })
+              }
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              <ArrowLeft />
+              Back to tournament
+            </Button>
+          </CardContent>
+        </Card>
+      </PageShell>
     );
   }
 
@@ -241,52 +230,45 @@ function RouteComponent() {
       "Failed to load tournament edit data";
 
     return (
-      <div className="min-h-screen bg-background">
-        <div className="mx-auto w-full max-w-4xl px-4 py-6 md:px-6 md:py-8">
-          <Card className="rounded-xl border-destructive/40">
-            <CardContent className="space-y-4 p-6">
-              <h1 className="font-semibold text-xl">Tournament Edit Failed</h1>
-              <p className="text-muted-foreground text-sm">{errorMessage}</p>
-              <Button
-                onClick={() =>
-                  navigate({
-                    params: { tournamentId: String(numericTournamentId) },
-                    to: "/tournaments/$tournamentId",
-                  })
-                }
-                size="sm"
-              >
-                <ArrowLeft />
-                Back to tournament
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      <PageShell>
+        <Card className="rounded-xl border-destructive/40">
+          <CardContent className="space-y-4 p-6">
+            <h1 className="font-semibold text-xl">Tournament Edit Failed</h1>
+            <p className="text-muted-foreground text-sm">{errorMessage}</p>
+            <Button
+              onClick={() =>
+                navigate({
+                  params: { tournamentId: String(numericTournamentId) },
+                  to: "/tournaments/$tournamentId",
+                })
+              }
+              size="sm"
+            >
+              <ArrowLeft />
+              Back to tournament
+            </Button>
+          </CardContent>
+        </Card>
+      </PageShell>
     );
   }
 
   if (!(tournamentView && initialValues && templateInference)) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="mx-auto w-full max-w-4xl px-4 py-6 md:px-6 md:py-8">
-          <Card className="rounded-xl border-destructive/40">
-            <CardContent className="space-y-4 p-6">
-              <h1 className="font-semibold text-xl">Tournament Not Found</h1>
-              <p className="text-muted-foreground text-sm">
-                Unable to load tournament data for editing.
-              </p>
-              <Button
-                onClick={() => navigate({ to: "/tournaments" })}
-                size="sm"
-              >
-                <ArrowLeft />
-                Back to tournaments
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      <PageShell>
+        <Card className="rounded-xl border-destructive/40">
+          <CardContent className="space-y-4 p-6">
+            <h1 className="font-semibold text-xl">Tournament Not Found</h1>
+            <p className="text-muted-foreground text-sm">
+              Unable to load tournament data for editing.
+            </p>
+            <Button onClick={() => navigate({ to: "/tournaments" })} size="sm">
+              <ArrowLeft />
+              Back to tournaments
+            </Button>
+          </CardContent>
+        </Card>
+      </PageShell>
     );
   }
 

@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { FileText, Play } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatWeekdayMonthDayYear } from "@/lib/date";
+import { cn } from "@/lib/utils";
 
 interface MatchCardProps {
   match: {
@@ -83,7 +84,13 @@ export const MatchCard = ({ match }: MatchCardProps) => {
 
           <div className="flex flex-col gap-4 pt-2 md:flex-row md:gap-2">
             <Link
-              className="flex-1"
+              className={cn(
+                buttonVariants({
+                  className: "w-full md:flex-1",
+                  size: "sm",
+                  variant: "default",
+                })
+              )}
               params={{ matchId: String(match.id) }}
               search={{
                 innings: currentInningsId,
@@ -91,20 +98,22 @@ export const MatchCard = ({ match }: MatchCardProps) => {
               }}
               to="/matches/$matchId/score"
             >
-              <Button className="w-full" size="sm" variant="default">
-                <Play className="mr-1 size-4" />
-                Resume Scoring
-              </Button>
+              <Play className="mr-1 size-4" />
+              Resume Scoring
             </Link>
             <Link
-              className="flex-1"
+              className={cn(
+                buttonVariants({
+                  className: "w-full md:flex-1",
+                  size: "sm",
+                  variant: "outline",
+                })
+              )}
               params={{ matchId: String(match.id) }}
               to="/matches/$matchId/scorecard"
             >
-              <Button className="w-full" size="sm" variant="outline">
-                <FileText className="mr-1 size-4" />
-                Scorecard
-              </Button>
+              <FileText className="mr-1 size-4" />
+              Scorecard
             </Link>
           </div>
         </div>

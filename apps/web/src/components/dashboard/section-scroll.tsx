@@ -13,14 +13,13 @@ export function SectionScroll({
   className,
 }: SectionScrollProps) {
   return (
-    <section className={cn("relative py-2", className)}>
-      <div className="mb-5 flex items-center justify-between px-4 md:px-8">
-        <h3 className="font-bold text-xl tracking-tight md:text-2xl">
+    <section className={cn("relative space-y-4", className)}>
+      <div className="flex items-center justify-between">
+        <h2 className="font-semibold text-xl tracking-tight md:text-2xl">
           {title}
-        </h3>
+        </h2>
       </div>
-      {/* Container padding helps prevent shadow clipping and handles start/end scroll spacing naturally */}
-      <div className="scrollbar-hide flex w-full snap-x snap-mandatory gap-5 overflow-x-auto overflow-y-hidden px-4 pt-2 pb-8 after:w-1 after:shrink-0 after:content-[''] md:gap-6 md:px-8 md:after:w-4">
+      <div className="scrollbar-hide flex w-full snap-x snap-mandatory gap-4 overflow-x-auto overflow-y-hidden px-0.5 pb-4">
         {children}
       </div>
     </section>

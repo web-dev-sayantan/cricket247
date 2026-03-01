@@ -3,6 +3,8 @@ import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { z } from "zod";
+import { PageHeader } from "@/components/layout/page-header";
+import { PageShell } from "@/components/layout/page-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -143,41 +145,33 @@ function OnboardingRoute() {
 
   if (status.onboardingCompletedAt) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 py-6 md:px-6 md:py-8">
-          <Card className="rounded-xl">
-            <CardHeader className="border-b pb-4">
-              <h1 className="font-semibold text-xl">Onboarding Complete</h1>
-            </CardHeader>
-            <CardContent className="space-y-3 pt-5">
-              <p className="text-sm">
-                Your player profile is already connected.
-              </p>
-              <Button
-                onClick={() => navigate({ to: "/dashboard" })}
-                type="button"
-              >
-                Go to dashboard
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      <PageShell maxWidth="form">
+        <Card className="rounded-xl">
+          <CardHeader className="border-b pb-4">
+            <h1 className="font-semibold text-xl">Onboarding Complete</h1>
+          </CardHeader>
+          <CardContent className="space-y-3 pt-5">
+            <p className="text-sm">Your player profile is already connected.</p>
+            <Button
+              onClick={() => navigate({ to: "/dashboard" })}
+              type="button"
+            >
+              Go to dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </PageShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6 md:px-6 md:py-8">
-        <header className="space-y-1">
-          <h1 className="font-semibold text-2xl tracking-tight md:text-3xl">
-            Complete your onboarding
-          </h1>
-          <p className="text-muted-foreground text-sm md:text-base">
-            Create your player profile or claim an existing one.
-          </p>
-        </header>
+    <PageShell>
+      <PageHeader
+        description="Create your player profile or claim an existing one."
+        title="Complete your onboarding"
+      />
 
+      <div className="space-y-5">
         <Card className="rounded-xl">
           <CardHeader className="border-b pb-4">
             <h2 className="font-medium text-lg">Create player profile</h2>
@@ -485,6 +479,6 @@ function OnboardingRoute() {
           </Button>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

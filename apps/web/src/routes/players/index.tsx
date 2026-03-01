@@ -13,6 +13,8 @@ import {
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { PageHeader } from "@/components/layout/page-header";
+import { PageShell } from "@/components/layout/page-shell";
 import { PlayerImageUploadInput } from "@/components/player-image-upload-input";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -439,27 +441,21 @@ function RouteComponent() {
   const hasFilteredPlayers = filteredPlayers.length > 0;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 md:px-6 md:py-8">
-        <header className="space-y-2">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="space-y-1">
-              <h1 className="font-semibold text-2xl tracking-tight md:text-3xl">
-                Players
-              </h1>
-              <p className="text-muted-foreground text-sm md:text-base">
-                Browse, search, and manage player profiles.
-              </p>
-            </div>
-            {isAdmin ? (
-              <Link className={buttonVariants()} to="/players/create">
-                <Plus />
-                Add Player
-              </Link>
-            ) : null}
-          </div>
-        </header>
+    <PageShell>
+      <PageHeader
+        actions={
+          isAdmin ? (
+            <Link className={buttonVariants()} to="/players/create">
+              <Plus />
+              Add Player
+            </Link>
+          ) : null
+        }
+        description="Browse, search, and manage player profiles."
+        title="Players"
+      />
 
+      <div className="space-y-6">
         <section className="space-y-4 rounded-xl border bg-card p-4 shadow-sm md:p-5">
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_210px_200px_190px_auto]">
             <div className="relative">
@@ -678,7 +674,7 @@ function RouteComponent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }
 

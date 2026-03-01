@@ -116,7 +116,9 @@ export default function SignInForm({
     if (data?.user) {
       // navigate("/dashboard");
     } else {
-      console.error("OTP verification failed:", error);
+      if (error) {
+        toast.error(error.message || "OTP verification failed");
+      }
       setSigninError("Invalid Code");
     }
   }
@@ -125,8 +127,11 @@ export default function SignInForm({
   }
 
   return (
-    <div className="mx-auto mt-10 w-full max-w-md p-6">
-      <Card className="min-w-75">
+    <main
+      className="page-surface flex items-start justify-center px-4 py-6 sm:px-6 sm:py-10"
+      id="main-content"
+    >
+      <Card className="w-full max-w-md">
         <CardHeader className="flex flex-col items-center justify-center">
           <img
             alt="logo"
@@ -180,7 +185,7 @@ export default function SignInForm({
                 <form.Field name="otp">
                   {(field) => {
                     const isInvalid =
-                      field.state.meta.isTouched && field.state.meta.isValid;
+                      field.state.meta.isTouched && !field.state.meta.isValid;
                     return (
                       <Field className="space-y-2" data-invalid={isInvalid}>
                         <FieldLabel htmlFor={field.name}>
@@ -305,6 +310,6 @@ export default function SignInForm({
           </div>
         </CardFooter>
       </Card>
-    </div>
+    </main>
   );
 }

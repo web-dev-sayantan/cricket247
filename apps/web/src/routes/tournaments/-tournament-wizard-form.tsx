@@ -1594,8 +1594,11 @@ export function TournamentWizardForm(props: TournamentWizardFormProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-10">
-      <div className="mx-auto w-full max-w-4xl space-y-5 px-4 py-6 md:px-6 md:py-8">
+    <div className="page-surface pb-10">
+      <main
+        className="mx-auto w-full max-w-6xl space-y-5 px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10"
+        id="main-content"
+      >
         <header className="space-y-1">
           <h1 className="font-semibold text-2xl tracking-tight md:text-3xl">
             {props.heading}
@@ -1718,7 +1721,7 @@ export function TournamentWizardForm(props: TournamentWizardFormProps) {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </main>
     </div>
   );
 }

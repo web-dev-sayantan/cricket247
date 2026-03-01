@@ -49,9 +49,17 @@ const dbMock = {
   }),
 };
 
-mock.module("@/db", () => ({ db: dbMock }));
+type CrudServiceModule = typeof import("./crud.service");
+let moduleImportNonce = 0;
 
-const serviceModulePromise = import("./crud.service");
+const loadServiceModule = async (): Promise<CrudServiceModule> => {
+  moduleImportNonce += 1;
+  mock.module("@/db", () => ({ db: dbMock }));
+
+  return (await import(
+    `./crud.service?testModuleNonce=${moduleImportNonce}`
+  )) as CrudServiceModule;
+};
 
 const getInsertedValues = () => state.insertedValues;
 
@@ -67,13 +75,14 @@ const createTournamentPayload = (
 
 describe("tournamentCrudService.create", () => {
   beforeEach(() => {
+    mock.restore();
     state.insertedValues = null;
     state.systemOrganization = null;
   });
 
   it("throws TOURNAMENT_ORGANIZATION_REQUIRED for competitive tournaments without organizationId", async () => {
     const { CrudServiceError, tournamentCrudService } =
-      await serviceModulePromise;
+      await loadServiceModule();
 
     await expect(
       tournamentCrudService.create(
@@ -97,7 +106,7 @@ describe("tournamentCrudService.create", () => {
   });
 
   it("uses system organization fallback for practice/recreational/one_off categories", async () => {
-    const { tournamentCrudService } = await serviceModulePromise;
+    const { tournamentCrudService } = await loadServiceModule();
 
     state.systemOrganization = { id: 99 };
 
@@ -120,7 +129,7 @@ describe("tournamentCrudService.create", () => {
 
   it("throws SYSTEM_ORGANIZATION_NOT_FOUND when fallback categories are used but system organization is missing", async () => {
     const { CrudServiceError, tournamentCrudService } =
-      await serviceModulePromise;
+      await loadServiceModule();
 
     await expect(
       tournamentCrudService.create(

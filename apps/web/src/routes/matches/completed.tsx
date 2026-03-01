@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
+import { PageHeader } from "@/components/layout/page-header";
+import { PageShell } from "@/components/layout/page-shell";
 import { MatchCard } from "@/components/match-card";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/matches/completed")({
@@ -15,25 +17,22 @@ function RouteComponent() {
   );
 
   return (
-    <div className="flex min-h-screen flex-col">
-      {/* Header */}
-      <div className="border-b bg-background px-4 py-4">
-        <div className="mb-3">
-          <Link to="/matches">
-            <Button size="sm" variant="ghost">
-              <ArrowLeft className="mr-2 size-4" />
-              Back to Live Matches
-            </Button>
+    <PageShell>
+      <PageHeader
+        actions={
+          <Link
+            className={buttonVariants({ size: "sm", variant: "ghost" })}
+            to="/matches"
+          >
+            <ArrowLeft className="mr-2 size-4" />
+            Back to Live Matches
           </Link>
-        </div>
-        <h1 className="font-bold text-2xl">Completed Matches</h1>
-        <p className="text-muted-foreground text-sm">
-          View past match results and statistics
-        </p>
-      </div>
+        }
+        description="View past match results and statistics"
+        title="Completed Matches"
+      />
 
-      {/* Content */}
-      <div className="flex-1 p-4">
+      <section>
         {isLoading && (
           <div className="flex items-center justify-center py-12">
             <div className="text-muted-foreground">Loading matches...</div>
@@ -70,7 +69,7 @@ function RouteComponent() {
             ))}
           </div>
         )}
-      </div>
-    </div>
+      </section>
+    </PageShell>
   );
 }

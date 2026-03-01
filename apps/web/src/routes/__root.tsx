@@ -59,9 +59,14 @@ function RootComponent() {
         storageKey="vite-ui-theme"
       >
         <TooltipProvider>
-          <div className="grid h-svh grid-rows-[auto_1fr]">
+          <a className="skip-link" href="#main-content">
+            Skip to content
+          </a>
+          <div className="grid min-h-svh grid-rows-[auto_1fr]">
             <Header />
-            {isFetching ? <Loader /> : <Outlet />}
+            <div className="min-h-0">
+              {isFetching ? <Loader /> : <Outlet />}
+            </div>
           </div>
         </TooltipProvider>
         <Toaster richColors />

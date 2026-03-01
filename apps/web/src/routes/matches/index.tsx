@@ -1,8 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Activity, HistoryIcon, PlusIcon } from "lucide-react";
+import { PageHeader } from "@/components/layout/page-header";
+import { PageShell } from "@/components/layout/page-shell";
 import { MatchCard } from "@/components/match-card";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/matches/")({
@@ -15,20 +18,14 @@ function RouteComponent() {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-24 selection:bg-primary/20">
-      {/* Header */}
-      <header className="fade-in slide-in-from-top-4 animate-in px-4 py-8 duration-500 ease-out md:px-8 md:py-10">
-        <h1 className="font-extrabold text-4xl tracking-tight lg:text-5xl">
-          Live Matches
-        </h1>
-        <p className="mt-2 font-medium text-lg text-muted-foreground/80 tracking-tight">
-          Watch cricket matches in real-time
-        </p>
-      </header>
+    <PageShell className="selection:bg-primary/20">
+      <PageHeader
+        description="Watch cricket matches in real-time"
+        headingClassName="font-extrabold text-4xl lg:text-5xl"
+        title="Live Matches"
+      />
 
-      {/* Content */}
-      <main className="fade-in slide-in-from-bottom-8 animate-in space-y-12 fill-mode-both px-4 duration-700 ease-out md:px-8">
-        {/* Top Actions */}
+      <div className="space-y-8 sm:space-y-10">
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Link className="group" to="/matches/create-match">
             <div className="flex h-24 flex-col items-center justify-center gap-2 rounded-3xl border border-primary/20 bg-primary/5 p-4 text-primary backdrop-blur-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:border-primary/40 hover:bg-primary/10 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background">
@@ -80,11 +77,17 @@ function RouteComponent() {
                   to get started.
                 </p>
               </div>
-              <Link className="mt-4 inline-block" to="/matches/create-match">
-                <Button className="h-12 rounded-full px-8 font-semibold text-base shadow-sm transition-all hover:shadow-md active:scale-95">
-                  <PlusIcon className="mr-2 size-5" />
-                  Start a Match
-                </Button>
+              <Link
+                className={cn(
+                  buttonVariants({
+                    className:
+                      "mt-4 h-12 rounded-full px-8 font-semibold text-base shadow-sm transition-all hover:shadow-md active:scale-95",
+                  })
+                )}
+                to="/matches/create-match"
+              >
+                <PlusIcon className="mr-2 size-5" />
+                Start a Match
               </Link>
             </div>
           )}
@@ -114,7 +117,7 @@ function RouteComponent() {
             </div>
           )}
         </section>
-      </main>
-    </div>
+      </div>
+    </PageShell>
   );
 }

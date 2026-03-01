@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatMonthDay } from "@/lib/date";
+import { cn } from "@/lib/utils";
 
 interface MatchCardProps {
   id: number;
@@ -30,7 +31,7 @@ export function MatchCard({
   matchDate,
 }: MatchCardProps) {
   return (
-    <Card className="group relative w-[85vw] max-w-[320px] shrink-0 snap-center overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-primary/20 hover:shadow-xl md:max-w-[350px]">
+    <Card className="group relative w-[clamp(16rem,82vw,22rem)] shrink-0 snap-center overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:border-primary/20 hover:shadow-xl">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 px-5 pt-5 pb-2">
         <CardTitle className="font-semibold text-muted-foreground text-xs uppercase tracking-wider">
           {formatMonthDay(matchDate)}
@@ -47,7 +48,7 @@ export function MatchCard({
       </CardHeader>
       <CardContent className="grid gap-5 px-5 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex w-[40%] flex-col items-center gap-1 text-center">
+          <div className="min-w-0 flex-1 text-center">
             <span className="line-clamp-2 font-bold text-lg leading-tight md:text-xl">
               {team1.name}
             </span>
@@ -55,7 +56,7 @@ export function MatchCard({
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted/50 text-muted-foreground transition-transform duration-300 group-hover:scale-110 group-hover:bg-primary/10 group-hover:text-primary">
             <span className="font-bold text-[10px]">VS</span>
           </div>
-          <div className="flex w-[40%] flex-col items-center gap-1 text-center">
+          <div className="min-w-0 flex-1 text-center">
             <span className="line-clamp-2 font-bold text-lg leading-tight md:text-xl">
               {team2.name}
             </span>
@@ -74,17 +75,19 @@ export function MatchCard({
         </div>
       </CardContent>
       <CardFooter className="px-5 pb-5">
-        <Button
-          className="w-full opacity-90 transition-opacity group-hover:opacity-100"
-          variant={isLive ? "default" : "secondary"}
+        <Link
+          className={cn(
+            buttonVariants({
+              className:
+                "w-full opacity-90 transition-opacity group-hover:opacity-100",
+              variant: isLive ? "default" : "secondary",
+            })
+          )}
+          params={{ matchId: id.toString() }}
+          to="/matches/$matchId/scorecard"
         >
-          <Link
-            params={{ matchId: id.toString() }}
-            to="/matches/$matchId/scorecard"
-          >
-            View Scorecard
-          </Link>
-        </Button>
+          View Scorecard
+        </Link>
       </CardFooter>
       <div className="pointer-events-none absolute inset-0 z-[-1] bg-linear-to-t from-primary/5 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
     </Card>

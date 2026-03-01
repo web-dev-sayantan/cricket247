@@ -5,6 +5,8 @@ import { ArrowLeft, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { PageHeader } from "@/components/layout/page-header";
+import { PageShell } from "@/components/layout/page-shell";
 import { PlayerImageUploadInput } from "@/components/player-image-upload-input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -172,77 +174,65 @@ function RouteComponent() {
 
   if (isSessionPending) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="mx-auto w-full max-w-2xl space-y-4 px-4 py-6 md:px-6 md:py-8">
-          <Skeleton className="h-8 w-48" />
-          <Card className="rounded-xl">
-            <CardHeader className="space-y-2">
-              <Skeleton className="h-6 w-36" />
-              <Skeleton className="h-4 w-56" />
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <div className="flex gap-2">
-                <Skeleton className="h-9 w-24" />
-                <Skeleton className="h-9 w-28" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      <PageShell maxWidth="form">
+        <Skeleton className="h-8 w-48" />
+        <Card className="rounded-xl">
+          <CardHeader className="space-y-2">
+            <Skeleton className="h-6 w-36" />
+            <Skeleton className="h-4 w-56" />
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <div className="flex gap-2">
+              <Skeleton className="h-9 w-24" />
+              <Skeleton className="h-9 w-28" />
+            </div>
+          </CardContent>
+        </Card>
+      </PageShell>
     );
   }
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="mx-auto w-full max-w-2xl space-y-4 px-4 py-6 md:px-6 md:py-8">
-          <header className="space-y-1">
-            <h1 className="font-semibold text-2xl tracking-tight md:text-3xl">
-              Create Player
-            </h1>
-            <p className="text-muted-foreground text-sm md:text-base">
-              You need admin access to create players.
+      <PageShell maxWidth="form">
+        <PageHeader
+          description="You need admin access to create players."
+          title="Create Player"
+        />
+        <Card className="rounded-xl border-dashed">
+          <CardContent className="space-y-4 p-6">
+            <p className="text-muted-foreground text-sm">
+              Your account does not have permission to create player records.
             </p>
-          </header>
-          <Card className="rounded-xl border-dashed">
-            <CardContent className="space-y-4 p-6">
-              <p className="text-muted-foreground text-sm">
-                Your account does not have permission to create player records.
-              </p>
-              <Button
-                onClick={() => navigate({ to: "/players" })}
-                size="sm"
-                type="button"
-                variant="outline"
-              >
-                <ArrowLeft />
-                Back to players
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+            <Button
+              onClick={() => navigate({ to: "/players" })}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              <ArrowLeft />
+              Back to players
+            </Button>
+          </CardContent>
+        </Card>
+      </PageShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto w-full max-w-2xl space-y-5 px-4 py-6 md:px-6 md:py-8">
-        <header className="space-y-1">
-          <h1 className="font-semibold text-2xl tracking-tight md:text-3xl">
-            Create Player
-          </h1>
-          <p className="text-muted-foreground text-sm md:text-base">
-            Add a complete player profile with personal and playing details.
-          </p>
-        </header>
+    <PageShell maxWidth="form">
+      <PageHeader
+        description="Add a complete player profile with personal and playing details."
+        title="Create Player"
+      />
 
+      <div className="space-y-5">
         <Card className="rounded-xl">
           <CardHeader className="space-y-1 border-b pb-4">
             <h2 className="font-medium text-lg">Player Details</h2>
@@ -677,6 +667,6 @@ function RouteComponent() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageShell>
   );
 }

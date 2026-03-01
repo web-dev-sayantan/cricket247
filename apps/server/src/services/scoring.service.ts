@@ -418,17 +418,48 @@ export async function saveBallData(
   }
 ) {
   const rules = await getMatchFormatRulesByInningsId(input.inningsId);
-  const payload = toDeliveryPayload(input, rules.ballsPerOver);
 
   await db.transaction(async (tx) => {
+    let existingDelivery:
+      | {
+          id: number;
+          inningsId: number;
+          sequenceNo: number;
+          overNumber: number;
+          ballInOver: number;
+        }
+      | undefined;
+
     if (input.id) {
-      const existing = await tx
-        .select({ id: deliveries.id })
+      [existingDelivery] = await tx
+        .select({
+          id: deliveries.id,
+          inningsId: deliveries.inningsId,
+          sequenceNo: deliveries.sequenceNo,
+          overNumber: deliveries.overNumber,
+          ballInOver: deliveries.ballInOver,
+        })
         .from(deliveries)
         .where(eq(deliveries.id, input.id))
         .limit(1);
+    }
 
-      if (existing.length > 0) {
+    if (existingDelivery && existingDelivery.inningsId !== input.inningsId) {
+      throw new Error("Delivery does not belong to the innings");
+    }
+
+    let payload = toDeliveryPayload(input, rules.ballsPerOver);
+    if (existingDelivery && typeof input.ballNumber !== "number") {
+      payload = {
+        ...payload,
+        sequenceNo: existingDelivery.sequenceNo,
+        overNumber: existingDelivery.overNumber,
+        ballInOver: existingDelivery.ballInOver,
+      };
+    }
+
+    if (input.id) {
+      if (existingDelivery) {
         await tx
           .update(deliveries)
           .set(payload)
@@ -441,7 +472,7 @@ export async function saveBallData(
     }
   });
 
-  await syncInningsAndStats(payload.inningsId);
+  await syncInningsAndStats(input.inningsId);
 }
 
 export async function onSelectCurrentBattersAndBowler({
