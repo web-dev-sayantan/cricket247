@@ -35,6 +35,12 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed:tournament": "bun run src/db/seeds/tournament-organization.seed.ts",
     "db:seed:venues": "bun run src/db/seeds/venues.seed.ts",
+    "db:seed:players": "bun run src/db/seeds/players.seed.ts",
+    "db:seed:org-venues": "bun run src/db/seeds/organization-venues.seed.ts",
+    "db:seed:team-players": "bun run src/db/seeds/team-players.seed.ts",
+    "db:seed:fixtures": "bun run src/db/seeds/fixtures.seed.ts",
+    "db:seed:matches": "bun run src/db/seeds/matches.seed.ts",
+    "db:seed:scoring": "bun run src/db/seeds/scoring.seed.ts",
     "openapi:generate": "bun run scripts/generate-openapi.ts",
     "openapi:validate": "bun run scripts/validate-openapi.ts"
   },

@@ -351,6 +351,27 @@ Push migrations to database:
 bun run db:migrate
 ```
 
+### Seed Data (Grouped)
+
+Run grouped seed files in dependency order:
+
+```bash
+bun run db:seed:venues
+bun run db:seed:tournament
+bun run db:seed:players
+bun run db:seed:org-venues
+bun run db:seed:team-players
+bun run db:seed:fixtures
+bun run db:seed:matches
+bun run db:seed:scoring
+```
+
+Notes:
+
+- Auth tables are intentionally excluded (`user`, `account`, `verification`, `session`, `passkey`).
+- Derived/stat tables are intentionally excluded from static seeding.
+- Seed scripts are idempotent and safe to re-run.
+
 ## 🧪 Best Practices
 
 1. **Type Safety**: Use TypeScript strictly, no `any` types

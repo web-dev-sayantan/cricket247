@@ -9,6 +9,7 @@ import {
   tournamentStageTeamEntries,
   tournaments,
   tournamentTeams,
+  tournamentVenues,
 } from "@/db/schema";
 
 const MATCH_FORMAT_ID = 91_001;
@@ -107,6 +108,38 @@ const GROUP_B_TEAM_IDS = [
 
 const GROUP_A_QUALIFIER_IDS = [91_101, 91_102, 91_103, 91_104] as const;
 const GROUP_B_QUALIFIER_IDS = [91_107, 91_108, 91_109, 91_110] as const;
+const TOURNAMENT_VENUE_IDS = [92_001, 92_002, 92_003] as const;
+
+const seedTournamentVenues = async () => {
+  await db.transaction(async (tx) => {
+    for (const [index, venueId] of TOURNAMENT_VENUE_IDS.entries()) {
+      const venue = await tx.query.venues.findFirst({
+        where: {
+          id: venueId,
+        },
+      });
+
+      if (!venue) {
+        continue;
+      }
+
+      await tx
+        .insert(tournamentVenues)
+        .values({
+          id: 92_101 + index,
+          tournamentId: TOURNAMENT_ID,
+          venueId,
+        })
+        .onConflictDoUpdate({
+          target: tournamentVenues.id,
+          set: {
+            tournamentId: TOURNAMENT_ID,
+            venueId,
+          },
+        });
+    }
+  });
+};
 
 const seedTournamentData = async () => {
   const tournamentStartDate = new Date("2026-04-01T00:00:00.000Z");
@@ -592,3 +625,4 @@ const seedTournamentData = async () => {
 };
 
 await seedTournamentData();
+await seedTournamentVenues();

@@ -56,11 +56,15 @@ export interface TeamDraft {
 }
 
 export interface TournamentWizardValues {
+  advanced: {
+    championTeamId: null | number;
+    timeZone: string;
+  };
   ageLimit: number;
   category: TournamentCategory;
   defaultMatchFormat: {
     create: MatchFormatDraft;
-    existingId: number | null;
+    existingId: null | number;
     mode: "create" | "existing";
   };
   endDate: Date;
@@ -68,7 +72,7 @@ export interface TournamentWizardValues {
   name: string;
   organization: {
     create: OrganizationDraft;
-    existingId: number | null;
+    existingId: null | number;
     mode: "create" | "existing";
   };
   season: string;
@@ -86,8 +90,193 @@ export interface TournamentWizardValues {
   };
 }
 
+interface TournamentViewSnapshot {
+  stages: Array<{
+    code: null | string;
+    format: string;
+    groups: Array<{
+      advancingSlots: number;
+      code: null | string;
+      sequence: number;
+      name: string;
+    }>;
+    name: string;
+    sequence: number;
+    stageType: string;
+  }>;
+  teams: Array<{
+    teamId: number;
+  }>;
+  tournament: {
+    ageLimit: null | number;
+    category: string;
+    defaultMatchFormatId: number;
+    endDate: Date;
+    genderAllowed: string;
+    name: string;
+    organizationId: number;
+    season: null | string;
+    startDate: Date;
+    timeZone: string;
+    championTeamId: null | number;
+    type: string;
+  };
+}
+
+export interface TournamentStructureInference {
+  advancingPerGroup: number;
+  groupCount: number;
+  groupEdits: GroupEditDraft[];
+  stageEdits: StageEditDraft[];
+  supported: boolean;
+  template: TournamentTemplateKind;
+}
+
 function getGroupName(index: number) {
   return `Group ${String.fromCharCode(65 + index)}`;
+}
+
+function normalizeDate(value: Date | string) {
+  return value instanceof Date ? value : new Date(value);
+}
+
+function normalizeStageEdits(stages: TournamentViewSnapshot["stages"]) {
+  return [...stages]
+    .sort((first, second) => first.sequence - second.sequence)
+    .map((stage) => ({
+      sequence: stage.sequence,
+      name: stage.name,
+      code: stage.code ?? undefined,
+    }));
+}
+
+function normalizeGroupEdits(stages: TournamentViewSnapshot["stages"]) {
+  const sortedStages = [...stages].sort(
+    (first, second) => first.sequence - second.sequence
+  );
+  const groupEdits: GroupEditDraft[] = [];
+
+  for (const stage of sortedStages) {
+    const sortedGroups = [...stage.groups].sort(
+      (first, second) => first.sequence - second.sequence
+    );
+    for (const group of sortedGroups) {
+      groupEdits.push({
+        stageSequence: stage.sequence,
+        sequence: group.sequence,
+        name: group.name,
+        code: group.code ?? undefined,
+        advancingSlots: group.advancingSlots,
+      });
+    }
+  }
+
+  return groupEdits;
+}
+
+function inferTemplateFromSingleStage(
+  stage: TournamentViewSnapshot["stages"][number]
+): null | TournamentTemplateKind {
+  const isLeague =
+    stage.stageType === "league" && stage.format === "single_round_robin";
+  if (isLeague) {
+    return "straight_league";
+  }
+
+  const isKnockout =
+    stage.format === "single_elimination" ||
+    stage.stageType === "knockout" ||
+    stage.stageType === "playoff";
+  if (isKnockout) {
+    return "straight_knockout";
+  }
+
+  return null;
+}
+
+function inferTemplateFromTournamentType(type: string): TournamentTemplateKind {
+  if (type === "knockout") {
+    return "straight_knockout";
+  }
+
+  if (type === "custom") {
+    return "grouped_league_with_playoffs";
+  }
+
+  return "straight_league";
+}
+
+export function inferTemplateFromTournamentView(
+  view: TournamentViewSnapshot
+): TournamentStructureInference {
+  const stageEdits = normalizeStageEdits(view.stages);
+  const groupEdits = normalizeGroupEdits(view.stages);
+  const sortedStages = [...view.stages].sort(
+    (first, second) => first.sequence - second.sequence
+  );
+
+  if (sortedStages.length === 1) {
+    const template = inferTemplateFromSingleStage(sortedStages[0]);
+    if (template && sortedStages[0]?.groups.length === 0) {
+      return {
+        template,
+        supported: true,
+        stageEdits,
+        groupEdits: [],
+        groupCount: 2,
+        advancingPerGroup: 2,
+      };
+    }
+  }
+
+  if (sortedStages.length === 2) {
+    const firstStage = sortedStages[0];
+    const secondStage = sortedStages[1];
+    const firstStageGroups = [...(firstStage?.groups ?? [])].sort(
+      (first, second) => first.sequence - second.sequence
+    );
+    const secondStageGroups = secondStage?.groups ?? [];
+
+    const firstLooksLeague =
+      firstStage?.stageType === "league" ||
+      firstStage?.format === "single_round_robin";
+    const secondLooksKnockout =
+      secondStage?.stageType === "knockout" ||
+      secondStage?.stageType === "playoff" ||
+      secondStage?.format === "single_elimination";
+    const advancingSlots = firstStageGroups
+      .map((group) => group.advancingSlots)
+      .filter((slot) => slot > 0);
+    const uniqueAdvancingSlots = new Set(advancingSlots);
+
+    if (
+      firstStage?.sequence === 1 &&
+      secondStage?.sequence === 2 &&
+      firstLooksLeague &&
+      secondLooksKnockout &&
+      secondStageGroups.length === 0 &&
+      firstStageGroups.length >= 2 &&
+      uniqueAdvancingSlots.size === 1
+    ) {
+      return {
+        template: "grouped_league_with_playoffs",
+        supported: true,
+        stageEdits,
+        groupEdits,
+        groupCount: firstStageGroups.length,
+        advancingPerGroup: advancingSlots[0] ?? 2,
+      };
+    }
+  }
+
+  return {
+    template: inferTemplateFromTournamentType(view.tournament.type),
+    supported: false,
+    stageEdits,
+    groupEdits,
+    groupCount: 2,
+    advancingPerGroup: 2,
+  };
 }
 
 export function getTournamentTypeForTemplate(template: TournamentTemplateKind) {
@@ -214,9 +403,7 @@ export function mergeGroupEdits(
   });
 }
 
-export function buildCreateTournamentFromScratchPayload(
-  values: TournamentWizardValues
-) {
+function buildBaseTournamentPayload(values: TournamentWizardValues) {
   return {
     name: values.name.trim(),
     season: values.season.trim() || undefined,
@@ -225,6 +412,8 @@ export function buildCreateTournamentFromScratchPayload(
     ageLimit: values.ageLimit,
     startDate: values.startDate,
     endDate: values.endDate,
+    timeZone: values.advanced.timeZone.trim() || undefined,
+    championTeamId: values.advanced.championTeamId,
     organization:
       values.organization.mode === "existing"
         ? {
@@ -274,6 +463,22 @@ export function buildCreateTournamentFromScratchPayload(
   };
 }
 
+export function buildCreateTournamentFromScratchPayload(
+  values: TournamentWizardValues
+) {
+  return buildBaseTournamentPayload(values);
+}
+
+export function buildUpdateTournamentFromScratchPayload(params: {
+  tournamentId: number;
+  values: TournamentWizardValues;
+}) {
+  return {
+    tournamentId: params.tournamentId,
+    ...buildBaseTournamentPayload(params.values),
+  };
+}
+
 export function getDefaultWizardValues(today: Date): TournamentWizardValues {
   const defaults = buildTemplateDefaults({
     template: "straight_league",
@@ -289,6 +494,10 @@ export function getDefaultWizardValues(today: Date): TournamentWizardValues {
     ageLimit: 100,
     startDate: today,
     endDate: today,
+    advanced: {
+      timeZone: "UTC",
+      championTeamId: null,
+    },
     organization: {
       mode: "existing",
       existingId: null,
@@ -326,6 +535,49 @@ export function getDefaultWizardValues(today: Date): TournamentWizardValues {
       advancingPerGroup: 2,
       stageEdits: defaults.stageEdits,
       groupEdits: defaults.groupEdits,
+    },
+  };
+}
+
+export function deriveWizardValuesFromTournamentView(
+  view: TournamentViewSnapshot
+): TournamentWizardValues {
+  const base = getDefaultWizardValues(normalizeDate(view.tournament.startDate));
+  const inferred = inferTemplateFromTournamentView(view);
+
+  return {
+    ...base,
+    name: view.tournament.name,
+    season: view.tournament.season ?? "",
+    category: view.tournament.category as TournamentCategory,
+    genderAllowed: view.tournament.genderAllowed as TournamentGenderAllowed,
+    ageLimit: view.tournament.ageLimit ?? 100,
+    startDate: normalizeDate(view.tournament.startDate),
+    endDate: normalizeDate(view.tournament.endDate),
+    advanced: {
+      timeZone: view.tournament.timeZone,
+      championTeamId: view.tournament.championTeamId,
+    },
+    organization: {
+      ...base.organization,
+      mode: "existing",
+      existingId: view.tournament.organizationId,
+    },
+    defaultMatchFormat: {
+      ...base.defaultMatchFormat,
+      mode: "existing",
+      existingId: view.tournament.defaultMatchFormatId,
+    },
+    teams: {
+      existingTeamIds: view.teams.map((entry) => entry.teamId),
+      createTeams: [],
+    },
+    structure: {
+      template: inferred.template,
+      groupCount: inferred.groupCount,
+      advancingPerGroup: inferred.advancingPerGroup,
+      stageEdits: inferred.stageEdits,
+      groupEdits: inferred.groupEdits,
     },
   };
 }

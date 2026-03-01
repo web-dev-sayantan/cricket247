@@ -2,12 +2,15 @@ import { describe, expect, it } from "bun:test";
 import {
   buildCreateTournamentFromScratchPayload,
   buildTemplateDefaults,
+  buildUpdateTournamentFromScratchPayload,
+  deriveWizardValuesFromTournamentView,
   getDefaultWizardValues,
+  inferTemplateFromTournamentView,
   mergeGroupEdits,
   mergeStageEdits,
 } from "./-create-wizard";
 
-describe("tournament create wizard helpers", () => {
+describe("tournament wizard helpers", () => {
   it("builds grouped template defaults with expected stages and groups", () => {
     const defaults = buildTemplateDefaults({
       template: "grouped_league_with_playoffs",
@@ -51,9 +54,11 @@ describe("tournament create wizard helpers", () => {
     expect(mergedGroups[1]?.advancingSlots).toBe(3);
   });
 
-  it("builds create payload with normalized team short names", () => {
+  it("builds create and update payloads with normalized values", () => {
     const values = getDefaultWizardValues(new Date("2026-01-01T00:00:00.000Z"));
     values.name = "City League";
+    values.advanced.timeZone = "Asia/Kolkata";
+    values.advanced.championTeamId = 11;
     values.organization.mode = "create";
     values.organization.create.name = "City Org";
     values.organization.create.slug = "city-org";
@@ -69,10 +74,77 @@ describe("tournament create wizard helpers", () => {
     ];
     values.structure.template = "straight_league";
 
-    const payload = buildCreateTournamentFromScratchPayload(values);
+    const createPayload = buildCreateTournamentFromScratchPayload(values);
+    const updatePayload = buildUpdateTournamentFromScratchPayload({
+      tournamentId: 44,
+      values,
+    });
 
-    expect(payload.teams.createTeams[0]?.shortName).toBe("IT");
-    expect(payload.structure.groupCount).toBeUndefined();
-    expect(payload.structure.advancingPerGroup).toBeUndefined();
+    expect(createPayload.teams.createTeams[0]?.shortName).toBe("IT");
+    expect(createPayload.timeZone).toBe("Asia/Kolkata");
+    expect(createPayload.championTeamId).toBe(11);
+    expect(createPayload.structure.groupCount).toBeUndefined();
+    expect(updatePayload.tournamentId).toBe(44);
+  });
+
+  it("infers supported grouped template and derives edit defaults from tournament view", () => {
+    const view = {
+      tournament: {
+        ageLimit: 100,
+        category: "competitive",
+        championTeamId: 3,
+        defaultMatchFormatId: 88,
+        endDate: new Date("2026-06-30T00:00:00.000Z"),
+        genderAllowed: "open",
+        name: "Summer Cup",
+        organizationId: 5,
+        season: "2026",
+        startDate: new Date("2026-06-01T00:00:00.000Z"),
+        timeZone: "Asia/Kolkata",
+        type: "custom",
+      },
+      teams: [{ teamId: 1 }, { teamId: 2 }, { teamId: 3 }, { teamId: 4 }],
+      stages: [
+        {
+          code: "GROUP_STAGE",
+          format: "single_round_robin",
+          groups: [
+            {
+              advancingSlots: 2,
+              code: "G1",
+              sequence: 1,
+              name: "Group A",
+            },
+            {
+              advancingSlots: 2,
+              code: "G2",
+              sequence: 2,
+              name: "Group B",
+            },
+          ],
+          name: "Group Stage",
+          sequence: 1,
+          stageType: "league",
+        },
+        {
+          code: "PLAYOFFS",
+          format: "single_elimination",
+          groups: [],
+          name: "Playoffs",
+          sequence: 2,
+          stageType: "knockout",
+        },
+      ],
+    };
+
+    const inference = inferTemplateFromTournamentView(view);
+    const values = deriveWizardValuesFromTournamentView(view);
+
+    expect(inference.supported).toBe(true);
+    expect(inference.template).toBe("grouped_league_with_playoffs");
+    expect(inference.groupCount).toBe(2);
+    expect(values.structure.template).toBe("grouped_league_with_playoffs");
+    expect(values.advanced.timeZone).toBe("Asia/Kolkata");
+    expect(values.defaultMatchFormat.existingId).toBe(88);
   });
 });

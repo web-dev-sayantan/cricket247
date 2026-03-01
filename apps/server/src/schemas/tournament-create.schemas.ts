@@ -28,37 +28,44 @@ const groupEditSchema = z.object({
   advancingSlots: z.number().int().min(0).max(64).optional(),
 });
 
-export const createTournamentFromScratchInputSchema = z
-  .object({
-    name: z.string().trim().min(2).max(200),
-    season: z.string().trim().max(50).optional(),
-    category: tournamentCategorySchema.default("competitive"),
-    genderAllowed: genderAllowedSchema.default("open"),
-    ageLimit: z.number().int().min(1).max(120).default(100),
-    startDate: z.coerce.date(),
-    endDate: z.coerce.date(),
-    organization: z.object({
-      existingId: z.number().int().positive().optional(),
-      create: createOrganizationBodySchema.optional(),
-    }),
-    defaultMatchFormat: z.object({
-      existingId: z.number().int().positive().optional(),
-      create: createMatchFormatBodySchema.optional(),
-    }),
-    teams: z.object({
-      existingTeamIds: z.array(z.number().int().positive()).default([]),
-      createTeams: z.array(createTeamBodySchema).default([]),
-    }),
-    structure: z.object({
-      template: tournamentTemplateSchema.default("straight_league"),
-      groupCount: z.number().int().min(2).max(8).optional(),
-      advancingPerGroup: z.number().int().min(1).max(8).optional(),
-      stageEdits: z.array(stageEditSchema).default([]),
-      groupEdits: z.array(groupEditSchema).default([]),
-    }),
-  })
-  .superRefine((value, ctx) => {
-    if (value.endDate.getTime() < value.startDate.getTime()) {
+const tournamentFromScratchBodySchema = z.object({
+  name: z.string().trim().min(2).max(200),
+  season: z.string().trim().max(50).optional(),
+  category: tournamentCategorySchema.default("competitive"),
+  genderAllowed: genderAllowedSchema.default("open"),
+  ageLimit: z.number().int().min(1).max(120).default(100),
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date(),
+  timeZone: z.string().trim().min(1).max(80).optional(),
+  championTeamId: z.number().int().positive().nullable().optional(),
+  organization: z.object({
+    existingId: z.number().int().positive().optional(),
+    create: createOrganizationBodySchema.optional(),
+  }),
+  defaultMatchFormat: z.object({
+    existingId: z.number().int().positive().optional(),
+    create: createMatchFormatBodySchema.optional(),
+  }),
+  teams: z.object({
+    existingTeamIds: z.array(z.number().int().positive()).default([]),
+    createTeams: z.array(createTeamBodySchema).default([]),
+  }),
+  structure: z.object({
+    template: tournamentTemplateSchema.default("straight_league"),
+    groupCount: z.number().int().min(1).max(8).optional(),
+    advancingPerGroup: z.number().int().min(1).max(8).optional(),
+    stageEdits: z.array(stageEditSchema).default([]),
+    groupEdits: z.array(groupEditSchema).default([]),
+  }),
+});
+
+function addTournamentFromScratchCrossFieldValidation<T extends z.ZodTypeAny>(
+  schema: T
+) {
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Keep create/update cross-field validation in one place.
+  return schema.superRefine((value, ctx) => {
+    const parsed = value as z.infer<typeof tournamentFromScratchBodySchema>;
+    if (parsed.endDate.getTime() < parsed.startDate.getTime()) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "End date must be on or after start date",
@@ -67,8 +74,8 @@ export const createTournamentFromScratchInputSchema = z
     }
 
     const hasExistingOrganization =
-      typeof value.organization.existingId === "number";
-    const hasNewOrganization = Boolean(value.organization.create);
+      typeof parsed.organization.existingId === "number";
+    const hasNewOrganization = Boolean(parsed.organization.create);
     if (hasExistingOrganization === hasNewOrganization) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -79,8 +86,8 @@ export const createTournamentFromScratchInputSchema = z
     }
 
     const hasExistingMatchFormat =
-      typeof value.defaultMatchFormat.existingId === "number";
-    const hasNewMatchFormat = Boolean(value.defaultMatchFormat.create);
+      typeof parsed.defaultMatchFormat.existingId === "number";
+    const hasNewMatchFormat = Boolean(parsed.defaultMatchFormat.create);
     if (hasExistingMatchFormat === hasNewMatchFormat) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -90,8 +97,8 @@ export const createTournamentFromScratchInputSchema = z
       });
     }
 
-    const uniqueExistingTeamIds = new Set(value.teams.existingTeamIds);
-    if (uniqueExistingTeamIds.size !== value.teams.existingTeamIds.length) {
+    const uniqueExistingTeamIds = new Set(parsed.teams.existingTeamIds);
+    if (uniqueExistingTeamIds.size !== parsed.teams.existingTeamIds.length) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Duplicate team IDs are not allowed",
@@ -100,7 +107,7 @@ export const createTournamentFromScratchInputSchema = z
     }
 
     const totalTeams =
-      value.teams.existingTeamIds.length + value.teams.createTeams.length;
+      parsed.teams.existingTeamIds.length + parsed.teams.createTeams.length;
     if (totalTeams < 2) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -109,7 +116,7 @@ export const createTournamentFromScratchInputSchema = z
       });
     }
 
-    const stageSequences = value.structure.stageEdits.map(
+    const stageSequences = parsed.structure.stageEdits.map(
       (stage) => stage.sequence
     );
     if (new Set(stageSequences).size !== stageSequences.length) {
@@ -120,7 +127,7 @@ export const createTournamentFromScratchInputSchema = z
       });
     }
 
-    const groupKeys = value.structure.groupEdits.map(
+    const groupKeys = parsed.structure.groupEdits.map(
       (group) => `${group.stageSequence}:${group.sequence}`
     );
     if (new Set(groupKeys).size !== groupKeys.length) {
@@ -132,8 +139,8 @@ export const createTournamentFromScratchInputSchema = z
       });
     }
 
-    if (value.structure.template !== "grouped_league_with_playoffs") {
-      if (value.structure.groupCount !== undefined) {
+    if (parsed.structure.template !== "grouped_league_with_playoffs") {
+      if (parsed.structure.groupCount !== undefined) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message:
@@ -141,7 +148,7 @@ export const createTournamentFromScratchInputSchema = z
           path: ["structure", "groupCount"],
         });
       }
-      if (value.structure.advancingPerGroup !== undefined) {
+      if (parsed.structure.advancingPerGroup !== undefined) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message:
@@ -151,7 +158,23 @@ export const createTournamentFromScratchInputSchema = z
       }
     }
   });
+}
+
+export const createTournamentFromScratchInputSchema =
+  addTournamentFromScratchCrossFieldValidation(tournamentFromScratchBodySchema);
+
+export const updateTournamentFromScratchInputSchema =
+  addTournamentFromScratchCrossFieldValidation(
+    z.object({
+      tournamentId: z.number().int().positive(),
+      ...tournamentFromScratchBodySchema.shape,
+    })
+  );
 
 export type CreateTournamentFromScratchInput = z.infer<
   typeof createTournamentFromScratchInputSchema
+>;
+
+export type UpdateTournamentFromScratchInput = z.infer<
+  typeof updateTournamentFromScratchInputSchema
 >;

@@ -66,6 +66,7 @@ import {
 import {
   createTournamentFromScratch,
   TournamentCreateServiceError,
+  updateTournamentFromScratch,
 } from "@/services/tournament-create.service";
 import {
   autoGenerateFixtures,
@@ -112,7 +113,10 @@ import {
   updateTournamentStageTeamEntryBodySchema,
   updateTournamentTeamBodySchema,
 } from "../schemas/crud.schemas";
-import { createTournamentFromScratchInputSchema } from "../schemas/tournament-create.schemas";
+import {
+  createTournamentFromScratchInputSchema,
+  updateTournamentFromScratchInputSchema,
+} from "../schemas/tournament-create.schemas";
 import { calculateAgeFromDob } from "../utils";
 
 // Match creation schema matching the frontend MatchFormSchema
@@ -199,7 +203,7 @@ const SeedTournamentTemplateInputSchema = z.object({
   ]),
   teamIds: z.array(z.number().int().positive()).min(2).optional(),
   resetExisting: z.boolean().optional(),
-  groupCount: z.number().int().min(2).max(8).optional(),
+  groupCount: z.number().int().min(1).max(8).optional(),
   advancingPerGroup: z.number().int().min(1).max(8).optional(),
 });
 
@@ -463,6 +467,8 @@ function mapTournamentCreateServiceError(error: unknown) {
   }
 
   switch (error.code) {
+    case "TOURNAMENT_NOT_FOUND":
+      return new ORPCError("NOT_FOUND");
     case "DATE_RANGE_INVALID":
     case "DUPLICATE_TEAM_IDS":
     case "MATCH_FORMAT_NOT_FOUND":
@@ -471,7 +477,12 @@ function mapTournamentCreateServiceError(error: unknown) {
     case "GROUP_EDIT_TARGET_NOT_FOUND":
     case "INVALID_TEMPLATE_CONFIGURATION":
     case "STAGE_EDIT_TARGET_NOT_FOUND":
+    case "STRUCTURE_LOCKED":
+    case "TEAM_MEMBERSHIP_LOCKED_AFTER_START":
+    case "TEAM_REMOVAL_BLOCKED_BY_ASSIGNMENTS":
+    case "TEAM_REMOVAL_BLOCKED_BY_MATCH_REFERENCES":
     case "TEAM_COUNT_TOO_LOW":
+    case "UNSUPPORTED_EXISTING_STRUCTURE":
       return new ORPCError("BAD_REQUEST");
     default:
       return new ORPCError("INTERNAL_SERVER_ERROR");
@@ -579,6 +590,17 @@ export const appRouter = {
 
       try {
         return await createTournamentFromScratch(input);
+      } catch (error) {
+        throw mapTournamentCreateServiceError(error);
+      }
+    }),
+  updateTournamentFromScratch: sensitiveProcedure
+    .input(updateTournamentFromScratchInputSchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      try {
+        return await updateTournamentFromScratch(input);
       } catch (error) {
         throw mapTournamentCreateServiceError(error);
       }

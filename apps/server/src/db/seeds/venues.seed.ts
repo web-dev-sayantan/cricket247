@@ -1,7 +1,5 @@
 import { db } from "@/db";
-import { tournamentVenues, venues } from "@/db/schema";
-
-const TOURNAMENT_ID = 91_001;
+import { venues } from "@/db/schema";
 
 const VENUE_SEEDS = [
   {
@@ -60,33 +58,6 @@ const seedVenues = async () => {
             lights: venue.lights,
             openingTime: venue.openingTime,
             closingTime: venue.closingTime,
-          },
-        });
-    }
-
-    const tournament = await tx.query.tournaments.findFirst({
-      where: {
-        id: TOURNAMENT_ID,
-      },
-    });
-
-    if (!tournament) {
-      return;
-    }
-
-    for (const [index, venue] of VENUE_SEEDS.entries()) {
-      await tx
-        .insert(tournamentVenues)
-        .values({
-          id: 92_101 + index,
-          tournamentId: TOURNAMENT_ID,
-          venueId: venue.id,
-        })
-        .onConflictDoUpdate({
-          target: tournamentVenues.id,
-          set: {
-            tournamentId: TOURNAMENT_ID,
-            venueId: venue.id,
           },
         });
     }

@@ -203,7 +203,7 @@ export async function seedTournamentTemplate(
   if (input.template === "grouped_league_with_playoffs") {
     const totalAdvancers = groupCount * advancingPerGroup;
     if (
-      groupCount < 2 ||
+      groupCount < 1 ||
       advancingPerGroup < 1 ||
       totalAdvancers > selectedTeamIds.length
     ) {
