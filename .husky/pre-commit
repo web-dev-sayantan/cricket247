@@ -1,0 +1,39 @@
+#!/usr/bin/env sh
+
+bunx lint-staged
+
+if git diff --cached --name-only -- apps/server | grep -q .; then
+	bun run --cwd apps/server openapi:generate
+	bun run --cwd apps/server openapi:validate
+	git add apps/server/openapi.json apps/server/openapi.yaml
+fi
+
+run_full_typecheck=false
+run_server_typecheck=false
+run_web_typecheck=false
+
+if git diff --cached --name-only -- package.json bun.lock bunfig.toml turbo.json tsconfig.json biome.json bts.jsonc | grep -q .; then
+	run_full_typecheck=true
+fi
+
+if [ "$run_full_typecheck" = false ] && git diff --cached --name-only -- apps/server | grep -q .; then
+	run_server_typecheck=true
+fi
+
+if [ "$run_full_typecheck" = false ] && git diff --cached --name-only -- apps/web | grep -q .; then
+	run_web_typecheck=true
+fi
+
+if [ "$run_full_typecheck" = true ]; then
+  echo "Running full typecheck"
+	bun run check-types
+elif [ "$run_server_typecheck" = true ] && [ "$run_web_typecheck" = true ]; then
+  echo "Running full typecheck"
+	bun run check-types
+elif [ "$run_server_typecheck" = true ]; then
+  echo "Running server typecheck" 
+	bun run --cwd apps/server check-types
+elif [ "$run_web_typecheck" = true ]; then
+  echo "Running web typecheck"
+	bun run --cwd apps/web check-types
+fi
