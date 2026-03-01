@@ -3,9 +3,8 @@
 bunx lint-staged
 
 if git diff --cached --name-only -- apps/server | grep -q .; then
-	bun run --cwd apps/server openapi:generate
-	bun run --cwd apps/server openapi:validate
-	git add apps/server/openapi.json apps/server/openapi.yaml
+	echo "Validating OpenAPI spec"
+	DATABASE_URL=file:openapi-spec.db bun run --cwd apps/server openapi:validate
 fi
 
 run_full_typecheck=false

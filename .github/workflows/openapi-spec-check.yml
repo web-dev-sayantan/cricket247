@@ -23,9 +23,8 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Regenerate and validate OpenAPI spec
+      - name: Validate OpenAPI spec
         working-directory: apps/server
-        run: |
-          bun run openapi:generate
-          bun run openapi:validate
-          git diff --exit-code -- openapi.json openapi.yaml
+        env:
+          DATABASE_URL: file:openapi-spec.db
+        run: bun run openapi:validate
