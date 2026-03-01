@@ -262,36 +262,6 @@ function TournamentDetailPage() {
     },
   });
 
-  const startScoringMutation = useMutation({
-    mutationFn: async (matchId: number) =>
-      client.startMatchScoring({
-        matchId,
-      }),
-    onSuccess: async (_result, matchId) => {
-      toast.success("Scoring started");
-      await Promise.all([
-        invalidateTournamentQueries(queryClient, numericTournamentId),
-        queryClient.invalidateQueries(orpc.liveMatches.queryOptions()),
-        queryClient.invalidateQueries(
-          orpc.getMatchById.queryOptions({ input: matchId })
-        ),
-        queryClient.invalidateQueries(
-          orpc.getMatchScoringSetup.queryOptions({
-            input: { matchId },
-          })
-        ),
-      ]);
-
-      navigate({
-        to: "/matches/$matchId/score",
-        params: { matchId: String(matchId) },
-      });
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to start scoring");
-    },
-  });
-
   if (isLoadingTournament) {
     return (
       <div className="min-h-screen px-4 py-8 md:px-8">
@@ -426,14 +396,13 @@ function TournamentDetailPage() {
                       publishedFixtures.map((match) => (
                         <FixtureCard
                           enableScoringActions={true}
-                          isStartingScoring={
-                            startScoringMutation.isPending &&
-                            startScoringMutation.variables === match.id
-                          }
                           key={match.id}
                           match={match}
                           onStartScoring={(matchId) =>
-                            startScoringMutation.mutate(matchId)
+                            navigate({
+                              to: "/matches/$matchId/score",
+                              params: { matchId: String(matchId) },
+                            })
                           }
                           showDraftControls={false}
                         />
@@ -947,7 +916,6 @@ function SourceField(props: {
 
 function FixtureCard(props: {
   enableScoringActions?: boolean;
-  isStartingScoring?: boolean;
   match: Awaited<ReturnType<typeof client.tournamentFixtures>>[number];
   onDelete?: () => void;
   onStartScoring?: (matchId: number) => void;
@@ -1026,11 +994,7 @@ function FixtureCard(props: {
       {match.fixtureStatus === "published" ? (
         <div className="flex flex-wrap gap-2">
           {canShowStartScoring ? (
-            <Button
-              disabled={props.isStartingScoring}
-              onClick={() => props.onStartScoring?.(match.id)}
-              size="sm"
-            >
+            <Button onClick={() => props.onStartScoring?.(match.id)} size="sm">
               <Play className="mr-1 size-4" />
               Start Scoring
             </Button>

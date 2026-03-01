@@ -361,10 +361,10 @@ function RouteComponent() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value={team1Id.toString()}>
-                          {team1Id}
+                          {team1SearchInput || `Team #${String(team1Id)}`}
                         </SelectItem>
                         <SelectItem value={team2Id.toString()}>
-                          {team2Id}
+                          {team2SearchInput || `Team #${String(team2Id)}`}
                         </SelectItem>
                       </SelectContent>
                     </Select>

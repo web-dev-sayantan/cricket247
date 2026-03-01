@@ -41,12 +41,50 @@ interface LegacyBallInput {
   wicketType?: string;
 }
 
+interface InitializeMatchScoringInput {
+  matchId: number;
+  nonStrikerId: number;
+  openingBowlerId: number;
+  strikerId: number;
+  tossDecision: "bat" | "bowl";
+  tossWinnerId: number;
+}
+
+interface CreateNextScoringDeliveryInput {
+  inningsId: number;
+  nextBowlerId: number;
+  nextNonStrikerId: number;
+  nextStrikerId: number;
+}
+
 function getSequenceMeta(sequenceNo: number, ballsPerOver: number) {
   const normalized = Math.max(1, sequenceNo);
   return {
     sequenceNo: normalized,
     overNumber: Math.floor((normalized - 1) / ballsPerOver) + 1,
     ballInOver: ((normalized - 1) % ballsPerOver) + 1,
+  };
+}
+
+function deriveBattingAndBowlingTeamIds(params: {
+  team1Id: number;
+  team2Id: number;
+  tossDecision: "bat" | "bowl";
+  tossWinnerId: number;
+}) {
+  const tossLoserId =
+    params.tossWinnerId === params.team1Id ? params.team2Id : params.team1Id;
+
+  if (params.tossDecision === "bat") {
+    return {
+      battingTeamId: params.tossWinnerId,
+      bowlingTeamId: tossLoserId,
+    };
+  }
+
+  return {
+    battingTeamId: tossLoserId,
+    bowlingTeamId: params.tossWinnerId,
   };
 }
 
@@ -507,6 +545,288 @@ export async function setMatchLiveStatus({
     .update(matches)
     .set({ isLive })
     .where(eq(matches.id, matchId));
+}
+
+export async function initializeMatchScoring(
+  input: InitializeMatchScoringInput
+) {
+  const match = await db.query.matches.findFirst({
+    where: {
+      id: input.matchId,
+    },
+    columns: {
+      id: true,
+      playersPerSide: true,
+      team1Id: true,
+      team2Id: true,
+    },
+  });
+
+  if (!match) {
+    throw new Error("Match not found");
+  }
+
+  if (typeof match.team1Id !== "number" || typeof match.team2Id !== "number") {
+    throw new Error("Match participants are not finalized");
+  }
+
+  if (![match.team1Id, match.team2Id].includes(input.tossWinnerId)) {
+    throw new Error("Invalid toss winner");
+  }
+
+  const existingInnings = await db.query.innings.findFirst({
+    where: {
+      matchId: input.matchId,
+    },
+    columns: {
+      id: true,
+    },
+  });
+
+  if (existingInnings) {
+    throw new Error("Scoring has already started for this match");
+  }
+
+  const lineupRows = await getSavedMatchLineup(input.matchId);
+  const team1Lineup = lineupRows.filter((row) => row.teamId === match.team1Id);
+  const team2Lineup = lineupRows.filter((row) => row.teamId === match.team2Id);
+
+  if (
+    team1Lineup.length !== match.playersPerSide ||
+    team2Lineup.length !== match.playersPerSide
+  ) {
+    throw new Error("Playing lineup is incomplete");
+  }
+
+  const { battingTeamId, bowlingTeamId } = deriveBattingAndBowlingTeamIds({
+    team1Id: match.team1Id,
+    team2Id: match.team2Id,
+    tossWinnerId: input.tossWinnerId,
+    tossDecision: input.tossDecision,
+  });
+
+  const battingLineup = lineupRows.filter(
+    (row) => row.teamId === battingTeamId
+  );
+  const bowlingLineup = lineupRows.filter(
+    (row) => row.teamId === bowlingTeamId
+  );
+  const battingPlayerSet = new Set(battingLineup.map((row) => row.playerId));
+  const bowlingPlayerSet = new Set(bowlingLineup.map((row) => row.playerId));
+
+  if (
+    !(
+      battingPlayerSet.has(input.strikerId) &&
+      battingPlayerSet.has(input.nonStrikerId)
+    )
+  ) {
+    throw new Error("Openers must belong to the batting lineup");
+  }
+
+  if (input.strikerId === input.nonStrikerId) {
+    throw new Error("Openers must be two different players");
+  }
+
+  if (!bowlingPlayerSet.has(input.openingBowlerId)) {
+    throw new Error("Opening bowler must belong to the bowling lineup");
+  }
+
+  const [created] = await db.transaction(async (tx) => {
+    await tx
+      .update(matches)
+      .set({
+        tossWinnerId: input.tossWinnerId,
+        tossDecision: input.tossDecision,
+      })
+      .where(eq(matches.id, input.matchId));
+
+    const [newInnings] = await tx
+      .insert(innings)
+      .values({
+        matchId: input.matchId,
+        battingTeamId,
+        bowlingTeamId,
+        inningsNumber: 1,
+        status: "in_progress",
+      })
+      .returning({
+        id: innings.id,
+      });
+
+    if (!newInnings) {
+      throw new Error("Failed to create innings");
+    }
+
+    const [newDelivery] = await tx
+      .insert(deliveries)
+      .values({
+        inningsId: newInnings.id,
+        sequenceNo: 1,
+        overNumber: 1,
+        ballInOver: 1,
+        isLegalDelivery: true,
+        strikerId: input.strikerId,
+        nonStrikerId: input.nonStrikerId,
+        bowlerId: input.openingBowlerId,
+        batterRuns: 0,
+        wideRuns: 0,
+        noBallRuns: 0,
+        byeRuns: 0,
+        legByeRuns: 0,
+        penaltyRuns: 0,
+        totalRuns: 0,
+        isWicket: false,
+      })
+      .returning({
+        id: deliveries.id,
+      });
+
+    if (!newDelivery) {
+      throw new Error("Failed to create opening delivery");
+    }
+
+    await tx
+      .update(matches)
+      .set({
+        isLive: true,
+      })
+      .where(eq(matches.id, input.matchId));
+
+    return [{ inningsId: newInnings.id, deliveryId: newDelivery.id }];
+  });
+
+  if (!created) {
+    throw new Error("Failed to initialize match scoring");
+  }
+
+  return created;
+}
+
+export async function createNextScoringDelivery(
+  input: CreateNextScoringDeliveryInput
+) {
+  const inningsRow = await db.query.innings.findFirst({
+    where: {
+      id: input.inningsId,
+    },
+    columns: {
+      id: true,
+      isCompleted: true,
+      matchId: true,
+      battingTeamId: true,
+      bowlingTeamId: true,
+    },
+  });
+
+  if (!inningsRow) {
+    throw new Error("Innings not found");
+  }
+
+  if (inningsRow.isCompleted) {
+    throw new Error("Innings already completed");
+  }
+
+  const lineupRows = await db.query.matchLineup.findMany({
+    where: {
+      matchId: inningsRow.matchId,
+    },
+    columns: {
+      playerId: true,
+      teamId: true,
+    },
+  });
+
+  const battingPlayerSet = new Set(
+    lineupRows
+      .filter((row) => row.teamId === inningsRow.battingTeamId)
+      .map((row) => row.playerId)
+  );
+  const bowlingPlayerSet = new Set(
+    lineupRows
+      .filter((row) => row.teamId === inningsRow.bowlingTeamId)
+      .map((row) => row.playerId)
+  );
+
+  if (
+    !(
+      battingPlayerSet.has(input.nextStrikerId) &&
+      battingPlayerSet.has(input.nextNonStrikerId)
+    )
+  ) {
+    throw new Error("Batters must belong to the batting lineup");
+  }
+
+  if (input.nextStrikerId === input.nextNonStrikerId) {
+    throw new Error("Batters must be different players");
+  }
+
+  if (!bowlingPlayerSet.has(input.nextBowlerId)) {
+    throw new Error("Bowler must belong to the bowling lineup");
+  }
+
+  const latestDelivery = await db.query.deliveries.findFirst({
+    where: {
+      inningsId: input.inningsId,
+    },
+    orderBy: {
+      sequenceNo: "desc",
+    },
+    columns: {
+      ballInOver: true,
+      isLegalDelivery: true,
+      overNumber: true,
+      sequenceNo: true,
+    },
+  });
+
+  if (!latestDelivery) {
+    throw new Error("No deliveries found for innings");
+  }
+
+  const rules = await getMatchFormatRulesByInningsId(input.inningsId);
+  const nextSequenceNo = latestDelivery.sequenceNo + 1;
+  const nextBallInOver = latestDelivery.isLegalDelivery
+    ? latestDelivery.ballInOver + 1
+    : latestDelivery.ballInOver;
+  const overWrapped = nextBallInOver > rules.ballsPerOver;
+
+  const nextOverNumber = overWrapped
+    ? latestDelivery.overNumber + 1
+    : latestDelivery.overNumber;
+  const nextBallInOverNormalized = overWrapped ? 1 : nextBallInOver;
+
+  const [newDelivery] = await db
+    .insert(deliveries)
+    .values({
+      inningsId: input.inningsId,
+      sequenceNo: nextSequenceNo,
+      overNumber: nextOverNumber,
+      ballInOver: nextBallInOverNormalized,
+      isLegalDelivery: true,
+      strikerId: input.nextStrikerId,
+      nonStrikerId: input.nextNonStrikerId,
+      bowlerId: input.nextBowlerId,
+      batterRuns: 0,
+      wideRuns: 0,
+      noBallRuns: 0,
+      byeRuns: 0,
+      legByeRuns: 0,
+      penaltyRuns: 0,
+      totalRuns: 0,
+      isWicket: false,
+    })
+    .returning({
+      id: deliveries.id,
+    });
+
+  if (!newDelivery) {
+    throw new Error("Failed to create next delivery");
+  }
+
+  return {
+    deliveryId: newDelivery.id,
+    inningsId: input.inningsId,
+  };
 }
 
 export interface MatchLineupSelection {

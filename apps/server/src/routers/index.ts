@@ -31,6 +31,7 @@ import {
   getMatchById,
   getMatchScorecard,
 } from "@/services/match.service";
+import { getMatchFormatRulesByMatchId } from "@/services/match-format.service";
 import {
   createOwnPlayerProfileByEmail,
   getAllPlayers,
@@ -42,9 +43,12 @@ import {
   verifyClaimOtpAndLinkByEmail,
 } from "@/services/player.service";
 import {
+  createNextScoringDelivery,
+  endInnings,
   getSavedMatchLineup,
+  initializeMatchScoring,
   replaceMatchLineupForMatch,
-  setMatchLiveStatus,
+  saveBallData,
 } from "@/services/scoring.service";
 import {
   getAllTeams,
@@ -267,6 +271,7 @@ const MatchScoringSetupInputSchema = z.object({
 });
 
 const StartMatchScoringInputSchema = MatchScoringSetupInputSchema;
+const TossDecisionInputSchema = z.enum(["bat", "bowl"]);
 
 const MatchTeamLineupInputSchema = z.object({
   playerIds: z.array(z.number().int().positive()).min(1),
@@ -279,6 +284,43 @@ const SaveMatchLineupInputSchema = z.object({
   matchId: z.number().int().positive(),
   team1: MatchTeamLineupInputSchema,
   team2: MatchTeamLineupInputSchema,
+});
+
+const InitializeMatchScoringInputSchema = z.object({
+  matchId: z.number().int().positive(),
+  tossWinnerId: z.number().int().positive(),
+  tossDecision: TossDecisionInputSchema,
+  strikerId: z.number().int().positive(),
+  nonStrikerId: z.number().int().positive(),
+  openingBowlerId: z.number().int().positive(),
+});
+
+const SaveScoringDeliveryInputSchema = z.object({
+  id: z.number().int().positive(),
+  inningsId: z.number().int().positive(),
+  strikerId: z.number().int().positive(),
+  nonStrikerId: z.number().int().positive(),
+  bowlerId: z.number().int().positive(),
+  runsScored: z.number().int().min(0),
+  isWide: z.boolean().optional(),
+  isNoBall: z.boolean().optional(),
+  isBye: z.boolean().optional(),
+  isLegBye: z.boolean().optional(),
+  isWicket: z.boolean().optional(),
+  wicketType: z.string().optional(),
+  assistPlayerId: z.number().int().positive().optional(),
+  dismissedPlayerId: z.number().int().positive().optional(),
+});
+
+const CreateNextScoringDeliveryInputSchema = z.object({
+  inningsId: z.number().int().positive(),
+  nextStrikerId: z.number().int().positive(),
+  nextNonStrikerId: z.number().int().positive(),
+  nextBowlerId: z.number().int().positive(),
+});
+
+const EndScoringInningsInputSchema = z.object({
+  inningsId: z.number().int().positive(),
 });
 
 const TournamentStandingsInputSchema = z.object({
@@ -1703,6 +1745,178 @@ export const appRouter = {
             : emptySelection,
       };
 
+      const team1LineupPlayers = savedLineupRows
+        .filter((row) => row.teamId === team1Id)
+        .map((row) => ({
+          battingOrder: row.battingOrder,
+          name: row.player?.name ?? "Unknown",
+          playerId: row.playerId,
+          teamId: row.teamId,
+        }))
+        .sort(
+          (a, b) =>
+            (a.battingOrder ?? Number.MAX_SAFE_INTEGER) -
+            (b.battingOrder ?? Number.MAX_SAFE_INTEGER)
+        );
+      const team2LineupPlayers = savedLineupRows
+        .filter((row) => row.teamId === team2Id)
+        .map((row) => ({
+          battingOrder: row.battingOrder,
+          name: row.player?.name ?? "Unknown",
+          playerId: row.playerId,
+          teamId: row.teamId,
+        }))
+        .sort(
+          (a, b) =>
+            (a.battingOrder ?? Number.MAX_SAFE_INTEGER) -
+            (b.battingOrder ?? Number.MAX_SAFE_INTEGER)
+        );
+
+      const lineupComplete =
+        savedLineup.team1.playerIds.length === match.playersPerSide &&
+        savedLineup.team2.playerIds.length === match.playersPerSide;
+
+      const inningsRows = await db.query.innings.findMany({
+        where: {
+          matchId: match.id,
+        },
+        with: {
+          battingTeam: {
+            columns: {
+              id: true,
+              name: true,
+              shortName: true,
+            },
+          },
+          bowlingTeam: {
+            columns: {
+              id: true,
+              name: true,
+              shortName: true,
+            },
+          },
+        },
+        orderBy: {
+          inningsNumber: "asc",
+        },
+      });
+
+      const currentInnings = inningsRows.at(-1) ?? null;
+      const currentInningsDeliveries = currentInnings
+        ? await db.query.deliveries.findMany({
+            where: {
+              inningsId: currentInnings.id,
+            },
+            with: {
+              striker: {
+                columns: {
+                  id: true,
+                  name: true,
+                },
+              },
+              nonStriker: {
+                columns: {
+                  id: true,
+                  name: true,
+                },
+              },
+              bowler: {
+                columns: {
+                  id: true,
+                  name: true,
+                },
+              },
+              dismissedPlayer: {
+                columns: {
+                  id: true,
+                  name: true,
+                },
+              },
+              assistedBy: {
+                columns: {
+                  id: true,
+                  name: true,
+                },
+              },
+              dismissedBy: {
+                columns: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+            orderBy: {
+              sequenceNo: "asc",
+            },
+          })
+        : [];
+
+      const currentDelivery = currentInningsDeliveries.at(-1) ?? null;
+
+      const matchRules = await getMatchFormatRulesByMatchId(match.id);
+
+      const resolvedTeamsFromToss =
+        typeof team1Id === "number" &&
+        typeof team2Id === "number" &&
+        typeof match.tossWinnerId === "number" &&
+        (match.tossDecision === "bat" || match.tossDecision === "bowl")
+          ? (() => {
+              const tossLoserId =
+                match.tossWinnerId === team1Id ? team2Id : team1Id;
+              if (match.tossDecision === "bat") {
+                return {
+                  battingTeamId: match.tossWinnerId,
+                  bowlingTeamId: tossLoserId,
+                };
+              }
+              return {
+                battingTeamId: tossLoserId,
+                bowlingTeamId: match.tossWinnerId,
+              };
+            })()
+          : null;
+
+      const activeSelection =
+        currentInnings ??
+        (resolvedTeamsFromToss
+          ? {
+              battingTeamId: resolvedTeamsFromToss.battingTeamId,
+              bowlingTeamId: resolvedTeamsFromToss.bowlingTeamId,
+            }
+          : null);
+
+      const selectableBattingPlayers = activeSelection
+        ? savedLineupRows
+            .filter((row) => row.teamId === activeSelection.battingTeamId)
+            .map((row) => ({
+              battingOrder: row.battingOrder,
+              name: row.player?.name ?? "Unknown",
+              playerId: row.playerId,
+              teamId: row.teamId,
+            }))
+            .sort(
+              (a, b) =>
+                (a.battingOrder ?? Number.MAX_SAFE_INTEGER) -
+                (b.battingOrder ?? Number.MAX_SAFE_INTEGER)
+            )
+        : [];
+
+      const selectableBowlingPlayers = activeSelection
+        ? savedLineupRows
+            .filter((row) => row.teamId === activeSelection.bowlingTeamId)
+            .map((row) => ({
+              battingOrder: row.battingOrder,
+              name: row.player?.name ?? "Unknown",
+              playerId: row.playerId,
+              teamId: row.teamId,
+            }))
+            .sort(
+              (a, b) =>
+                (a.battingOrder ?? Number.MAX_SAFE_INTEGER) -
+                (b.battingOrder ?? Number.MAX_SAFE_INTEGER)
+            )
+        : [];
+
       return {
         match,
         canCurrentUserScore,
@@ -1710,6 +1924,21 @@ export const appRouter = {
         team1Roster,
         team2Roster,
         savedLineup,
+        lineupComplete,
+        matchRules,
+        currentInnings: currentInnings
+          ? {
+              ...currentInnings,
+              deliveries: currentInningsDeliveries,
+            }
+          : null,
+        currentDelivery,
+        teamLineupPlayers: {
+          team1: team1LineupPlayers,
+          team2: team2LineupPlayers,
+        },
+        selectableBattingPlayers,
+        selectableBowlingPlayers,
       };
     }),
   startMatchScoring: sensitiveProcedure
@@ -1721,6 +1950,7 @@ export const appRouter = {
         },
         columns: {
           id: true,
+          isLive: true,
           tournamentId: true,
           team1Id: true,
           team2Id: true,
@@ -1736,11 +1966,22 @@ export const appRouter = {
         match,
       });
 
-      await setMatchLiveStatus({ matchId: match.id, isLive: true });
+      const existingInnings = await db.query.innings.findFirst({
+        where: {
+          matchId: match.id,
+        },
+        columns: {
+          id: true,
+        },
+      });
+
+      if (existingInnings) {
+        throw new ORPCError("BAD_REQUEST");
+      }
 
       return {
         matchId: match.id,
-        isLive: true,
+        isLive: Boolean(match.isLive),
       };
     }),
   saveMatchLineup: sensitiveProcedure
@@ -1879,6 +2120,243 @@ export const appRouter = {
           team2: buildSavedTeamLineup(savedLineupRows, match.team2Id),
         },
       };
+    }),
+  initializeMatchScoring: sensitiveProcedure
+    .input(InitializeMatchScoringInputSchema)
+    .handler(async ({ context, input }) => {
+      const match = await db.query.matches.findFirst({
+        where: {
+          id: input.matchId,
+        },
+        columns: {
+          id: true,
+          tournamentId: true,
+          team1Id: true,
+          team2Id: true,
+        },
+      });
+
+      if (!match) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      await requireScoreAccessByEmail({
+        email: context.session.user.email,
+        match,
+      });
+
+      try {
+        return await initializeMatchScoring(input);
+      } catch (error) {
+        if (error instanceof Error) {
+          if (error.message === "Match not found") {
+            throw new ORPCError("NOT_FOUND");
+          }
+          throw new ORPCError("BAD_REQUEST");
+        }
+
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
+      }
+    }),
+  saveScoringDelivery: sensitiveProcedure
+    .input(SaveScoringDeliveryInputSchema)
+    .handler(async ({ context, input }) => {
+      const inningsRow = await db.query.innings.findFirst({
+        where: {
+          id: input.inningsId,
+        },
+        columns: {
+          id: true,
+          matchId: true,
+        },
+      });
+
+      if (!inningsRow) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      const match = await db.query.matches.findFirst({
+        where: {
+          id: inningsRow.matchId,
+        },
+        columns: {
+          id: true,
+          tournamentId: true,
+          team1Id: true,
+          team2Id: true,
+        },
+      });
+
+      if (!match) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      await requireScoreAccessByEmail({
+        email: context.session.user.email,
+        match,
+      });
+
+      try {
+        await saveBallData(
+          input,
+          {
+            inningsId: input.inningsId,
+            wickets: 0,
+            balls: 0,
+            extras: 0,
+            totalScore: 0,
+          },
+          {
+            matchId: match.id,
+          }
+        );
+
+        const updatedInnings = await db.query.innings.findFirst({
+          where: {
+            id: input.inningsId,
+          },
+          with: {
+            battingTeam: {
+              columns: {
+                id: true,
+                name: true,
+                shortName: true,
+              },
+            },
+            bowlingTeam: {
+              columns: {
+                id: true,
+                name: true,
+                shortName: true,
+              },
+            },
+          },
+        });
+
+        const updatedDelivery = await db.query.deliveries.findFirst({
+          where: {
+            id: input.id,
+          },
+          with: {
+            striker: true,
+            nonStriker: true,
+            bowler: true,
+            dismissedPlayer: true,
+            dismissedBy: true,
+            assistedBy: true,
+          },
+        });
+
+        return {
+          innings: updatedInnings,
+          delivery: updatedDelivery,
+        };
+      } catch (_error) {
+        throw new ORPCError("BAD_REQUEST");
+      }
+    }),
+  createNextScoringDelivery: sensitiveProcedure
+    .input(CreateNextScoringDeliveryInputSchema)
+    .handler(async ({ context, input }) => {
+      const inningsRow = await db.query.innings.findFirst({
+        where: {
+          id: input.inningsId,
+        },
+        columns: {
+          id: true,
+          matchId: true,
+        },
+      });
+
+      if (!inningsRow) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      const match = await db.query.matches.findFirst({
+        where: {
+          id: inningsRow.matchId,
+        },
+        columns: {
+          id: true,
+          tournamentId: true,
+          team1Id: true,
+          team2Id: true,
+        },
+      });
+
+      if (!match) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      await requireScoreAccessByEmail({
+        email: context.session.user.email,
+        match,
+      });
+
+      try {
+        const result = await createNextScoringDelivery(input);
+        const delivery = await db.query.deliveries.findFirst({
+          where: {
+            id: result.deliveryId,
+          },
+          with: {
+            striker: true,
+            nonStriker: true,
+            bowler: true,
+            dismissedPlayer: true,
+            dismissedBy: true,
+            assistedBy: true,
+          },
+        });
+
+        return {
+          ...result,
+          delivery,
+        };
+      } catch (_error) {
+        throw new ORPCError("BAD_REQUEST");
+      }
+    }),
+  endScoringInnings: sensitiveProcedure
+    .input(EndScoringInningsInputSchema)
+    .handler(async ({ context, input }) => {
+      const inningsRow = await db.query.innings.findFirst({
+        where: {
+          id: input.inningsId,
+        },
+        columns: {
+          id: true,
+          matchId: true,
+        },
+      });
+
+      if (!inningsRow) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      const match = await db.query.matches.findFirst({
+        where: {
+          id: inningsRow.matchId,
+        },
+        columns: {
+          id: true,
+          tournamentId: true,
+          team1Id: true,
+          team2Id: true,
+        },
+      });
+
+      if (!match) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      await requireScoreAccessByEmail({
+        email: context.session.user.email,
+        match,
+      });
+
+      await endInnings(input.inningsId);
+      return { inningsId: input.inningsId };
     }),
   getMatchScorecard: publicProcedure
     .input(
