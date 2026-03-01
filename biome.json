@@ -22,5 +22,5 @@
       "!apps/web/src/components/ui"
     ]
   },
-  "extends": ["ultracite/core", "ultracite/react", "ultracite/remix"]
+  "extends": ["ultracite/biome/core", "ultracite/biome/react"]
 }
