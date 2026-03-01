@@ -19,8 +19,38 @@
       "!**/.svelte-kit",
       "!**/wrangler.jsonc",
       "!**/.source",
-      "!apps/web/src/components/ui"
+      "!apps/web/src/components/ui",
+      "!apps/server/openapi.json",
+      "!apps/server/src/db/migrations/**/snapshot.json"
     ]
   },
+  "overrides": [
+    {
+      "includes": ["apps/web/src/routes/**/$*.{ts,tsx}"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useFilenamingConvention": {
+              "level": "error",
+              "options": {
+                "requireAscii": true,
+                "filenameCases": ["camelCase", "kebab-case"]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/web/src/routes/**/-*.{ts,tsx}"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useFilenamingConvention": "off"
+          }
+        }
+      }
+    }
+  ],
   "extends": ["ultracite/biome/core", "ultracite/biome/react"]
 }
