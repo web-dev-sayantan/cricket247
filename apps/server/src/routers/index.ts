@@ -807,7 +807,38 @@ export const appRouter = {
     message: "This is private",
     user: context.session?.user,
   })),
-  liveMatches: publicProcedure.handler(() => getLiveMatches()),
+  liveMatches: publicProcedure.handler(async ({ context }) => {
+    const matches = await getLiveMatches();
+    const tournamentIds = Array.from(
+      new Set(matches.map((match) => match.tournamentId))
+    );
+    const scoringPermissions = await Promise.all(
+      tournamentIds.map(async (tournamentId) => ({
+        tournamentId,
+        permission: await getTournamentScoringPermissionContext({
+          email: context.session?.user.email,
+          tournamentId,
+        }),
+      }))
+    );
+    const scoringPermissionByTournamentId = new Map(
+      scoringPermissions.map((entry) => [entry.tournamentId, entry.permission])
+    );
+
+    return matches.map((match) => {
+      const scoringPermission = scoringPermissionByTournamentId.get(
+        match.tournamentId
+      );
+      const canCurrentUserScore = scoringPermission
+        ? canCurrentUserScoreFixtureMatch(match, scoringPermission)
+        : false;
+
+      return {
+        ...match,
+        canCurrentUserScore,
+      };
+    });
+  }),
   currentUserRole: protectedProcedure.handler(async ({ context }) =>
     getUserRoleByEmail(context.session.user.email)
   ),
@@ -2366,11 +2397,43 @@ export const appRouter = {
         includeBallByBall: z.boolean().optional(),
       })
     )
-    .handler(async ({ input }) => {
-      return await getMatchScorecard(input.matchId, {
+    .handler(async ({ context, input }) => {
+      const scorecard = await getMatchScorecard(input.matchId, {
         inningsNumber: input.inningsNumber,
         includeBallByBall: input.includeBallByBall,
       });
+
+      if (!scorecard) {
+        return null;
+      }
+
+      const match = await db.query.matches.findFirst({
+        where: {
+          id: input.matchId,
+        },
+        columns: {
+          team1Id: true,
+          team2Id: true,
+          tournamentId: true,
+        },
+      });
+
+      if (!match) {
+        return {
+          ...scorecard,
+          canCurrentUserScore: false,
+        };
+      }
+
+      const canCurrentUserScore = await canUserScoreMatchByEmail({
+        email: context.session?.user.email,
+        match,
+      });
+
+      return {
+        ...scorecard,
+        canCurrentUserScore,
+      };
     }),
   getBallsOfSameOver: protectedProcedure
     .input(

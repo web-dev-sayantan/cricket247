@@ -69,7 +69,7 @@ interface ScorecardDelivery {
   wideRuns: number;
 }
 
-interface InningsScorecard {
+export interface InningsScorecard {
   batting: ScorecardBattingRow[];
   battingTeam: {
     id: number;

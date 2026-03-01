@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { shouldShowBackToScoring } from "./scorecard-visibility";
 
 export const Route = createFileRoute("/matches/$matchId/scorecard")({
   component: RouteComponent,
@@ -70,6 +71,10 @@ function RouteComponent() {
 
   const team1ShortName = scorecard.match.team1?.shortName ?? "TBD";
   const team2ShortName = scorecard.match.team2?.shortName ?? "TBD";
+  const canShowBackToScoring = shouldShowBackToScoring({
+    canCurrentUserScore: scorecard.canCurrentUserScore,
+    isLive: scorecard.match.isLive,
+  });
 
   return (
     <main className="mx-auto flex size-full max-w-6xl flex-col gap-4 p-4">
@@ -83,12 +88,14 @@ function RouteComponent() {
             overs/innings
           </p>
         </div>
-        <Button size="sm" variant="outline">
-          <Link params={{ matchId }} to="/matches/$matchId/score">
-            <ArrowLeftIcon />
-            Back to Scoring
-          </Link>
-        </Button>
+        {canShowBackToScoring ? (
+          <Button size="sm" variant="outline">
+            <Link params={{ matchId }} to="/matches/$matchId/score">
+              <ArrowLeftIcon />
+              Back to Scoring
+            </Link>
+          </Button>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap gap-2">

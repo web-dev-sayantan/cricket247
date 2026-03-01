@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 interface MatchCardProps {
   match: {
+    canCurrentUserScore?: boolean | null;
     id: number;
     team1: { name: string; shortName: string };
     team2: { name: string; shortName: string };
@@ -29,6 +30,9 @@ export const MatchCard = ({ match }: MatchCardProps) => {
   const currentInnings = secondInnings ?? firstInnings;
   const currentInningsId = currentInnings?.id;
   const currentBall = currentInnings?.ballsBowled ?? 0;
+  const canShowResumeScoring = Boolean(
+    match.isLive && match.canCurrentUserScore
+  );
 
   const calculateOvers = (balls: number) => {
     const completeOvers = Math.floor(balls / 6);
@@ -83,24 +87,26 @@ export const MatchCard = ({ match }: MatchCardProps) => {
           </div>
 
           <div className="flex flex-col gap-4 pt-2 md:flex-row md:gap-2">
-            <Link
-              className={cn(
-                buttonVariants({
-                  className: "w-full md:flex-1",
-                  size: "sm",
-                  variant: "default",
-                })
-              )}
-              params={{ matchId: String(match.id) }}
-              search={{
-                innings: currentInningsId,
-                ball: currentBall,
-              }}
-              to="/matches/$matchId/score"
-            >
-              <Play className="mr-1 size-4" />
-              Resume Scoring
-            </Link>
+            {canShowResumeScoring ? (
+              <Link
+                className={cn(
+                  buttonVariants({
+                    className: "w-full md:flex-1",
+                    size: "sm",
+                    variant: "default",
+                  })
+                )}
+                params={{ matchId: String(match.id) }}
+                search={{
+                  innings: currentInningsId,
+                  ball: currentBall,
+                }}
+                to="/matches/$matchId/score"
+              >
+                <Play className="mr-1 size-4" />
+                Resume Scoring
+              </Link>
+            ) : null}
             <Link
               className={cn(
                 buttonVariants({
