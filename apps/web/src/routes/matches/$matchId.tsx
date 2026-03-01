@@ -1,9 +1,19 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/matches/$matchId")({
-  component: RouteComponent,
-});
+  beforeLoad: ({ location, params }) => {
+    const matchBasePath = `/matches/${params.matchId}`;
+    const isMatchBaseRoute =
+      location.pathname === matchBasePath ||
+      location.pathname === `${matchBasePath}/`;
 
-function RouteComponent() {
-  return <div>Hello "/matches/$matchId"!</div>;
-}
+    if (!isMatchBaseRoute) {
+      return;
+    }
+
+    throw redirect({
+      to: "/matches/$matchId/scorecard",
+      params,
+    });
+  },
+});

@@ -25,7 +25,11 @@ export default defineConfig(({ command }) => {
     plugins: [
       devtools(),
       tailwindcss(),
-      tanstackRouter({ target: "react", autoCodeSplitting: true }),
+      tanstackRouter({
+        target: "react",
+        autoCodeSplitting: true,
+        routeFileIgnorePattern: "\\.test\\.ts$",
+      }),
       react({
         babel: {
           plugins: ["babel-plugin-react-compiler"],

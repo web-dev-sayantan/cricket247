@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
   Calendar,
   Check,
   Pencil,
+  Play,
   RefreshCcw,
   Trophy,
 } from "lucide-react";
@@ -38,6 +39,7 @@ export const Route = createFileRoute("/tournaments/$tournamentId/")({
 function TournamentDetailPage() {
   const { tournamentId } = Route.useParams();
   const numericTournamentId = Number(tournamentId);
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data: session } = authClient.useSession();
@@ -260,6 +262,36 @@ function TournamentDetailPage() {
     },
   });
 
+  const startScoringMutation = useMutation({
+    mutationFn: async (matchId: number) =>
+      client.startMatchScoring({
+        matchId,
+      }),
+    onSuccess: async (_result, matchId) => {
+      toast.success("Scoring started");
+      await Promise.all([
+        invalidateTournamentQueries(queryClient, numericTournamentId),
+        queryClient.invalidateQueries(orpc.liveMatches.queryOptions()),
+        queryClient.invalidateQueries(
+          orpc.getMatchById.queryOptions({ input: matchId })
+        ),
+        queryClient.invalidateQueries(
+          orpc.getMatchScoringSetup.queryOptions({
+            input: { matchId },
+          })
+        ),
+      ]);
+
+      navigate({
+        to: "/matches/$matchId/score",
+        params: { matchId: String(matchId) },
+      });
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to start scoring");
+    },
+  });
+
   if (isLoadingTournament) {
     return (
       <div className="min-h-screen px-4 py-8 md:px-8">
@@ -392,8 +424,16 @@ function TournamentDetailPage() {
                   ) : (
                     publishedFixtures.map((match) => (
                       <FixtureCard
+                        enableScoringActions={true}
+                        isStartingScoring={
+                          startScoringMutation.isPending &&
+                          startScoringMutation.variables === match.id
+                        }
                         key={match.id}
                         match={match}
+                        onStartScoring={(matchId) =>
+                          startScoringMutation.mutate(matchId)
+                        }
                         showDraftControls={false}
                       />
                     ))
@@ -859,8 +899,11 @@ function SourceField(props: {
 }
 
 function FixtureCard(props: {
+  enableScoringActions?: boolean;
+  isStartingScoring?: boolean;
   match: Awaited<ReturnType<typeof client.tournamentFixtures>>[number];
   onDelete?: () => void;
+  onStartScoring?: (matchId: number) => void;
   onToggleSelect?: () => void;
   selected?: boolean;
   showDraftControls: boolean;
@@ -868,6 +911,21 @@ function FixtureCard(props: {
   const match = props.match;
   const team1Label = match.team1?.shortName ?? "TBD";
   const team2Label = match.team2?.shortName ?? "TBD";
+  const matchStartAt = match.scheduledStartAt ?? match.matchDate;
+  const canCurrentUserScore = match.canCurrentUserScore ?? false;
+  const canShowTemporalStatusBadge =
+    match.temporalStatus !== "live" || Boolean(match.isLive);
+  const canShowStartScoring =
+    props.enableScoringActions &&
+    match.fixtureStatus === "published" &&
+    !match.isLive &&
+    isDateInLocalToday(matchStartAt) &&
+    canCurrentUserScore;
+  const canShowResumeScoring =
+    props.enableScoringActions &&
+    match.fixtureStatus === "published" &&
+    Boolean(match.isLive) &&
+    canCurrentUserScore;
 
   return (
     <div className="space-y-2 border p-3">
@@ -883,7 +941,9 @@ function FixtureCard(props: {
           >
             {match.fixtureStatus}
           </Badge>
-          <Badge variant="outline">{match.temporalStatus}</Badge>
+          {canShowTemporalStatusBadge ? (
+            <Badge variant="outline">{match.temporalStatus}</Badge>
+          ) : null}
         </div>
       </div>
 
@@ -917,17 +977,51 @@ function FixtureCard(props: {
       )}
 
       {match.fixtureStatus === "published" ? (
-        <Link
-          params={{ matchId: String(match.id) }}
-          to="/matches/$matchId/scorecard"
-        >
-          <Button size="sm" variant="outline">
-            <Trophy className="mr-1 size-4" />
-            Scorecard
-          </Button>
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          {canShowStartScoring ? (
+            <Button
+              disabled={props.isStartingScoring}
+              onClick={() => props.onStartScoring?.(match.id)}
+              size="sm"
+            >
+              <Play className="mr-1 size-4" />
+              Start Scoring
+            </Button>
+          ) : null}
+
+          {canShowResumeScoring ? (
+            <Link
+              params={{ matchId: String(match.id) }}
+              to="/matches/$matchId/score"
+            >
+              <Button size="sm" variant="default">
+                <Play className="mr-1 size-4" />
+                Resume Scoring
+              </Button>
+            </Link>
+          ) : null}
+
+          <Link
+            params={{ matchId: String(match.id) }}
+            to="/matches/$matchId/scorecard"
+          >
+            <Button size="sm" variant="outline">
+              <Trophy className="mr-1 size-4" />
+              Scorecard
+            </Button>
+          </Link>
+        </div>
       ) : null}
     </div>
+  );
+}
+
+function isDateInLocalToday(date: Date) {
+  const now = new Date();
+  return (
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
   );
 }
 

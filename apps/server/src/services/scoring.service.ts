@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import {
   deliveries,
@@ -493,7 +493,6 @@ export async function onSelectCurrentBattersAndBowler({
       matchId,
       teamId: match.team2Id,
     }),
-    setMatchLiveStatus({ matchId, isLive: true }),
   ]);
 }
 
@@ -508,6 +507,101 @@ export async function setMatchLiveStatus({
     .update(matches)
     .set({ isLive })
     .where(eq(matches.id, matchId));
+}
+
+export interface MatchLineupSelection {
+  captainPlayerId?: number;
+  playerIds: number[];
+  viceCaptainPlayerId?: number;
+  wicketKeeperPlayerId?: number;
+}
+
+export async function getSavedMatchLineup(matchId: number) {
+  return await db.query.matchLineup.findMany({
+    where: {
+      matchId,
+    },
+    orderBy: {
+      battingOrder: "asc",
+    },
+    with: {
+      player: {
+        columns: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+}
+
+export async function replaceMatchLineupForMatch({
+  matchId,
+  team1,
+  team1Id,
+  team2,
+  team2Id,
+}: {
+  matchId: number;
+  team1: MatchLineupSelection;
+  team1Id: number;
+  team2: MatchLineupSelection;
+  team2Id: number;
+}) {
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(matchLineup)
+      .where(
+        and(
+          eq(matchLineup.matchId, matchId),
+          inArray(matchLineup.teamId, [team1Id, team2Id])
+        )
+      );
+
+    const lineupRows = [
+      ...team1.playerIds.map((playerId, index) => ({
+        matchId,
+        teamId: team1Id,
+        playerId,
+        battingOrder: index + 1,
+        isCaptain: team1.captainPlayerId === playerId,
+        isViceCaptain: team1.viceCaptainPlayerId === playerId,
+        isWicketKeeper: team1.wicketKeeperPlayerId === playerId,
+        isSubstitute: false,
+      })),
+      ...team2.playerIds.map((playerId, index) => ({
+        matchId,
+        teamId: team2Id,
+        playerId,
+        battingOrder: index + 1,
+        isCaptain: team2.captainPlayerId === playerId,
+        isViceCaptain: team2.viceCaptainPlayerId === playerId,
+        isWicketKeeper: team2.wicketKeeperPlayerId === playerId,
+        isSubstitute: false,
+      })),
+    ];
+
+    if (lineupRows.length > 0) {
+      await tx.insert(matchLineup).values(lineupRows);
+    }
+  });
+
+  return await db.query.matchLineup.findMany({
+    where: {
+      matchId,
+    },
+    orderBy: {
+      battingOrder: "asc",
+    },
+    with: {
+      player: {
+        columns: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
 }
 
 export async function onSelectNewBatter({

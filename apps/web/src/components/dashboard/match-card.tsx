@@ -78,7 +78,10 @@ export function MatchCard({
           className="w-full opacity-90 transition-opacity group-hover:opacity-100"
           variant={isLive ? "default" : "secondary"}
         >
-          <Link params={{ matchId: id.toString() }} to="/matches/$matchId">
+          <Link
+            params={{ matchId: id.toString() }}
+            to="/matches/$matchId/scorecard"
+          >
             View Scorecard
           </Link>
         </Button>

@@ -2,7 +2,7 @@ import { ORPCError, type RouterClient } from "@orpc/server";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { players, tournamentTeams, user } from "@/db/schema";
+import { players, teamPlayers, tournamentTeams, user } from "@/db/schema";
 import { getBallsOfSameOver } from "@/services/ball.service";
 import {
   CrudServiceError,
@@ -41,6 +41,11 @@ import {
   sendClaimOtpByEmail,
   verifyClaimOtpAndLinkByEmail,
 } from "@/services/player.service";
+import {
+  getSavedMatchLineup,
+  replaceMatchLineupForMatch,
+  setMatchLiveStatus,
+} from "@/services/scoring.service";
 import {
   getAllTeams,
   getTeamById,
@@ -257,6 +262,25 @@ const TournamentFixturesInputSchema = z.object({
   status: z.enum(["all", "live", "upcoming", "past"]).optional(),
 });
 
+const MatchScoringSetupInputSchema = z.object({
+  matchId: z.number().int().positive(),
+});
+
+const StartMatchScoringInputSchema = MatchScoringSetupInputSchema;
+
+const MatchTeamLineupInputSchema = z.object({
+  playerIds: z.array(z.number().int().positive()).min(1),
+  captainPlayerId: z.number().int().positive().optional(),
+  viceCaptainPlayerId: z.number().int().positive().optional(),
+  wicketKeeperPlayerId: z.number().int().positive().optional(),
+});
+
+const SaveMatchLineupInputSchema = z.object({
+  matchId: z.number().int().positive(),
+  team1: MatchTeamLineupInputSchema,
+  team2: MatchTeamLineupInputSchema,
+});
+
 const TournamentStandingsInputSchema = z.object({
   tournamentId: z.number().int().positive(),
   stageId: z.number().int().positive().optional(),
@@ -437,6 +461,187 @@ async function getUserRoleByEmail(email: string) {
   return rows[0]?.role ?? null;
 }
 
+async function getUserSummaryByEmail(email: string) {
+  const rows = await db
+    .select({
+      id: user.id,
+      role: user.role,
+    })
+    .from(user)
+    .where(eq(user.email, email))
+    .limit(1);
+
+  return rows[0] ?? null;
+}
+
+async function getLinkedPlayerIdByUserId(userId: number) {
+  const rows = await db
+    .select({ id: players.id })
+    .from(players)
+    .where(eq(players.userId, userId))
+    .limit(1);
+
+  return rows[0]?.id ?? null;
+}
+
+interface TournamentScoringPermissionContext {
+  canScoreAnyMatch: boolean;
+  eligibleTeamIds: Set<number>;
+}
+
+async function getTournamentScoringPermissionContext(params: {
+  email?: string;
+  tournamentId: number;
+}): Promise<TournamentScoringPermissionContext> {
+  if (!params.email) {
+    return {
+      canScoreAnyMatch: false,
+      eligibleTeamIds: new Set<number>(),
+    };
+  }
+
+  const userRecord = await getUserSummaryByEmail(params.email);
+  if (!userRecord) {
+    return {
+      canScoreAnyMatch: false,
+      eligibleTeamIds: new Set<number>(),
+    };
+  }
+
+  if (userRecord.role === "admin") {
+    return {
+      canScoreAnyMatch: true,
+      eligibleTeamIds: new Set<number>(),
+    };
+  }
+
+  const linkedPlayerId = await getLinkedPlayerIdByUserId(userRecord.id);
+  if (typeof linkedPlayerId !== "number") {
+    return {
+      canScoreAnyMatch: false,
+      eligibleTeamIds: new Set<number>(),
+    };
+  }
+
+  const rows = await db
+    .select({ teamId: teamPlayers.teamId })
+    .from(teamPlayers)
+    .where(
+      and(
+        eq(teamPlayers.tournamentId, params.tournamentId),
+        eq(teamPlayers.playerId, linkedPlayerId)
+      )
+    );
+
+  return {
+    canScoreAnyMatch: false,
+    eligibleTeamIds: new Set(rows.map((row) => row.teamId)),
+  };
+}
+
+function canCurrentUserScoreFixtureMatch(
+  match: {
+    team1Id: null | number;
+    team2Id: null | number;
+  },
+  scoringPermission: TournamentScoringPermissionContext
+) {
+  if (typeof match.team1Id !== "number" || typeof match.team2Id !== "number") {
+    return false;
+  }
+
+  if (scoringPermission.canScoreAnyMatch) {
+    return true;
+  }
+
+  return (
+    scoringPermission.eligibleTeamIds.has(match.team1Id) ||
+    scoringPermission.eligibleTeamIds.has(match.team2Id)
+  );
+}
+
+async function canUserScoreMatchByEmail(params: {
+  email?: string;
+  match: {
+    team1Id: null | number;
+    team2Id: null | number;
+    tournamentId: number;
+  };
+}) {
+  if (!params.email) {
+    return false;
+  }
+
+  const userRecord = await getUserSummaryByEmail(params.email);
+  if (!userRecord) {
+    return false;
+  }
+
+  if (
+    typeof params.match.team1Id !== "number" ||
+    typeof params.match.team2Id !== "number"
+  ) {
+    return false;
+  }
+
+  if (userRecord.role === "admin") {
+    return true;
+  }
+
+  const linkedPlayerId = await getLinkedPlayerIdByUserId(userRecord.id);
+  if (typeof linkedPlayerId !== "number") {
+    return false;
+  }
+
+  const rows = await db
+    .select({ id: teamPlayers.id })
+    .from(teamPlayers)
+    .where(
+      and(
+        eq(teamPlayers.tournamentId, params.match.tournamentId),
+        eq(teamPlayers.playerId, linkedPlayerId),
+        inArray(teamPlayers.teamId, [
+          params.match.team1Id,
+          params.match.team2Id,
+        ])
+      )
+    )
+    .limit(1);
+
+  return rows.length > 0;
+}
+
+async function requireScoreAccessByEmail(params: {
+  email: string;
+  match: {
+    team1Id: null | number;
+    team2Id: null | number;
+    tournamentId: number;
+  };
+}) {
+  const canScore = await canUserScoreMatchByEmail(params);
+  if (!canScore) {
+    throw new ORPCError("FORBIDDEN");
+  }
+}
+
+function hasUniquePlayerIds(playerIds: number[]) {
+  return new Set(playerIds).size === playerIds.length;
+}
+
+function ensureOptionalSelectionBelongsToTeam(
+  playerIds: number[],
+  selectedPlayerId: number | undefined
+) {
+  if (typeof selectedPlayerId !== "number") {
+    return;
+  }
+
+  if (!playerIds.includes(selectedPlayerId)) {
+    throw new ORPCError("BAD_REQUEST");
+  }
+}
+
 async function requireAdminByEmail(email: string) {
   const role = await getUserRoleByEmail(email);
   if (role !== "admin") {
@@ -447,6 +652,20 @@ async function requireAdminByEmail(email: string) {
 function getPlayerDuplicateKey(params: { name: string; dob: Date }) {
   const normalizedName = params.name.trim().toLowerCase();
   return `${normalizedName}|${params.dob.toISOString()}`;
+}
+
+function buildSavedTeamLineup(
+  rows: Awaited<ReturnType<typeof getSavedMatchLineup>>,
+  teamId: number
+) {
+  const teamRows = rows.filter((row) => row.teamId === teamId);
+
+  return {
+    playerIds: teamRows.map((row) => row.playerId),
+    captainPlayerId: teamRows.find((row) => row.isCaptain)?.playerId,
+    viceCaptainPlayerId: teamRows.find((row) => row.isViceCaptain)?.playerId,
+    wicketKeeperPlayerId: teamRows.find((row) => row.isWicketKeeper)?.playerId,
+  };
 }
 
 function mapTournamentCrudServiceError(error: unknown) {
@@ -899,7 +1118,19 @@ export const appRouter = {
       }
 
       try {
-        return await getTournamentFixtures(input);
+        const fixtures = await getTournamentFixtures(input);
+        const scoringPermission = await getTournamentScoringPermissionContext({
+          email: context.session?.user.email,
+          tournamentId: input.tournamentId,
+        });
+
+        return fixtures.map((match) => ({
+          ...match,
+          canCurrentUserScore: canCurrentUserScoreFixtureMatch(
+            match,
+            scoringPermission
+          ),
+        }));
       } catch (error) {
         throw mapTournamentFixtureBuilderError(error);
       }
@@ -1411,6 +1642,244 @@ export const appRouter = {
   getMatchById: publicProcedure.input(z.number()).handler(async ({ input }) => {
     return await getMatchById(input);
   }),
+  getMatchScoringSetup: publicProcedure
+    .input(MatchScoringSetupInputSchema)
+    .handler(async ({ context, input }) => {
+      const match = await getMatchById(input.matchId);
+      if (!match) {
+        return null;
+      }
+
+      const canCurrentUserScore = await canUserScoreMatchByEmail({
+        email: context.session?.user.email,
+        match: {
+          tournamentId: match.tournamentId,
+          team1Id: match.team1Id,
+          team2Id: match.team2Id,
+        },
+      });
+
+      const team1Id = match.team1Id;
+      const team2Id = match.team2Id;
+
+      const rosterRows =
+        typeof team1Id === "number" && typeof team2Id === "number"
+          ? await db
+              .select({
+                teamId: teamPlayers.teamId,
+                playerId: players.id,
+                name: players.name,
+                role: players.role,
+                isCaptain: teamPlayers.isCaptain,
+                isViceCaptain: teamPlayers.isViceCaptain,
+              })
+              .from(teamPlayers)
+              .innerJoin(players, eq(players.id, teamPlayers.playerId))
+              .where(
+                and(
+                  eq(teamPlayers.tournamentId, match.tournamentId),
+                  inArray(teamPlayers.teamId, [team1Id, team2Id])
+                )
+              )
+          : [];
+
+      const team1Roster = rosterRows
+        .filter((row) => row.teamId === team1Id)
+        .sort((a, b) => a.name.localeCompare(b.name));
+      const team2Roster = rosterRows
+        .filter((row) => row.teamId === team2Id)
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      const savedLineupRows = await getSavedMatchLineup(match.id);
+      const emptySelection = { playerIds: [] as number[] };
+      const savedLineup = {
+        team1:
+          typeof team1Id === "number"
+            ? buildSavedTeamLineup(savedLineupRows, team1Id)
+            : emptySelection,
+        team2:
+          typeof team2Id === "number"
+            ? buildSavedTeamLineup(savedLineupRows, team2Id)
+            : emptySelection,
+      };
+
+      return {
+        match,
+        canCurrentUserScore,
+        playersPerSide: match.playersPerSide,
+        team1Roster,
+        team2Roster,
+        savedLineup,
+      };
+    }),
+  startMatchScoring: sensitiveProcedure
+    .input(StartMatchScoringInputSchema)
+    .handler(async ({ context, input }) => {
+      const match = await db.query.matches.findFirst({
+        where: {
+          id: input.matchId,
+        },
+        columns: {
+          id: true,
+          tournamentId: true,
+          team1Id: true,
+          team2Id: true,
+        },
+      });
+
+      if (!match) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      await requireScoreAccessByEmail({
+        email: context.session.user.email,
+        match,
+      });
+
+      await setMatchLiveStatus({ matchId: match.id, isLive: true });
+
+      return {
+        matchId: match.id,
+        isLive: true,
+      };
+    }),
+  saveMatchLineup: sensitiveProcedure
+    .input(SaveMatchLineupInputSchema)
+    .handler(async ({ context, input }) => {
+      const match = await db.query.matches.findFirst({
+        where: {
+          id: input.matchId,
+        },
+        columns: {
+          id: true,
+          tournamentId: true,
+          team1Id: true,
+          team2Id: true,
+          playersPerSide: true,
+        },
+      });
+
+      if (!match) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      if (
+        typeof match.team1Id !== "number" ||
+        typeof match.team2Id !== "number"
+      ) {
+        throw new ORPCError("BAD_REQUEST");
+      }
+
+      await requireScoreAccessByEmail({
+        email: context.session.user.email,
+        match,
+      });
+
+      if (
+        input.team1.playerIds.length !== match.playersPerSide ||
+        input.team2.playerIds.length !== match.playersPerSide
+      ) {
+        throw new ORPCError("BAD_REQUEST");
+      }
+
+      if (
+        !(
+          hasUniquePlayerIds(input.team1.playerIds) &&
+          hasUniquePlayerIds(input.team2.playerIds)
+        )
+      ) {
+        throw new ORPCError("BAD_REQUEST");
+      }
+
+      const overlappingPlayers = input.team1.playerIds.filter((playerId) =>
+        input.team2.playerIds.includes(playerId)
+      );
+      if (overlappingPlayers.length > 0) {
+        throw new ORPCError("BAD_REQUEST");
+      }
+
+      ensureOptionalSelectionBelongsToTeam(
+        input.team1.playerIds,
+        input.team1.captainPlayerId
+      );
+      ensureOptionalSelectionBelongsToTeam(
+        input.team1.playerIds,
+        input.team1.viceCaptainPlayerId
+      );
+      ensureOptionalSelectionBelongsToTeam(
+        input.team1.playerIds,
+        input.team1.wicketKeeperPlayerId
+      );
+      ensureOptionalSelectionBelongsToTeam(
+        input.team2.playerIds,
+        input.team2.captainPlayerId
+      );
+      ensureOptionalSelectionBelongsToTeam(
+        input.team2.playerIds,
+        input.team2.viceCaptainPlayerId
+      );
+      ensureOptionalSelectionBelongsToTeam(
+        input.team2.playerIds,
+        input.team2.wicketKeeperPlayerId
+      );
+
+      const selectedPlayerIds = [
+        ...input.team1.playerIds,
+        ...input.team2.playerIds,
+      ];
+
+      const rosterRows = await db
+        .select({
+          teamId: teamPlayers.teamId,
+          playerId: teamPlayers.playerId,
+        })
+        .from(teamPlayers)
+        .where(
+          and(
+            eq(teamPlayers.tournamentId, match.tournamentId),
+            inArray(teamPlayers.teamId, [match.team1Id, match.team2Id]),
+            inArray(teamPlayers.playerId, selectedPlayerIds)
+          )
+        );
+
+      const team1RosterIds = new Set(
+        rosterRows
+          .filter((row) => row.teamId === match.team1Id)
+          .map((row) => row.playerId)
+      );
+      const team2RosterIds = new Set(
+        rosterRows
+          .filter((row) => row.teamId === match.team2Id)
+          .map((row) => row.playerId)
+      );
+
+      const isTeam1RosterValid = input.team1.playerIds.every((playerId) =>
+        team1RosterIds.has(playerId)
+      );
+      const isTeam2RosterValid = input.team2.playerIds.every((playerId) =>
+        team2RosterIds.has(playerId)
+      );
+
+      if (!(isTeam1RosterValid && isTeam2RosterValid)) {
+        throw new ORPCError("BAD_REQUEST");
+      }
+
+      const savedLineupRows = await replaceMatchLineupForMatch({
+        matchId: match.id,
+        team1Id: match.team1Id,
+        team2Id: match.team2Id,
+        team1: input.team1,
+        team2: input.team2,
+      });
+
+      return {
+        matchId: match.id,
+        savedLineup: {
+          team1: buildSavedTeamLineup(savedLineupRows, match.team1Id),
+          team2: buildSavedTeamLineup(savedLineupRows, match.team2Id),
+        },
+      };
+    }),
   getMatchScorecard: publicProcedure
     .input(
       z.object({
