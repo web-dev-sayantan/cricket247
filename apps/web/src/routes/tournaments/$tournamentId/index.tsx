@@ -394,54 +394,101 @@ function TournamentDetailPage() {
         </Card>
 
         {activeTab === "overview" && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Match Overview</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-wrap gap-2">
-                {STATUS_FILTERS.map((filter) => (
-                  <Button
-                    key={filter}
-                    onClick={() => setStatusFilter(filter)}
-                    size="sm"
-                    variant={statusFilter === filter ? "default" : "outline"}
-                  >
-                    {filter}
-                  </Button>
-                ))}
-              </div>
-              {isLoadingFixtures ? (
-                <p className="text-muted-foreground text-sm">
-                  Loading fixtures...
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {publishedFixtures.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">
-                      No published matches in this view.
-                    </p>
-                  ) : (
-                    publishedFixtures.map((match) => (
-                      <FixtureCard
-                        enableScoringActions={true}
-                        isStartingScoring={
-                          startScoringMutation.isPending &&
-                          startScoringMutation.variables === match.id
-                        }
-                        key={match.id}
-                        match={match}
-                        onStartScoring={(matchId) =>
-                          startScoringMutation.mutate(matchId)
-                        }
-                        showDraftControls={false}
-                      />
-                    ))
-                  )}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Match Overview</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  {STATUS_FILTERS.map((filter) => (
+                    <Button
+                      key={filter}
+                      onClick={() => setStatusFilter(filter)}
+                      size="sm"
+                      variant={statusFilter === filter ? "default" : "outline"}
+                    >
+                      {filter}
+                    </Button>
+                  ))}
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                {isLoadingFixtures ? (
+                  <p className="text-muted-foreground text-sm">
+                    Loading fixtures...
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {publishedFixtures.length === 0 ? (
+                      <p className="text-muted-foreground text-sm">
+                        No published matches in this view.
+                      </p>
+                    ) : (
+                      publishedFixtures.map((match) => (
+                        <FixtureCard
+                          enableScoringActions={true}
+                          isStartingScoring={
+                            startScoringMutation.isPending &&
+                            startScoringMutation.variables === match.id
+                          }
+                          key={match.id}
+                          match={match}
+                          onStartScoring={(matchId) =>
+                            startScoringMutation.mutate(matchId)
+                          }
+                          showDraftControls={false}
+                        />
+                      ))
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Teams</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {teamsForTournament.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">
+                    No teams registered for this tournament yet.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {teamsForTournament.map((team) => (
+                      <div
+                        className="flex flex-wrap items-center justify-between gap-3 border p-3"
+                        key={team.id}
+                      >
+                        <div className="space-y-0.5">
+                          <p className="font-medium text-sm">
+                            {team.name || `Team #${String(team.id)}`}
+                          </p>
+                          <p className="text-muted-foreground text-xs">
+                            {team.shortName || `Team #${String(team.id)}`}
+                          </p>
+                        </div>
+
+                        {isAdmin ? (
+                          <Link
+                            params={{ teamId: String(team.id) }}
+                            search={{
+                              tournamentId: String(numericTournamentId),
+                            }}
+                            to="/teams/$teamId/assign-players"
+                          >
+                            <Button size="sm" variant="outline">
+                              Modify lineup
+                            </Button>
+                          </Link>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         )}
 
         {activeTab === "fixtures" && (

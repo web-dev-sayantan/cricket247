@@ -3,9 +3,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeftIcon, CheckIcon, SwordsIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 import { client, orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/matches/$matchId/score")({
@@ -27,6 +27,15 @@ interface TeamSelection {
   playerIds: number[];
   viceCaptainPlayerId?: number;
   wicketKeeperPlayerId?: number;
+}
+
+interface RosterPlayer {
+  isCaptain: boolean;
+  isViceCaptain: boolean;
+  name: string;
+  playerId: number;
+  role: string;
+  teamId: number;
 }
 
 function normalizeSelection(
@@ -127,81 +136,150 @@ function RouteComponent() {
 
   if (!(scoringSetup && match)) {
     return (
-      <main className="m-auto flex size-full max-w-xl flex-col items-center justify-center gap-4 p-4 text-center">
-        <h1 className="font-semibold text-2xl">Match not found</h1>
-        <p className="text-muted-foreground">
-          The requested match could not be loaded.
-        </p>
-        <Button>
-          <Link to="/matches">
-            <ArrowLeftIcon />
-            Back to Matches
-          </Link>
-        </Button>
+      <main className="mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-xl items-center px-4 py-8">
+        <section className="w-full space-y-4 rounded-xl border bg-card p-6 text-center shadow-sm">
+          <h1 className="font-semibold text-2xl">Match not found</h1>
+          <p className="text-muted-foreground">
+            The requested match could not be loaded.
+          </p>
+          <div className="flex justify-center">
+            <Link
+              className={buttonVariants({ variant: "default" })}
+              to="/matches"
+            >
+              <ArrowLeftIcon />
+              Back to Matches
+            </Link>
+          </div>
+        </section>
       </main>
     );
   }
 
   if (!canCurrentUserScore) {
     return (
-      <main className="m-auto flex size-full max-w-xl flex-col items-center justify-center gap-4 p-4 text-center">
-        <h1 className="font-semibold text-2xl">Scoring Access Denied</h1>
-        <p className="text-muted-foreground">
-          You are not allowed to score this match.
-        </p>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline">
-            <Link params={{ matchId }} to="/matches/$matchId/scorecard">
+      <main className="mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-xl items-center px-4 py-8">
+        <section className="w-full space-y-4 rounded-xl border bg-card p-6 text-center shadow-sm">
+          <h1 className="font-semibold text-2xl">Scoring Access Denied</h1>
+          <p className="text-muted-foreground">
+            You are not allowed to score this match.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Link
+              className={buttonVariants({ variant: "outline" })}
+              params={{ matchId }}
+              to="/matches/$matchId/scorecard"
+            >
               View Scorecard
             </Link>
-          </Button>
-          <Button>
-            <Link to="/matches">
+            <Link
+              className={buttonVariants({ variant: "default" })}
+              to="/matches"
+            >
               <ArrowLeftIcon />
               Back to Matches
             </Link>
-          </Button>
-        </div>
+          </div>
+        </section>
       </main>
     );
   }
 
+  const team1Name = match.team1?.name ?? "Team 1";
+  const team2Name = match.team2?.name ?? "Team 2";
   const team1ShortName = match.team1?.shortName ?? "TBD";
   const team2ShortName = match.team2?.shortName ?? "TBD";
 
-  return (
-    <main className="m-auto flex size-full max-w-5xl flex-col gap-4 p-4">
-      <div className="w-full flex-center gap-2 rounded-lg border bg-cover! bg-gradient p-3">
-        <h1 className="font-bold text-sm">{match.team1.name}</h1>
-        <SwordsIcon />
-        <h1 className="font-bold text-sm">{match.team2.name}</h1>
-      </div>
+  const team1LineupNames = team1Selection.playerIds.map(
+    (playerId) => team1RosterById.get(playerId) ?? "Unknown"
+  );
+  const team2LineupNames = team2Selection.playerIds.map(
+    (playerId) => team2RosterById.get(playerId) ?? "Unknown"
+  );
 
-      {isLineupSaved ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Scoring Console</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-muted-foreground text-sm">
-              Playing lineup is saved. Live scoring controls can be placed here
-              next.
-            </p>
-            <div className="space-y-1 rounded-md border p-3 text-sm">
-              <p className="font-medium">{team1ShortName} XI</p>
-              <p className="text-muted-foreground">
-                {team1Selection.playerIds
-                  .map((playerId) => team1RosterById.get(playerId) ?? "Unknown")
-                  .join(", ")}
-              </p>
-              <p className="font-medium">{team2ShortName} XI</p>
-              <p className="text-muted-foreground">
-                {team2Selection.playerIds
-                  .map((playerId) => team2RosterById.get(playerId) ?? "Unknown")
-                  .join(", ")}
+  return (
+    <main className="min-h-screen bg-background">
+      <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:py-10">
+        <header className="space-y-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-1">
+              <h1 className="font-semibold text-2xl tracking-tight sm:text-3xl">
+                Match Scoring Setup
+              </h1>
+              <p className="max-w-2xl text-muted-foreground text-sm sm:text-base">
+                Confirm the playing XI for both teams before entering the live
+                scoring console.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <Link
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+                params={{ matchId }}
+                to="/matches/$matchId/scorecard"
+              >
+                View Scorecard
+              </Link>
+              <Link
+                className={buttonVariants({ variant: "ghost", size: "sm" })}
+                to="/matches"
+              >
+                <ArrowLeftIcon />
+                Back
+              </Link>
+            </div>
+          </div>
+        </header>
+
+        <section
+          aria-labelledby="fixture-heading"
+          className="rounded-xl border bg-card p-4 shadow-sm sm:p-5"
+        >
+          <h2 className="font-medium text-base sm:text-lg" id="fixture-heading">
+            Fixture
+          </h2>
+          <div className="mt-4 grid items-center gap-3 rounded-lg border bg-muted/20 p-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:p-4">
+            <p className="min-w-0 truncate text-center font-semibold text-sm sm:text-base">
+              {team1Name}
+            </p>
+            <SwordsIcon
+              aria-hidden="true"
+              className="mx-auto h-4 w-4 text-muted-foreground sm:h-5 sm:w-5"
+            />
+            <p className="min-w-0 truncate text-center font-semibold text-sm sm:text-base">
+              {team2Name}
+            </p>
+          </div>
+        </section>
+
+        {isLineupSaved ? (
+          <section
+            aria-labelledby="saved-lineup-heading"
+            className="space-y-4 rounded-xl border bg-card p-4 shadow-sm sm:p-5"
+          >
+            <div className="space-y-1">
+              <h2
+                className="font-medium text-base sm:text-lg"
+                id="saved-lineup-heading"
+              >
+                Lineup Saved
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                Playing lineups are locked in and ready for scoring.
+              </p>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <LineupSummary
+                players={team1LineupNames}
+                teamLabel={team1ShortName}
+              />
+              <LineupSummary
+                players={team2LineupNames}
+                teamLabel={team2ShortName}
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 pt-1">
               <Button
                 onClick={() => setIsLineupSaved(false)}
                 size="sm"
@@ -209,70 +287,120 @@ function RouteComponent() {
               >
                 Edit Lineup
               </Button>
-              <Button size="sm" variant="outline">
-                <Link params={{ matchId }} to="/matches/$matchId/scorecard">
-                  View Scorecard
-                </Link>
-              </Button>
-              <Button size="sm" variant="ghost">
-                <Link to="/matches">
-                  <ArrowLeftIcon />
-                  Back
-                </Link>
-              </Button>
+              <Link
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+                params={{ matchId }}
+                to="/matches/$matchId/scorecard"
+              >
+                View Scorecard
+              </Link>
+              <Link
+                className={buttonVariants({ variant: "ghost", size: "sm" })}
+                to="/matches"
+              >
+                <ArrowLeftIcon />
+                Back
+              </Link>
             </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Select Playing Lineup</CardTitle>
-            <p className="text-muted-foreground text-sm">
-              Select exactly {playersPerSide} players for each team before
-              entering the scoring console.
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <LineupSelectorCard
-              maxPlayers={playersPerSide}
-              roster={team1Roster}
-              selection={team1Selection}
-              setSelection={setTeam1Selection}
-              teamLabel={team1ShortName}
-            />
-            <LineupSelectorCard
-              maxPlayers={playersPerSide}
-              roster={team2Roster}
-              selection={team2Selection}
-              setSelection={setTeam2Selection}
-              teamLabel={team2ShortName}
-            />
+          </section>
+        ) : (
+          <section
+            aria-labelledby="lineup-heading"
+            className="space-y-5 rounded-xl border bg-card p-4 shadow-sm sm:p-5"
+          >
+            <div className="space-y-1">
+              <h2
+                className="font-medium text-base sm:text-lg"
+                id="lineup-heading"
+              >
+                Select Playing Lineup
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                Select exactly {playersPerSide} players from each side.
+              </p>
+            </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <p aria-live="polite" className="text-muted-foreground text-sm">
+              {team1ShortName}: {team1Selection.playerIds.length}/
+              {playersPerSide} players, {team2ShortName}:{" "}
+              {team2Selection.playerIds.length}/{playersPerSide} players.
+            </p>
+
+            <div className="grid gap-4 xl:grid-cols-2">
+              <LineupSelectorCard
+                maxPlayers={playersPerSide}
+                roster={team1Roster}
+                selection={team1Selection}
+                setSelection={setTeam1Selection}
+                teamLabel={team1ShortName}
+              />
+              <LineupSelectorCard
+                maxPlayers={playersPerSide}
+                roster={team2Roster}
+                selection={team2Selection}
+                setSelection={setTeam2Selection}
+                teamLabel={team2ShortName}
+              />
+            </div>
+
+            <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:flex-wrap sm:items-center">
               <Button
                 disabled={!isLineupValid || saveLineupMutation.isPending}
                 onClick={() => saveLineupMutation.mutate()}
                 type="button"
               >
                 <CheckIcon className="mr-1 size-4" />
-                Save Lineup and Continue
+                {saveLineupMutation.isPending
+                  ? "Saving lineup..."
+                  : "Save Lineup and Continue"}
               </Button>
-              <Button size="sm" variant="outline">
-                <Link params={{ matchId }} to="/matches/$matchId/scorecard">
-                  View Scorecard
-                </Link>
-              </Button>
-              <Button size="sm" variant="ghost">
-                <Link to="/matches">
-                  <ArrowLeftIcon />
-                  Back
-                </Link>
-              </Button>
+              <Link
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+                params={{ matchId }}
+                to="/matches/$matchId/scorecard"
+              >
+                View Scorecard
+              </Link>
+              <Link
+                className={buttonVariants({ variant: "ghost", size: "sm" })}
+                to="/matches"
+              >
+                <ArrowLeftIcon />
+                Back
+              </Link>
+              <p
+                aria-live="polite"
+                className={cn("text-sm sm:ml-auto", {
+                  "text-emerald-600 dark:text-emerald-400": isLineupValid,
+                  "text-muted-foreground": !isLineupValid,
+                })}
+              >
+                {isLineupValid
+                  ? "Lineups are complete and ready to save."
+                  : "Both teams must have complete lineups before saving."}
+              </p>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </section>
+        )}
+      </div>
     </main>
+  );
+}
+
+function LineupSummary({
+  teamLabel,
+  players,
+}: {
+  teamLabel: string;
+  players: string[];
+}) {
+  return (
+    <section className="space-y-2 rounded-lg border bg-muted/10 p-3">
+      <h3 className="font-medium text-sm sm:text-base">{teamLabel} XI</h3>
+      <p className="text-muted-foreground text-sm leading-relaxed">
+        {players.join(", ")}
+      </p>
+    </section>
   );
 }
 
@@ -284,14 +412,7 @@ function LineupSelectorCard({
   teamLabel,
 }: {
   maxPlayers: number;
-  roster: Array<{
-    isCaptain: boolean;
-    isViceCaptain: boolean;
-    name: string;
-    playerId: number;
-    role: string;
-    teamId: number;
-  }>;
+  roster: RosterPlayer[];
   selection: TeamSelection;
   setSelection: (selection: TeamSelection) => void;
   teamLabel: string;
@@ -299,6 +420,14 @@ function LineupSelectorCard({
   const selectedPlayerSet = useMemo(
     () => new Set(selection.playerIds),
     [selection.playerIds]
+  );
+
+  const idPrefix = useMemo(
+    () =>
+      `${teamLabel.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${
+        roster[0]?.teamId ?? "team"
+      }`,
+    [teamLabel, roster]
   );
 
   const removePlayerDependentFlags = (
@@ -346,135 +475,158 @@ function LineupSelectorCard({
     selection.playerIds.includes(player.playerId)
   );
 
-  const captainLabel = selection.captainPlayerId
-    ? selectedPlayers.find(
-        (player) => player.playerId === selection.captainPlayerId
-      )?.name
-    : "";
-  const viceCaptainLabel = selection.viceCaptainPlayerId
-    ? selectedPlayers.find(
-        (player) => player.playerId === selection.viceCaptainPlayerId
-      )?.name
-    : "";
-  const wicketKeeperLabel = selection.wicketKeeperPlayerId
-    ? selectedPlayers.find(
-        (player) => player.playerId === selection.wicketKeeperPlayerId
-      )?.name
-    : "";
+  const setOptionalRole = (
+    key: "captainPlayerId" | "viceCaptainPlayerId" | "wicketKeeperPlayerId",
+    rawValue: string
+  ) => {
+    setSelection({
+      ...selection,
+      [key]: rawValue.length > 0 ? Number.parseInt(rawValue, 10) : undefined,
+    });
+  };
 
   return (
-    <section className="space-y-3 rounded-md border p-3">
+    <section className="space-y-4 rounded-lg border bg-muted/10 p-3 sm:p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-semibold text-sm">{teamLabel} Lineup</h3>
-        <span className="text-muted-foreground text-xs">
+        <h3 className="font-medium text-sm sm:text-base">{teamLabel} Lineup</h3>
+        <p className="text-muted-foreground text-xs sm:text-sm">
           Selected: {selection.playerIds.length}/{maxPlayers}
-        </span>
+        </p>
       </div>
 
-      <div className="grid gap-2 md:grid-cols-2">
-        {roster.map((player) => {
-          const isChecked = selectedPlayerSet.has(player.playerId);
-          const isDisabled =
-            !isChecked && selection.playerIds.length >= maxPlayers;
+      <fieldset className="space-y-2">
+        <legend className="sr-only">Select players for {teamLabel}</legend>
+        <ul className="grid gap-2 sm:grid-cols-2">
+          {roster.map((player) => {
+            const isChecked = selectedPlayerSet.has(player.playerId);
+            const isDisabled =
+              !isChecked && selection.playerIds.length >= maxPlayers;
+            const inputId = `${idPrefix}-player-${String(player.playerId)}`;
 
-          return (
+            return (
+              <li key={player.playerId}>
+                <label
+                  className={cn(
+                    "flex cursor-pointer items-center gap-2 rounded-md border bg-background p-2.5 text-sm transition-colors",
+                    {
+                      "border-primary/60 bg-primary/5": isChecked,
+                      "cursor-not-allowed opacity-60": isDisabled,
+                    }
+                  )}
+                  htmlFor={inputId}
+                >
+                  <Checkbox
+                    checked={isChecked}
+                    disabled={isDisabled}
+                    id={inputId}
+                    onCheckedChange={() => togglePlayer(player.playerId)}
+                  />
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium">
+                      {player.name}
+                    </span>
+                    <span className="text-muted-foreground text-xs">
+                      {player.role}
+                    </span>
+                  </span>
+                </label>
+              </li>
+            );
+          })}
+        </ul>
+      </fieldset>
+
+      <fieldset className="space-y-2">
+        <legend className="font-medium text-sm">Optional Roles</legend>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="space-y-1">
             <label
-              className="flex cursor-pointer items-center gap-2 rounded border p-2 text-sm"
-              htmlFor={`${teamLabel}-${String(player.playerId)}`}
-              key={player.playerId}
+              className="text-muted-foreground text-xs"
+              htmlFor={`${idPrefix}-captain`}
             >
-              <Checkbox
-                checked={isChecked}
-                disabled={isDisabled}
-                id={`${teamLabel}-${String(player.playerId)}`}
-                onCheckedChange={() => togglePlayer(player.playerId)}
-              />
-              <span className="font-medium">{player.name}</span>
-              <span className="text-muted-foreground text-xs">
-                ({player.role})
-              </span>
+              Captain
             </label>
-          );
-        })}
-      </div>
+            <select
+              className="h-10 w-full rounded-md border border-input bg-background px-2 text-sm"
+              disabled={selectedPlayers.length === 0}
+              id={`${idPrefix}-captain`}
+              onChange={(event) =>
+                setOptionalRole("captainPlayerId", event.target.value)
+              }
+              value={
+                selection.captainPlayerId
+                  ? String(selection.captainPlayerId)
+                  : ""
+              }
+            >
+              <option value="">Select captain</option>
+              {selectedPlayers.map((player) => (
+                <option key={player.playerId} value={String(player.playerId)}>
+                  {player.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-      <div className="grid gap-2 md:grid-cols-3">
-        <label className="space-y-1">
-          <span className="text-xs">Captain (optional)</span>
-          <select
-            className="h-8 w-full rounded-none border border-input bg-transparent px-2 text-xs"
-            onChange={(event) =>
-              setSelection({
-                ...selection,
-                captainPlayerId:
-                  event.target.value.length > 0
-                    ? Number.parseInt(event.target.value, 10)
-                    : undefined,
-              })
-            }
-            value={captainLabel ? String(selection.captainPlayerId) : ""}
-          >
-            <option value="">Select captain</option>
-            {selectedPlayers.map((player) => (
-              <option key={player.playerId} value={String(player.playerId)}>
-                {player.name}
-              </option>
-            ))}
-          </select>
-        </label>
+          <div className="space-y-1">
+            <label
+              className="text-muted-foreground text-xs"
+              htmlFor={`${idPrefix}-vice-captain`}
+            >
+              Vice Captain
+            </label>
+            <select
+              className="h-10 w-full rounded-md border border-input bg-background px-2 text-sm"
+              disabled={selectedPlayers.length === 0}
+              id={`${idPrefix}-vice-captain`}
+              onChange={(event) =>
+                setOptionalRole("viceCaptainPlayerId", event.target.value)
+              }
+              value={
+                selection.viceCaptainPlayerId
+                  ? String(selection.viceCaptainPlayerId)
+                  : ""
+              }
+            >
+              <option value="">Select vice captain</option>
+              {selectedPlayers.map((player) => (
+                <option key={player.playerId} value={String(player.playerId)}>
+                  {player.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <label className="space-y-1">
-          <span className="text-xs">Vice Captain (optional)</span>
-          <select
-            className="h-8 w-full rounded-none border border-input bg-transparent px-2 text-xs"
-            onChange={(event) =>
-              setSelection({
-                ...selection,
-                viceCaptainPlayerId:
-                  event.target.value.length > 0
-                    ? Number.parseInt(event.target.value, 10)
-                    : undefined,
-              })
-            }
-            value={
-              viceCaptainLabel ? String(selection.viceCaptainPlayerId) : ""
-            }
-          >
-            <option value="">Select vice captain</option>
-            {selectedPlayers.map((player) => (
-              <option key={player.playerId} value={String(player.playerId)}>
-                {player.name}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="space-y-1">
-          <span className="text-xs">Wicket Keeper (optional)</span>
-          <select
-            className="h-8 w-full rounded-none border border-input bg-transparent px-2 text-xs"
-            onChange={(event) =>
-              setSelection({
-                ...selection,
-                wicketKeeperPlayerId:
-                  event.target.value.length > 0
-                    ? Number.parseInt(event.target.value, 10)
-                    : undefined,
-              })
-            }
-            value={
-              wicketKeeperLabel ? String(selection.wicketKeeperPlayerId) : ""
-            }
-          >
-            <option value="">Select wicket keeper</option>
-            {selectedPlayers.map((player) => (
-              <option key={player.playerId} value={String(player.playerId)}>
-                {player.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+          <div className="space-y-1">
+            <label
+              className="text-muted-foreground text-xs"
+              htmlFor={`${idPrefix}-wicket-keeper`}
+            >
+              Wicket Keeper
+            </label>
+            <select
+              className="h-10 w-full rounded-md border border-input bg-background px-2 text-sm"
+              disabled={selectedPlayers.length === 0}
+              id={`${idPrefix}-wicket-keeper`}
+              onChange={(event) =>
+                setOptionalRole("wicketKeeperPlayerId", event.target.value)
+              }
+              value={
+                selection.wicketKeeperPlayerId
+                  ? String(selection.wicketKeeperPlayerId)
+                  : ""
+              }
+            >
+              <option value="">Select wicket keeper</option>
+              {selectedPlayers.map((player) => (
+                <option key={player.playerId} value={String(player.playerId)}>
+                  {player.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </fieldset>
     </section>
   );
 }

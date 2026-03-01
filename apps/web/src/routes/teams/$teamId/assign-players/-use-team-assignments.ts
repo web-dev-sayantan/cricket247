@@ -2,18 +2,23 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { client, orpc } from "@/utils/orpc";
+import { resolveSelectedTournamentId } from "./-tournament-selection";
 import type { ReassignDialogPlayer } from "./-types";
 
 export function useTeamAssignments({
   teamId,
   isAdmin,
+  initialTournamentId,
 }: {
   teamId: number;
   isAdmin: boolean;
+  initialTournamentId?: string;
 }) {
   const queryClient = useQueryClient();
 
-  const [selectedTournamentId, setSelectedTournamentId] = useState("");
+  const [selectedTournamentId, setSelectedTournamentId] = useState(
+    initialTournamentId ?? ""
+  );
   const [pendingAssignPlayerId, setPendingAssignPlayerId] = useState<
     number | null
   >(null);
@@ -48,21 +53,16 @@ export function useTeamAssignments({
   });
 
   useEffect(() => {
-    if (teamTournaments.length === 0) {
-      if (selectedTournamentId.length > 0) {
-        setSelectedTournamentId("");
-      }
-      return;
-    }
+    const resolvedTournamentId = resolveSelectedTournamentId({
+      selectedTournamentId,
+      initialTournamentId,
+      teamTournaments,
+    });
 
-    const selectedExists = teamTournaments.some(
-      (tournament) => String(tournament.id) === selectedTournamentId
-    );
-
-    if (!selectedExists) {
-      setSelectedTournamentId(String(teamTournaments[0]?.id ?? ""));
+    if (resolvedTournamentId !== selectedTournamentId) {
+      setSelectedTournamentId(resolvedTournamentId);
     }
-  }, [selectedTournamentId, teamTournaments]);
+  }, [initialTournamentId, selectedTournamentId, teamTournaments]);
 
   const parsedTournamentId = Number(selectedTournamentId);
   const hasValidTournamentSelection =

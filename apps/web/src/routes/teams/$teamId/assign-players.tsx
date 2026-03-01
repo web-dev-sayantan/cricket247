@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import {
@@ -13,13 +14,21 @@ import { ReassignDialog } from "./assign-players/-reassign-dialog";
 import { TournamentSelectorCard } from "./assign-players/-tournament-selector-card";
 import { useTeamAssignments } from "./assign-players/-use-team-assignments";
 
+const searchSchema = z
+  .object({
+    tournamentId: z.string().optional(),
+  })
+  .catch({});
+
 export const Route = createFileRoute("/teams/$teamId/assign-players")({
   component: RouteComponent,
+  validateSearch: searchSchema,
 });
 
 function RouteComponent() {
   const navigate = useNavigate();
   const { teamId } = Route.useParams();
+  const { tournamentId } = Route.useSearch();
   const parsedTeamId = Number(teamId);
 
   const { data: session, isPending: isSessionPending } =
@@ -28,6 +37,7 @@ function RouteComponent() {
     (session?.user as { role?: string } | undefined)?.role === "admin";
 
   const assignments = useTeamAssignments({
+    initialTournamentId: tournamentId,
     isAdmin,
     teamId: parsedTeamId,
   });
