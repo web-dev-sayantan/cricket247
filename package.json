@@ -1,7 +1,7 @@
 {
   "name": "cricket247",
   "devDependencies": {
-    "@biomejs/biome": "^2.4.4",
+    "@biomejs/biome": "^2.4.5",
     "husky": "^9.1.7",
     "lint-staged": "^16.3.1",
     "turbo": "^2.8.12",
@@ -26,7 +26,8 @@
     "db:push": "turbo -F server db:push",
     "db:studio": "turbo -F server db:studio",
     "db:generate": "turbo -F server db:generate",
-    "db:migrate": "turbo -F server db:migrate"
+    "db:migrate": "turbo -F server db:migrate",
+    "upgrade-deps": "bun update && cd apps/web && bun update && cd ../server && bun update"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,css,md,yml,yaml}": [
