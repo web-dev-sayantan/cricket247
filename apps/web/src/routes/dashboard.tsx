@@ -1,4 +1,4 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQueries } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { ArrowRightIcon } from "lucide-react";
 import { ActionPanel } from "@/components/dashboard/action-panel";
@@ -44,16 +44,18 @@ export const Route = createFileRoute("/dashboard")({
 function DashboardComponent() {
   const { session } = Route.useRouteContext();
 
-  // Fetch data
-  const { data: liveMatches } = useSuspenseQuery(
-    orpc.liveMatches.queryOptions()
-  );
-  const { data: liveTournaments } = useSuspenseQuery(
-    orpc.liveTournaments.queryOptions()
-  );
-  const { data: completedMatches } = useSuspenseQuery(
-    orpc.completedMatches.queryOptions()
-  );
+  // Fetch data in parallel to prevent request waterfalls
+  const [
+    { data: liveMatches },
+    { data: liveTournaments },
+    { data: completedMatches },
+  ] = useSuspenseQueries({
+    queries: [
+      orpc.liveMatches.queryOptions(),
+      orpc.liveTournaments.queryOptions(),
+      orpc.completedMatches.queryOptions(),
+    ],
+  });
 
   return (
     <PageShell className="overflow-x-hidden selection:bg-primary/20">
@@ -66,18 +68,23 @@ function DashboardComponent() {
       <div className="space-y-8 sm:space-y-10">
         {liveMatches.length > 0 && (
           <SectionScroll title="Live Matches">
-            {liveMatches.map((match) => (
-              <MatchCard
-                id={match.id}
-                isLive={true}
-                key={match.id}
-                matchDate={match.matchDate}
-                score={`${match.innings.find((i) => i.inningsNumber === 1)?.totalScore || 0}/${match.innings.find((i) => i.inningsNumber === 1)?.wickets || 0}`}
-                status={match.result || "In Progress"}
-                team1={match.team1}
-                team2={match.team2}
-              />
-            ))}
+            {liveMatches.map((match) => {
+              const firstInnings = match.innings.find(
+                (i) => i.inningsNumber === 1
+              );
+              return (
+                <MatchCard
+                  id={match.id}
+                  isLive={true}
+                  key={match.id}
+                  matchDate={match.matchDate}
+                  score={`${firstInnings?.totalScore || 0}/${firstInnings?.wickets || 0}`}
+                  status={match.result || "In Progress"}
+                  team1={match.team1}
+                  team2={match.team2}
+                />
+              );
+            })}
 
             {liveMatches.length === 1 && (
               <div className="group relative flex min-h-52 w-[clamp(16rem,82vw,22rem)] shrink-0 snap-center flex-col items-center justify-center rounded-xl border-2 border-border/40 border-dashed bg-card/20">
@@ -109,18 +116,23 @@ function DashboardComponent() {
 
         {completedMatches.length > 0 && (
           <SectionScroll title="Recently Concluded">
-            {completedMatches.map((match) => (
-              <MatchCard
-                id={match.id}
-                isLive={false}
-                key={match.id}
-                matchDate={match.matchDate}
-                score={`${match.innings.find((i) => i.inningsNumber === 1)?.totalScore || 0}/${match.innings.find((i) => i.inningsNumber === 1)?.wickets || 0}`}
-                status={match.result || "Completed"}
-                team1={match.team1}
-                team2={match.team2}
-              />
-            ))}
+            {completedMatches.map((match) => {
+              const firstInnings = match.innings.find(
+                (i) => i.inningsNumber === 1
+              );
+              return (
+                <MatchCard
+                  id={match.id}
+                  isLive={false}
+                  key={match.id}
+                  matchDate={match.matchDate}
+                  score={`${firstInnings?.totalScore || 0}/${firstInnings?.wickets || 0}`}
+                  status={match.result || "Completed"}
+                  team1={match.team1}
+                  team2={match.team2}
+                />
+              );
+            })}
           </SectionScroll>
         )}
 

@@ -8,13 +8,6 @@ import { authClient } from "@/lib/auth-client";
 import { OTP_LENGTH } from "@/lib/constants";
 import Loader from "./loader";
 import { Button } from "./ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-} from "./ui/card";
 import FacebookButton from "./ui/facebook-button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "./ui/field";
 import GoogleButton from "./ui/google-button";
@@ -128,26 +121,29 @@ export default function SignInForm({
 
   return (
     <main
-      className="page-surface flex items-start justify-center px-4 py-6 sm:px-6 sm:py-10"
+      className="page-surface flex items-start justify-center px-4 py-8 sm:px-6 sm:py-12"
       id="main-content"
     >
-      <Card className="w-full max-w-md">
-        <CardHeader className="flex flex-col items-center justify-center">
+      <div className="w-full max-w-sm space-y-6">
+        <div className="flex flex-col items-center justify-center space-y-3">
           <img
-            alt="logo"
+            alt="Cricket 24/7 Logo"
             className="rounded-full"
-            height="80"
+            height="48"
             src="/cricket-24-7.svg"
-            width="80"
+            width="48"
           />
-          <h1 className="pt-2 text-center font-bold text-xl">Cricket 24/7</h1>
-          <CardDescription className="text-center">
+          <h1 className="text-center font-semibold text-2xl tracking-tight">
+            Cricket 24/7
+          </h1>
+          <p className="text-center text-muted-foreground text-sm">
             {otpSent
               ? "Check your email for the verification code"
               : "Sign in to your account with"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </p>
+        </div>
+
+        <div>
           {!otpSent && (
             <>
               <div className="flex w-full items-center gap-4">
@@ -297,19 +293,18 @@ export default function SignInForm({
               )}
             </form.Subscribe>
           </form>
-        </CardContent>
-        <CardFooter className="flex items-center justify-center">
-          <div className="mt-4 text-center">
-            <Button
-              className="text-indigo-600 hover:text-indigo-800"
-              onClick={onSwitchToSignUp}
-              variant="link"
-            >
-              Need an account? Sign Up
-            </Button>
-          </div>
-        </CardFooter>
-      </Card>
+        </div>
+
+        <div className="mt-6 flex justify-center">
+          <Button
+            className="text-muted-foreground text-sm hover:text-foreground"
+            onClick={onSwitchToSignUp}
+            variant="link"
+          >
+            Need an account? Sign Up
+          </Button>
+        </div>
+      </div>
     </main>
   );
 }

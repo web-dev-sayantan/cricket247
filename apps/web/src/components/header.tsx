@@ -12,7 +12,14 @@ export default function Header() {
   const { data: session } = authClient.useSession();
 
   const protectedLinks = [{ to: "/dashboard", label: "Dashboard" }] as const;
-  const publicLinks = [{ to: "/matches", label: "Matches" }] as const;
+  const publicLinks = [
+    { to: "/matches", label: "Matches" },
+    {
+      to: "/tournaments",
+      label: "Tournaments",
+    },
+    { to: "/players", label: "Players" },
+  ] as const;
   const allLinks = [...publicLinks, ...(session ? protectedLinks : [])];
 
   useEffect(() => {
