@@ -293,6 +293,49 @@
         }
       }
     },
+    "/closeCurrentScoringInnings": {
+      "post": {
+        "operationId": "closeCurrentScoringInnings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "inningsId": {
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "inningsId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/completedMatches": {
       "post": {
         "operationId": "completedMatches",
@@ -2835,6 +2878,49 @@
         }
       }
     },
+    "/deleteScoringDelivery": {
+      "post": {
+        "operationId": "deleteScoringDelivery",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "deliveryId": {
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "deliveryId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/deleteTeam": {
       "post": {
         "operationId": "deleteTeam",
@@ -4014,6 +4100,129 @@
         }
       }
     },
+    "/recordScoringDelivery": {
+      "post": {
+        "operationId": "recordScoringDelivery",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "assistedById": {
+                    "anyOf": [
+                      {
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991,
+                        "minimum": -9007199254740991,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "batterRuns": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "bowlerId": {
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  },
+                  "byeRuns": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "dismissedPlayerId": {
+                    "anyOf": [
+                      {
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991,
+                        "minimum": -9007199254740991,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "inningsId": {
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  },
+                  "legByeRuns": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "noBallRuns": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "nonStrikerId": {
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  },
+                  "penaltyRuns": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "strikerId": {
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  },
+                  "wicketType": {
+                    "type": "string"
+                  },
+                  "wideRuns": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "inningsId",
+                  "strikerId",
+                  "nonStrikerId",
+                  "bowlerId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/registerTournamentTeamPlayer": {
       "post": {
         "operationId": "registerTournamentTeamPlayer",
@@ -4587,6 +4796,102 @@
                 },
                 "required": [
                   "matchId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/startScoringInnings": {
+      "post": {
+        "operationId": "startScoringInnings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "battingTeamId": {
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  },
+                  "bowlingTeamId": {
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  },
+                  "inningsNumber": {
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  },
+                  "matchId": {
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  },
+                  "nonStrikerId": {
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  },
+                  "openingBowlerId": {
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  },
+                  "strikerId": {
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  },
+                  "tossDecision": {
+                    "enum": [
+                      "bat",
+                      "bowl"
+                    ]
+                  },
+                  "tossWinnerId": {
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "matchId",
+                  "battingTeamId",
+                  "bowlingTeamId",
+                  "strikerId",
+                  "nonStrikerId",
+                  "openingBowlerId"
                 ],
                 "type": "object"
               }
@@ -5517,6 +5822,136 @@
                 "required": [
                   "id",
                   "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/updateScoringDelivery": {
+      "post": {
+        "operationId": "updateScoringDelivery",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "assistedById": {
+                    "anyOf": [
+                      {
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991,
+                        "minimum": -9007199254740991,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "batterRuns": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "bowlerId": {
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  },
+                  "byeRuns": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "deliveryId": {
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  },
+                  "dismissedPlayerId": {
+                    "anyOf": [
+                      {
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991,
+                        "minimum": -9007199254740991,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "inningsId": {
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  },
+                  "legByeRuns": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "noBallRuns": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "nonStrikerId": {
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  },
+                  "penaltyRuns": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "strikerId": {
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  },
+                  "wicketType": {
+                    "type": "string"
+                  },
+                  "wideRuns": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "inningsId",
+                  "strikerId",
+                  "nonStrikerId",
+                  "bowlerId",
+                  "deliveryId"
                 ],
                 "type": "object"
               }
