@@ -294,6 +294,21 @@ export const relations = defineRelations(
         from: r.innings.bowlingTeamId,
         to: r.teams.id,
       }),
+      openingStriker: r.one.players({
+        from: r.innings.openingStrikerId,
+        to: r.players.id,
+        alias: "openingStriker",
+      }),
+      openingNonStriker: r.one.players({
+        from: r.innings.openingNonStrikerId,
+        to: r.players.id,
+        alias: "openingNonStriker",
+      }),
+      openingBowler: r.one.players({
+        from: r.innings.openingBowlerId,
+        to: r.players.id,
+        alias: "openingBowler",
+      }),
       deliveries: r.many.deliveries(),
       playerInningsStats: r.many.playerInningsStats(),
     },

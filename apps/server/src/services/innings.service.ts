@@ -150,6 +150,9 @@ export async function createInningsAction({
   penaltyRuns = 0,
   others = 0,
   targetRuns,
+  openingStrikerId,
+  openingNonStrikerId,
+  openingBowlerId,
 }: {
   matchId: number;
   battingTeamId: number;
@@ -166,6 +169,9 @@ export async function createInningsAction({
   penaltyRuns?: number;
   others?: number;
   targetRuns?: number | null;
+  openingStrikerId?: number | null;
+  openingNonStrikerId?: number | null;
+  openingBowlerId?: number | null;
 }) {
   const newInnings = await db.insert(innings).values({
     matchId,
@@ -183,6 +189,9 @@ export async function createInningsAction({
     penaltyRuns,
     others,
     targetRuns,
+    openingStrikerId,
+    openingNonStrikerId,
+    openingBowlerId,
   });
   return newInnings.lastInsertRowid;
 }
@@ -201,6 +210,9 @@ export async function updateInningsAction({
   others,
   targetRuns,
   isCompleted,
+  openingStrikerId,
+  openingNonStrikerId,
+  openingBowlerId,
 }: {
   id: number;
   status?: string;
@@ -215,6 +227,9 @@ export async function updateInningsAction({
   others?: number;
   targetRuns?: number | null;
   isCompleted?: boolean;
+  openingStrikerId?: number | null;
+  openingNonStrikerId?: number | null;
+  openingBowlerId?: number | null;
 }) {
   const updated = await db
     .update(innings)
@@ -231,6 +246,9 @@ export async function updateInningsAction({
       others,
       targetRuns,
       isCompleted,
+      openingStrikerId,
+      openingNonStrikerId,
+      openingBowlerId,
     })
     .where(eq(innings.id, id))
     .returning();

@@ -1,6 +1,5 @@
 import type { WicketType } from "@cricket247/server/types";
-import { MinusIcon, PlusIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { AlertCircleIcon, RotateCcwIcon, Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,532 +10,466 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetFooter,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 export interface ScoringPlayerOption {
+  battingOrder?: null | number;
   id: number;
   name: string;
+  teamId: number;
 }
 
-export interface ScoringDelivery {
-  assistedById: number | null;
-  ballInOver: number;
+export interface DeliveryDraft {
+  assistedById: null | number;
   batterRuns: number;
-  bowler: ScoringPlayerOption;
-  bowlerId: number;
+  bowlerId: null | number;
   byeRuns: number;
-  dismissedPlayerId: number | null;
-  id: number;
+  dismissedPlayerId: null | number;
   inningsId: number;
-  isWicket: boolean;
   legByeRuns: number;
   noBallRuns: number;
-  nonStriker: ScoringPlayerOption;
-  nonStrikerId: number;
-  overNumber: number;
-  sequenceNo: number;
-  striker: ScoringPlayerOption;
-  strikerId: number;
-  totalRuns: number;
-  wicketType: null | string;
+  nonStrikerId: null | number;
+  penaltyRuns: number;
+  strikerId: null | number;
+  wicketType: "" | WicketType;
   wideRuns: number;
 }
 
-export interface ScoreBallUpdateInput {
-  assistPlayerId?: number;
-  bowlerId: number;
-  dismissedPlayerId?: number;
-  id: number;
-  inningsId: number;
-  isBye: boolean;
-  isLegBye: boolean;
-  isNoBall: boolean;
-  isWicket: boolean;
-  isWide: boolean;
-  nonStrikerId: number;
-  runsScored: number;
-  strikerId: number;
-  wicketType?: WicketType;
-}
-
-interface DismissalState {
-  assistPlayerId?: number;
-  dismissedPlayerId: number;
-  type: WicketType;
-}
-
 interface ScoreABallProps {
-  ball: ScoringDelivery;
+  battingLabel: string;
+  battingPlayers: ScoringPlayerOption[];
+  bowlingLabel: string;
   bowlingPlayers: ScoringPlayerOption[];
-  hasBoundaryOut?: boolean;
-  hasBye?: boolean;
-  hasLBW?: boolean;
-  hasLegBye?: boolean;
+  currentBallLabel: string;
+  draft: DeliveryDraft;
+  fieldingOptions: ScoringPlayerOption[];
+  isEditing: boolean;
   isSubmitting?: boolean;
-  onSubmitBall: (input: ScoreBallUpdateInput) => void;
-  otherBalls: ScoringDelivery[];
+  matchFlags: {
+    hasBoundaryOut: boolean;
+    hasBye: boolean;
+    hasLBW: boolean;
+    hasLegBye: boolean;
+    hasNoBalls: boolean;
+    hasPenaltyRuns: boolean;
+    hasWides: boolean;
+  };
+  onChange: (patch: Partial<DeliveryDraft>) => void;
+  onDelete?: () => void;
+  onReset: () => void;
+  onSubmit: () => void;
+  requiredSelections: {
+    bowler: boolean;
+    nonStriker: boolean;
+    striker: boolean;
+  };
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Ball scoring interactions are intentionally grouped in a single mobile panel.
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: The delivery editor intentionally groups the scorer controls into one focused surface.
 function ScoreABall({
-  ball,
-  otherBalls,
+  draft,
+  battingLabel,
+  bowlingLabel,
+  battingPlayers,
   bowlingPlayers,
-  hasLBW,
-  hasBoundaryOut,
-  hasBye,
-  hasLegBye,
+  currentBallLabel,
+  fieldingOptions,
+  matchFlags,
+  requiredSelections,
+  isEditing,
   isSubmitting,
-  onSubmitBall,
+  onChange,
+  onDelete,
+  onReset,
+  onSubmit,
 }: ScoreABallProps) {
-  const [runsScored, setRunsScored] = useState(0);
-  const [isWide, setIsWide] = useState(false);
-  const [isNoBall, setIsNoBall] = useState(false);
-  const [isBye, setIsBye] = useState(false);
-  const [isLegBye, setIsLegBye] = useState(false);
-  const [selectedStrikerId, setSelectedStrikerId] = useState(ball.strikerId);
-  const [dismissal, setDismissal] = useState<DismissalState | null>(null);
-  const [sheetDismissalType, setSheetDismissalType] = useState<
-    "caught" | "run out" | "stumped" | null
-  >(null);
-  const [sheetAssistPlayerId, setSheetAssistPlayerId] = useState<number | null>(
-    null
-  );
-  const [sheetDismissedPlayerId, setSheetDismissedPlayerId] = useState<
-    number | null
-  >(null);
-
-  useEffect(() => {
-    setRunsScored(ball.batterRuns + ball.byeRuns + ball.legByeRuns);
-    setIsWide(ball.wideRuns > 0);
-    setIsNoBall(ball.noBallRuns > 0);
-    setIsBye(ball.byeRuns > 0);
-    setIsLegBye(ball.legByeRuns > 0);
-    setSelectedStrikerId(ball.strikerId);
-    setDismissal(
-      ball.isWicket
-        ? {
-            type: (ball.wicketType as WicketType | null) ?? "bowled",
-            dismissedPlayerId: ball.dismissedPlayerId ?? ball.strikerId,
-            assistPlayerId: ball.assistedById ?? undefined,
-          }
-        : null
-    );
-    setSheetDismissalType(null);
-    setSheetAssistPlayerId(null);
-    setSheetDismissedPlayerId(null);
-  }, [ball]);
-
-  const selectedNonStrikerId =
-    selectedStrikerId === ball.strikerId ? ball.nonStrikerId : ball.strikerId;
-
-  const displayTotalRuns = runsScored + (isWide || isNoBall ? 1 : 0);
-
-  const dismissalLabel = useMemo(() => {
-    if (!dismissal) {
-      return "None";
+  const wicketOptions = (
+    [
+      "bowled",
+      "caught",
+      "caught and bowled",
+      "lbw",
+      "run out",
+      "stumped",
+      "hit wicket",
+      "boundary out",
+      "handled the ball",
+      "obstructing the field",
+      "timed out",
+      "retired hurt",
+      "retired out",
+      "others",
+    ] as const
+  ).filter((type) => {
+    if (type === "lbw") {
+      return matchFlags.hasLBW;
     }
 
-    let dismissedName = "Batter";
-    if (dismissal.dismissedPlayerId === ball.strikerId) {
-      dismissedName = ball.striker.name;
-    } else if (dismissal.dismissedPlayerId === ball.nonStrikerId) {
-      dismissedName = ball.nonStriker.name;
-    }
-    const assistName = dismissal.assistPlayerId
-      ? bowlingPlayers.find((row) => row.id === dismissal.assistPlayerId)?.name
-      : null;
-
-    if (assistName) {
-      return `${dismissal.type} • ${dismissedName} • ${assistName}`;
+    if (type === "boundary out") {
+      return matchFlags.hasBoundaryOut;
     }
 
-    return `${dismissal.type} • ${dismissedName}`;
-  }, [dismissal, ball, bowlingPlayers]);
+    return true;
+  }) as WicketType[];
 
-  const clearBall = () => {
-    setRunsScored(0);
-    setIsWide(false);
-    setIsNoBall(false);
-    setIsBye(false);
-    setIsLegBye(false);
-    setSelectedStrikerId(ball.strikerId);
-    setDismissal(null);
-  };
-
-  const submitBall = () => {
-    onSubmitBall({
-      id: ball.id,
-      inningsId: ball.inningsId,
-      strikerId: selectedStrikerId,
-      nonStrikerId: selectedNonStrikerId,
-      bowlerId: ball.bowlerId,
-      runsScored,
-      isWide,
-      isNoBall,
-      isBye,
-      isLegBye,
-      isWicket: Boolean(dismissal),
-      wicketType: dismissal?.type,
-      assistPlayerId: dismissal?.assistPlayerId,
-      dismissedPlayerId: dismissal?.dismissedPlayerId,
-    });
-  };
-
-  const setSimpleDismissal = (type: WicketType) => {
-    setDismissal({
-      type,
-      dismissedPlayerId: selectedStrikerId,
-    });
-  };
-
-  const saveSheetDismissal = () => {
-    if (!(sheetDismissalType && sheetDismissedPlayerId)) {
-      return;
-    }
-
-    setDismissal({
-      type: sheetDismissalType,
-      dismissedPlayerId: sheetDismissedPlayerId,
-      assistPlayerId: sheetAssistPlayerId ?? undefined,
-    });
-    setSheetDismissalType(null);
-  };
+  const dismissalRequiresAssist = new Set<WicketType>([
+    "boundary out",
+    "caught",
+    "run out",
+    "stumped",
+  ]).has(draft.wicketType as WicketType);
+  const emptyDismissalValue = "__none__";
+  let submitLabel = "Record delivery";
+  if (isSubmitting) {
+    submitLabel = isEditing ? "Saving correction..." : "Recording...";
+  } else if (isEditing) {
+    submitLabel = "Save correction";
+  }
 
   return (
-    <section className="space-y-4 rounded-xl border bg-card p-4 shadow-sm sm:p-5">
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="font-semibold text-base">Current Ball</h2>
-          <span className="text-muted-foreground text-sm">
-            Over {ball.overNumber}.{ball.ballInOver}
-          </span>
+    <section className="space-y-5 rounded-[1.75rem] border border-border/70 bg-card px-4 py-5 shadow-sm sm:px-5">
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-start justify-between gap-3 sm:flex-nowrap">
+          <div className="min-w-0 flex-1 space-y-1">
+            <p className="truncate font-medium text-muted-foreground text-xs uppercase tracking-[0.22em]">
+              Delivery Editor
+            </p>
+            <h2 className="truncate font-semibold text-xl">
+              {isEditing ? "Repair Timeline" : "Record Next Ball"}
+            </h2>
+          </div>
+          <div className="max-w-full shrink-0 truncate rounded-full border border-border/70 bg-muted/30 px-3 py-1 text-sm">
+            {currentBallLabel}
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <div className="flex min-w-full gap-2 pb-1">
-            {otherBalls.map((row) => {
-              const label = row.isWicket ? "W" : String(row.totalRuns);
-              return (
-                <div
+
+        <div className="grid gap-3 rounded-[1.5rem] border border-border/60 bg-muted/20 p-3 sm:grid-cols-2">
+          <StatChip label="Batting" value={battingLabel} />
+          <StatChip label="Fielding" value={bowlingLabel} />
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+        <div className="min-w-0 flex-1 space-y-6">
+          <fieldset className="space-y-3">
+            <legend className="font-medium text-sm">Players on the ball</legend>
+            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+              <PlayerSelect
+                label={
+                  requiredSelections.striker ? "Striker (required)" : "Striker"
+                }
+                onValueChange={(value) =>
+                  onChange({
+                    strikerId:
+                      value && value.length > 0
+                        ? Number.parseInt(value, 10)
+                        : null,
+                  })
+                }
+                options={battingPlayers}
+                value={draft.strikerId ? String(draft.strikerId) : ""}
+              />
+              <PlayerSelect
+                label={
+                  requiredSelections.nonStriker
+                    ? "Non-striker (required)"
+                    : "Non-striker"
+                }
+                onValueChange={(value) =>
+                  onChange({
+                    nonStrikerId:
+                      value && value.length > 0
+                        ? Number.parseInt(value, 10)
+                        : null,
+                  })
+                }
+                options={battingPlayers.filter(
+                  (player) => player.id !== draft.strikerId
+                )}
+                value={draft.nonStrikerId ? String(draft.nonStrikerId) : ""}
+              />
+              <PlayerSelect
+                label={
+                  requiredSelections.bowler ? "Bowler (required)" : "Bowler"
+                }
+                onValueChange={(value) =>
+                  onChange({
+                    bowlerId:
+                      value && value.length > 0
+                        ? Number.parseInt(value, 10)
+                        : null,
+                  })
+                }
+                options={bowlingPlayers}
+                value={draft.bowlerId ? String(draft.bowlerId) : ""}
+              />
+            </div>
+          </fieldset>
+
+          <Separator />
+
+          <fieldset className="space-y-4">
+            <legend className="font-medium text-sm">Runs and extras</legend>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <NumberField
+                label="Bat runs"
+                onChange={(value) => onChange({ batterRuns: value })}
+                value={draft.batterRuns}
+              />
+              <NumberField
+                disabled={!matchFlags.hasWides}
+                label="Wide runs"
+                onChange={(value) => onChange({ wideRuns: value })}
+                value={draft.wideRuns}
+              />
+              <NumberField
+                disabled={!matchFlags.hasNoBalls}
+                label="No-ball runs"
+                onChange={(value) => onChange({ noBallRuns: value })}
+                value={draft.noBallRuns}
+              />
+              <NumberField
+                disabled={!matchFlags.hasBye}
+                label="Bye runs"
+                onChange={(value) => onChange({ byeRuns: value })}
+                value={draft.byeRuns}
+              />
+              <NumberField
+                disabled={!matchFlags.hasLegBye}
+                label="Leg-bye runs"
+                onChange={(value) => onChange({ legByeRuns: value })}
+                value={draft.legByeRuns}
+              />
+              <NumberField
+                disabled={!matchFlags.hasPenaltyRuns}
+                label="Penalty runs"
+                onChange={(value) => onChange({ penaltyRuns: value })}
+                value={draft.penaltyRuns}
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {[0, 1, 2, 3, 4, 6].map((runs) => (
+                <button
                   className={cn(
-                    "rounded-md border px-2 py-1 text-sm",
-                    row.id === ball.id && "border-primary bg-primary/10",
-                    row.isWicket && "text-destructive"
+                    "rounded-full border px-3 py-1.5 text-sm transition-colors",
+                    draft.batterRuns === runs
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border/70 bg-background hover:border-primary/50"
                   )}
-                  key={row.id}
+                  key={runs}
+                  onClick={() => onChange({ batterRuns: runs })}
+                  type="button"
                 >
-                  {label}
-                  {row.wideRuns > 0 ? " wd" : ""}
-                  {row.noBallRuns > 0 ? " nb" : ""}
-                </div>
-              );
-            })}
-          </div>
+                  {runs}
+                </button>
+              ))}
+            </div>
+          </fieldset>
         </div>
-      </div>
 
-      <div className="grid gap-2 sm:grid-cols-2">
-        <Button
-          className="h-12 justify-start px-3"
-          onClick={() => setSelectedStrikerId(ball.strikerId)}
-          variant={selectedStrikerId === ball.strikerId ? "default" : "outline"}
-        >
-          {ball.striker.name}
-        </Button>
-        <Button
-          className="h-12 justify-start px-3"
-          onClick={() => setSelectedStrikerId(ball.nonStrikerId)}
-          variant={
-            selectedStrikerId === ball.nonStrikerId ? "default" : "outline"
-          }
-        >
-          {ball.nonStriker.name}
-        </Button>
-      </div>
-
-      <div className="space-y-2">
-        <p className="font-medium text-sm">Bowler: {ball.bowler.name}</p>
-        <div className="flex items-center gap-3">
-          <Input
-            className="h-14 text-center font-semibold text-2xl"
-            max={7}
-            min={0}
-            onChange={(event) =>
-              setRunsScored(Number.parseInt(event.target.value || "0", 10) || 0)
-            }
-            type="number"
-            value={displayTotalRuns}
-          />
-          <div className="flex flex-col gap-2">
-            <Button
-              onClick={() => setRunsScored(Math.max(0, runsScored - 1))}
-              size="lg"
-              type="button"
-              variant="outline"
-            >
-              <MinusIcon />
-            </Button>
-            <Button
-              onClick={() => setRunsScored(Math.min(7, runsScored + 1))}
-              size="lg"
-              type="button"
-              variant="outline"
-            >
-              <PlusIcon />
-            </Button>
-          </div>
-        </div>
-        <div className="grid grid-cols-4 gap-2">
-          {[0, 1, 2, 4, 6].map((runs) => (
-            <Button
-              key={runs}
-              onClick={() => setRunsScored(runs)}
-              size="lg"
-              type="button"
-              variant={runsScored === runs ? "default" : "secondary"}
-            >
-              {runs}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      <Separator />
-
-      <div className="space-y-2">
-        <h3 className="font-medium text-sm">Extras</h3>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Button
-            className="h-12"
-            onClick={() => {
-              setIsWide((value) => !value);
-              setIsNoBall(false);
-            }}
-            type="button"
-            variant={isWide ? "default" : "outline"}
-          >
-            Wide
-          </Button>
-          <Button
-            className="h-12"
-            onClick={() => {
-              setIsNoBall((value) => !value);
-              setIsWide(false);
-            }}
-            type="button"
-            variant={isNoBall ? "default" : "outline"}
-          >
-            No Ball
-          </Button>
-          {hasBye ? (
-            <Button
-              className="h-12"
-              onClick={() => {
-                setIsBye((value) => !value);
-                setIsLegBye(false);
-              }}
-              type="button"
-              variant={isBye ? "default" : "outline"}
-            >
-              Bye
-            </Button>
-          ) : null}
-          {hasLegBye ? (
-            <Button
-              className="h-12"
-              onClick={() => {
-                setIsLegBye((value) => !value);
-                setIsBye(false);
-              }}
-              type="button"
-              variant={isLegBye ? "default" : "outline"}
-            >
-              Leg Bye
-            </Button>
-          ) : null}
-        </div>
-      </div>
-
-      <Separator />
-
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h3 className="font-medium text-sm">Dismissal</h3>
-          <span className="text-muted-foreground text-xs capitalize">
-            {dismissalLabel}
-          </span>
-        </div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <Button
-            className="h-12"
-            onClick={() => setSimpleDismissal("bowled")}
-            type="button"
-            variant={dismissal?.type === "bowled" ? "destructive" : "outline"}
-          >
-            Bowled
-          </Button>
-          <Button
-            className="h-12"
-            onClick={() => {
-              setSheetDismissalType("caught");
-              setSheetDismissedPlayerId(selectedStrikerId);
-            }}
-            type="button"
-            variant={dismissal?.type === "caught" ? "destructive" : "outline"}
-          >
-            Caught
-          </Button>
-          <Button
-            className="h-12"
-            onClick={() => {
-              setSheetDismissalType("run out");
-              setSheetDismissedPlayerId(selectedStrikerId);
-            }}
-            type="button"
-            variant={dismissal?.type === "run out" ? "destructive" : "outline"}
-          >
-            Run Out
-          </Button>
-          <Button
-            className="h-12"
-            onClick={() => {
-              setSheetDismissalType("stumped");
-              setSheetDismissedPlayerId(selectedStrikerId);
-            }}
-            type="button"
-            variant={dismissal?.type === "stumped" ? "destructive" : "outline"}
-          >
-            Stumped
-          </Button>
-          {hasLBW ? (
-            <Button
-              className="h-12"
-              onClick={() => setSimpleDismissal("lbw")}
-              type="button"
-              variant={dismissal?.type === "lbw" ? "destructive" : "outline"}
-            >
-              LBW
-            </Button>
-          ) : null}
-          {hasBoundaryOut ? (
-            <Button
-              className="h-12"
-              onClick={() => setSimpleDismissal("boundary out")}
-              type="button"
-              variant={
-                dismissal?.type === "boundary out" ? "destructive" : "outline"
-              }
-            >
-              Boundary Out
-            </Button>
-          ) : null}
-        </div>
-      </div>
-
-      <Separator />
-
-      <div className="flex gap-2">
-        <Button
-          className="h-12"
-          onClick={clearBall}
-          type="button"
-          variant="destructive"
-        >
-          Clear
-        </Button>
-        <Button
-          className="h-12 flex-1"
-          disabled={isSubmitting}
-          onClick={submitBall}
-          type="button"
-        >
-          {isSubmitting ? "Saving..." : "Next Ball"}
-        </Button>
-      </div>
-
-      <Sheet
-        onOpenChange={(open) => {
-          if (!open) {
-            setSheetDismissalType(null);
-          }
-        }}
-        open={sheetDismissalType !== null}
-      >
-        <SheetContent side="bottom">
-          <SheetTitle className="pb-4">
-            {sheetDismissalType === "caught" && "Caught details"}
-            {sheetDismissalType === "run out" && "Run out details"}
-            {sheetDismissalType === "stumped" && "Stumped details"}
-          </SheetTitle>
-          <div className="space-y-3">
-            {sheetDismissalType === "run out" ? (
-              <Select
-                onValueChange={(value) => {
-                  if (!value) {
-                    return;
-                  }
-                  setSheetDismissedPlayerId(Number.parseInt(value, 10));
-                }}
-                value={
-                  sheetDismissedPlayerId ? String(sheetDismissedPlayerId) : ""
-                }
-              >
-                <SelectTrigger className="h-12">
-                  <SelectValue placeholder="Dismissed batter" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={String(ball.strikerId)}>
-                    {ball.striker.name}
-                  </SelectItem>
-                  <SelectItem value={String(ball.nonStrikerId)}>
-                    {ball.nonStriker.name}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            ) : null}
-
+        <div className="flex min-w-0 flex-col space-y-5 rounded-[1.5rem] border border-border/60 bg-muted/15 p-4 sm:p-5">
+          <div className="min-w-0 space-y-2">
+            <p className="font-medium text-sm">Dismissal</p>
             <Select
-              onValueChange={(value) => {
-                if (!value) {
-                  return;
-                }
-                setSheetAssistPlayerId(Number.parseInt(value, 10));
-              }}
-              value={sheetAssistPlayerId ? String(sheetAssistPlayerId) : ""}
+              onValueChange={(value) =>
+                onChange({
+                  wicketType:
+                    value === null || value === emptyDismissalValue
+                      ? ""
+                      : (value as "" | WicketType),
+                  dismissedPlayerId:
+                    value !== null && value !== emptyDismissalValue
+                      ? (draft.dismissedPlayerId ?? draft.strikerId)
+                      : null,
+                  assistedById:
+                    value !== null && value !== emptyDismissalValue
+                      ? draft.assistedById
+                      : null,
+                })
+              }
+              value={draft.wicketType || emptyDismissalValue}
             >
-              <SelectTrigger className="h-12">
-                <SelectValue placeholder="Fielder" />
+              <SelectTrigger className="h-12 w-full rounded-2xl capitalize [&>span]:min-w-0 [&>span]:truncate">
+                <SelectValue placeholder="No wicket on this delivery" />
               </SelectTrigger>
               <SelectContent>
-                {bowlingPlayers.map((player) => (
-                  <SelectItem key={player.id} value={String(player.id)}>
-                    {player.name}
+                <SelectItem value={emptyDismissalValue}>No wicket</SelectItem>
+                {wicketOptions.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    <span className="block truncate capitalize">{option}</span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <SheetFooter className="pt-6">
-            <SheetClose>
+
+          {draft.wicketType ? (
+            <div className="space-y-3">
+              <PlayerSelect
+                label="Dismissed batter"
+                onValueChange={(value) =>
+                  onChange({
+                    dismissedPlayerId:
+                      value && value.length > 0
+                        ? Number.parseInt(value, 10)
+                        : null,
+                  })
+                }
+                options={battingPlayers.filter(
+                  (player) =>
+                    player.id === draft.strikerId ||
+                    player.id === draft.nonStrikerId
+                )}
+                value={
+                  draft.dismissedPlayerId ? String(draft.dismissedPlayerId) : ""
+                }
+              />
+
+              <PlayerSelect
+                label={
+                  dismissalRequiresAssist
+                    ? "Assisting fielder"
+                    : "Fielder (optional)"
+                }
+                onValueChange={(value) =>
+                  onChange({
+                    assistedById:
+                      value && value.length > 0
+                        ? Number.parseInt(value, 10)
+                        : null,
+                  })
+                }
+                options={fieldingOptions}
+                value={draft.assistedById ? String(draft.assistedById) : ""}
+              />
+            </div>
+          ) : null}
+
+          <Separator />
+
+          <div className="grid gap-2 pt-1">
+            <Button
+              className="h-12 w-full truncate rounded-2xl [&_svg]:shrink-0"
+              disabled={isSubmitting}
+              onClick={onSubmit}
+              type="button"
+            >
+              {submitLabel}
+            </Button>
+
+            <div className="grid gap-2 sm:grid-cols-2">
               <Button
-                className="h-12 w-full"
-                onClick={saveSheetDismissal}
+                className="h-11 w-full truncate rounded-2xl [&_svg]:shrink-0"
+                onClick={onReset}
                 type="button"
+                variant="outline"
               >
-                Save dismissal
+                <RotateCcwIcon className="mr-2 size-4" />
+                <span className="truncate">Reset form</span>
               </Button>
-            </SheetClose>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+              <Button
+                className="h-11 w-full truncate rounded-2xl [&_svg]:shrink-0"
+                disabled={!(isEditing && onDelete) || isSubmitting}
+                onClick={onDelete}
+                type="button"
+                variant="destructive"
+              >
+                <Trash2Icon className="mr-2 size-4" />
+                <span className="truncate">Delete delivery</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
+  );
+}
+
+function NumberField({
+  disabled,
+  label,
+  onChange,
+  value,
+}: {
+  disabled?: boolean;
+  label: string;
+  onChange: (value: number) => void;
+  value: number;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col space-y-1.5">
+      <span className="truncate text-muted-foreground text-xs" title={label}>
+        {label}
+      </span>
+      <Input
+        className="h-12 w-full rounded-2xl text-base"
+        disabled={disabled}
+        min={0}
+        onChange={(event) =>
+          onChange(Number.parseInt(event.target.value || "0", 10) || 0)
+        }
+        type="number"
+        value={value}
+      />
+    </div>
+  );
+}
+
+function PlayerSelect({
+  label,
+  onValueChange,
+  options,
+  value,
+}: {
+  label: string;
+  onValueChange: (value: string | null) => void;
+  options: ScoringPlayerOption[];
+  value: string;
+}) {
+  const selectedPlayerName =
+    options.find((player) => String(player.id) === value)?.name ?? "";
+
+  return (
+    <div className="flex min-w-0 flex-col space-y-1.5">
+      <span className="truncate text-muted-foreground text-xs" title={label}>
+        {label}
+      </span>
+      <Select onValueChange={onValueChange} value={value}>
+        <SelectTrigger className="h-12 w-full rounded-2xl [&>span]:min-w-0 [&>span]:truncate">
+          <SelectValue placeholder="Select player">
+            {selectedPlayerName}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((player) => (
+            <SelectItem
+              key={player.id}
+              label={player.name}
+              value={String(player.id)}
+            >
+              <span className="block truncate">{player.name}</span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function StatChip({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex min-w-0 flex-col justify-center rounded-[1.15rem] border border-border/60 bg-background/80 px-3 py-2.5">
+      <p
+        className="truncate font-medium text-[10px] text-muted-foreground uppercase tracking-[0.18em] sm:text-[11px]"
+        title={label}
+      >
+        {label}
+      </p>
+      <p className="truncate font-medium text-sm sm:text-base" title={value}>
+        {value}
+      </p>
+    </div>
   );
 }
 

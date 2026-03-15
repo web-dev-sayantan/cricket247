@@ -190,3 +190,116 @@ describe("scoring.service initializeMatchScoring", () => {
     expect(state.isLiveUpdateCount).toBe(0);
   });
 });
+
+describe("scoring.service replay helpers", () => {
+  it("treats extra wide runs beyond the automatic penalty as movement runs", async () => {
+    const { scoringSessionInternals } = await scoringServiceModule;
+
+    expect(
+      scoringSessionInternals.getMovementRuns({
+        batterRuns: 0,
+        byeRuns: 0,
+        legByeRuns: 0,
+        noBallRuns: 0,
+        wideRuns: 3,
+      })
+    ).toBe(2);
+  });
+
+  it("rejects invalid wide plus bat runs combinations", async () => {
+    const { scoringSessionInternals } = await scoringServiceModule;
+
+    expect(() =>
+      scoringSessionInternals.validateDeliveryDraft({
+        draft: {
+          inningsId: 1,
+          strikerId: 101,
+          nonStrikerId: 102,
+          bowlerId: 201,
+          batterRuns: 2,
+          wideRuns: 1,
+        },
+        hasBoundaryOut: true,
+        hasBye: true,
+        hasLBW: true,
+        hasLegBye: true,
+        hasNoBalls: true,
+        hasPenaltyRuns: true,
+        hasWides: true,
+        strikerId: 101,
+        nonStrikerId: 102,
+        canDismissNonStriker: true,
+      })
+    ).toThrow("Wide runs must be recorded in the wide field only");
+  });
+
+  it("derives the final innings chase target from aggregate scores", async () => {
+    const { scoringSessionInternals } = await scoringServiceModule;
+
+    expect(
+      scoringSessionInternals.deriveTargetRunsForInnings({
+        inningsPerSide: 2,
+        inningsRows: [
+          {
+            battingTeamId: 10,
+            isCompleted: true,
+            totalScore: 280,
+          },
+          {
+            battingTeamId: 20,
+            isCompleted: true,
+            totalScore: 240,
+          },
+          {
+            battingTeamId: 10,
+            isCompleted: true,
+            totalScore: 150,
+          },
+        ],
+        battingTeamId: 20,
+        bowlingTeamId: 10,
+      })
+    ).toBe(191);
+  });
+
+  it("marks the match tied when all scheduled innings finish level", async () => {
+    const { scoringSessionInternals } = await scoringServiceModule;
+
+    expect(
+      scoringSessionInternals.getMatchCompletionSnapshot({
+        inningsPerSide: 1,
+        inningsRows: [
+          {
+            id: 1,
+            inningsNumber: 1,
+            battingTeamId: 10,
+            bowlingTeamId: 20,
+            totalScore: 125,
+            wickets: 8,
+            isCompleted: true,
+          },
+          {
+            id: 2,
+            inningsNumber: 2,
+            battingTeamId: 20,
+            bowlingTeamId: 10,
+            totalScore: 125,
+            wickets: 6,
+            isCompleted: true,
+          },
+        ],
+        match: {
+          id: 1,
+          team1Id: 10,
+          team2Id: 20,
+        },
+      })
+    ).toEqual({
+      isCompleted: true,
+      isTied: true,
+      margin: "Scores level",
+      result: "Match tied",
+      winnerId: null,
+    });
+  });
+});

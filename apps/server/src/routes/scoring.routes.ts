@@ -126,8 +126,8 @@ scoringRoutes.get(
   requireScorer,
   async (c) => {
     try {
-      const inningsId = Number.parseInt(c.req.param("inningsId"), 10);
-      const ballNumber = Number.parseInt(c.req.param("ballNumber"), 10);
+      const inningsId = Number.parseInt(c.req.param("inningsId") ?? "", 10);
+      const ballNumber = Number.parseInt(c.req.param("ballNumber") ?? "", 10);
 
       if (Number.isNaN(inningsId) || Number.isNaN(ballNumber)) {
         return errorResponse(c, "Invalid innings ID or ball number");
