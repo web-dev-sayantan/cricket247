@@ -65,7 +65,7 @@ The common mistake: using the accent color everywhere because it's "the brand co
 | Content Type | AA Minimum | AAA Target |
 |--------------|------------|------------|
 | Body text | 4.5:1 | 7:1 |
-| Large text (18px+ or 14px bold) | 3:1 | 4.5:1 |
+| Large text (24px+ or 18.66px+ bold; equivalently 18pt or 14pt bold) | 3:1 | 4.5:1 |
 | UI components, icons | 3:1 | 4.5:1 |
 | Non-essential decorations | None | None |
 
