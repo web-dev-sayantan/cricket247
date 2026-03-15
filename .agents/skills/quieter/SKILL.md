@@ -18,8 +18,8 @@ You cannot do a great job without having necessary context, such as target audie
 
 Attempt to gather these from the current thread or codebase.
 
-1. If you don't find *exact* information and have to infer from existing design and functionality, you MUST STOP and STOP and call the AskUserQuestionTool to clarify. whether you got it right.
-2. Otherwise, if you can't fully infer or your level of confidence is medium or lower, you MUST STOP and call the AskUserQuestionTool to clarify. clarifying questions first to complete your context.
+1. If you don't find *exact* information and must infer from existing design or functionality, you MUST STOP and call the AskUserQuestionTool to confirm your assumptions.
+2. Otherwise, if you can't fully infer the context or your confidence is medium or lower, you MUST STOP and call the AskUserQuestionTool to ask clarifying questions before proceeding.
 
 Do NOT proceed until you have answers. Guessing leads to generic design.
 
