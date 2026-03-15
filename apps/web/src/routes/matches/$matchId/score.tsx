@@ -2,16 +2,21 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowLeftIcon,
-  CheckIcon,
   ChevronDownIcon,
   ChevronUpIcon,
-  PlayIcon,
   TargetIcon,
 } from "lucide-react";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import {
+  lazy,
+  type ReactNode,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -20,24 +25,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import type { InningsSetupPhaseCardProps } from "@/routes/matches/$matchId/-components/innings-setup-phase-card";
+import type { LineupPhaseCardProps } from "@/routes/matches/$matchId/-components/lineup-phase-card";
+import { PreMatchSetupSkeleton } from "@/routes/matches/$matchId/-components/pre-match-setup-skeleton";
 import ScoreABall, {
   type DeliveryDraft,
   type MatchFlags,
   type ScoringPlayerOption,
 } from "@/routes/matches/$matchId/-components/score-a-ball";
+import type { TossPhaseCardProps } from "@/routes/matches/$matchId/-components/toss-phase-card";
 import {
   applyScoringSessionMutationResult,
   buildBackgroundScoreRefreshQueries,
 } from "@/routes/matches/$matchId/-score-mutation-utils";
 import { resolveBattingAndBowlingTeamIds } from "@/routes/matches/$matchId/-scoring-flow";
+import type {
+  PreMatchPhase,
+  RosterPlayer,
+  TeamSelection,
+} from "@/routes/matches/$matchId/pre-match-types";
 import { client, orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/matches/$matchId/score")({
@@ -51,21 +58,11 @@ export const Route = createFileRoute("/matches/$matchId/score")({
   },
 });
 
-interface TeamSelection {
-  captainPlayerId?: number;
-  playerIds: number[];
-  viceCaptainPlayerId?: number;
-  wicketKeeperPlayerId?: number;
-}
-
-interface RosterPlayer {
-  isCaptain: boolean;
-  isViceCaptain: boolean;
-  name: string;
-  playerId: number;
-  role: string;
-  teamId: number;
-}
+const PreMatchSetupFlow = lazy(() =>
+  import("@/routes/matches/$matchId/-components/pre-match-setup-flow").then(
+    (module) => ({ default: module.PreMatchSetupFlow })
+  )
+);
 
 interface SessionLineupPlayer {
   battingOrder: null | number;
@@ -143,6 +140,14 @@ interface ClientScoringTimingEntry {
 type GlobalWithClientTimings = typeof globalThis & {
   __CRICKET247_SCORING_TIMINGS__?: ClientScoringTimingEntry[];
 };
+
+type ScoringPhase = PreMatchPhase | "completed" | "scoring";
+
+interface PreMatchSetupViewModel {
+  inningsSetup: InningsSetupPhaseCardProps;
+  lineup: LineupPhaseCardProps;
+  toss: TossPhaseCardProps;
+}
 
 function isClientScoringTimingEnabled() {
   return import.meta.env.DEV && typeof performance !== "undefined";
@@ -424,6 +429,110 @@ function resolveLineupPlayersByTeam(params: {
   return [] as SessionLineupPlayer[];
 }
 
+function createPreMatchSetupViewModel(params: {
+  battingTeamId: null | number;
+  inningsNumber?: number;
+  inningsSetupAvailable: boolean;
+  isLineupValid: boolean;
+  isSavingLineups: boolean;
+  isStartingInnings: boolean;
+  nonStrikerId: null | number;
+  onBattingTeamChange: (teamId: number) => void;
+  onBowlingTeamChange: (teamId: number) => void;
+  onConfirmToss: () => void;
+  onEditToss: () => void;
+  onNonStrikerChange: (playerId: null | number) => void;
+  onOpeningBowlerChange: (playerId: null | number) => void;
+  onSaveLineups: () => void;
+  onStartInnings: () => void;
+  onStrikerChange: (playerId: null | number) => void;
+  onTossDecisionChange: (decision: "bat" | "bowl") => void;
+  onTossWinnerChange: (teamId: number) => void;
+  openingBowlerId: null | number;
+  openingBowlerOptions: ScoringPlayerOption[];
+  bowlingTeamId: null | number;
+  shouldShowEditToss: boolean;
+  strikerId: null | number;
+  strikerOptions: ScoringPlayerOption[];
+  team1Id: number;
+  team1LineupNames: string[];
+  team1Name: string;
+  team1Roster: RosterPlayer[];
+  team1Selection: TeamSelection;
+  team1ShortName: string;
+  team2Id: number;
+  team2LineupNames: string[];
+  team2Name: string;
+  team2Roster: RosterPlayer[];
+  team2Selection: TeamSelection;
+  team2ShortName: string;
+  tossDecision: "bat" | "bowl";
+  tossWinnerId: null | number;
+  setTeam1Selection: (selection: TeamSelection) => void;
+  setTeam2Selection: (selection: TeamSelection) => void;
+  maxPlayers: number;
+  nonStrikerOptions: ScoringPlayerOption[];
+}): PreMatchSetupViewModel {
+  return {
+    lineup: {
+      isLineupValid: params.isLineupValid,
+      isSaving: params.isSavingLineups,
+      maxPlayers: params.maxPlayers,
+      onSaveLineups: params.onSaveLineups,
+      setTeam1Selection: params.setTeam1Selection,
+      setTeam2Selection: params.setTeam2Selection,
+      team1Roster: params.team1Roster,
+      team1Selection: params.team1Selection,
+      team1ShortName: params.team1ShortName,
+      team2Roster: params.team2Roster,
+      team2Selection: params.team2Selection,
+      team2ShortName: params.team2ShortName,
+    },
+    toss: {
+      onConfirmToss: params.onConfirmToss,
+      onTossDecisionChange: params.onTossDecisionChange,
+      onTossWinnerChange: params.onTossWinnerChange,
+      team1Id: params.team1Id,
+      team1Name: params.team1Name,
+      team2Id: params.team2Id,
+      team2Name: params.team2Name,
+      tossDecision: params.tossDecision,
+      tossWinnerId: params.tossWinnerId,
+    },
+    inningsSetup: {
+      battingTeamId: params.battingTeamId,
+      bowlingTeamId: params.bowlingTeamId,
+      canEditToss: params.shouldShowEditToss,
+      inningsSetupAvailable: params.inningsSetupAvailable,
+      inningsTitle: params.inningsNumber
+        ? `Start innings ${params.inningsNumber}`
+        : "Start innings",
+      isStarting: params.isStartingInnings,
+      nonStrikerId: params.nonStrikerId,
+      nonStrikerOptions: params.nonStrikerOptions,
+      onBattingTeamChange: params.onBattingTeamChange,
+      onBowlingTeamChange: params.onBowlingTeamChange,
+      onEditToss: params.onEditToss,
+      onNonStrikerChange: params.onNonStrikerChange,
+      onOpeningBowlerChange: params.onOpeningBowlerChange,
+      onStartInnings: params.onStartInnings,
+      onStrikerChange: params.onStrikerChange,
+      openingBowlerId: params.openingBowlerId,
+      openingBowlerOptions: params.openingBowlerOptions,
+      strikerId: params.strikerId,
+      strikerOptions: params.strikerOptions,
+      team1Id: params.team1Id,
+      team1LineupNames: params.team1LineupNames,
+      team1Name: params.team1Name,
+      team1ShortName: params.team1ShortName,
+      team2Id: params.team2Id,
+      team2LineupNames: params.team2LineupNames,
+      team2Name: params.team2Name,
+      team2ShortName: params.team2ShortName,
+    },
+  };
+}
+
 function DeliveryChipButton({
   delivery,
   isSelected,
@@ -498,7 +607,7 @@ export function DeliveryTimelineCard({
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <p className="font-medium text-sm">
-                  Over {overGroup.overNumber - 1}
+                  Over {overGroup.overNumber}
                 </p>
                 <p className="text-muted-foreground text-xs">
                   {overGroup.deliveries.length} ball
@@ -1102,7 +1211,7 @@ function RouteComponent() {
   const team1ShortName = match?.team1?.shortName ?? "T1";
   const team2ShortName = match?.team2?.shortName ?? "T2";
 
-  const scoringPhase =
+  const scoringPhase: ScoringPhase =
     scoringSetup?.phase === "toss" && isTossConfirmed
       ? "inningsSetup"
       : (scoringSetup?.phase ?? "lineup");
@@ -1182,6 +1291,139 @@ function RouteComponent() {
       );
     }
   };
+
+  const isPreMatchPhase =
+    scoringPhase === "lineup" ||
+    scoringPhase === "toss" ||
+    scoringPhase === "inningsSetup";
+
+  const preMatchSetupViewModel = useMemo(
+    () =>
+      createPreMatchSetupViewModel({
+        battingTeamId,
+        bowlingTeamId,
+        inningsNumber: scoringSetup?.nextInningsDefaults?.inningsNumber,
+        inningsSetupAvailable,
+        isLineupValid,
+        isSavingLineups: saveLineupMutation.isPending,
+        isStartingInnings: startInningsMutation.isPending,
+        maxPlayers: playersPerSide,
+        nonStrikerId,
+        nonStrikerOptions: toPlayerOptions(
+          setupBattingPlayers.filter((player) => player.id !== strikerId)
+        ),
+        onBattingTeamChange: (teamId) => {
+          const nextBowlingId =
+            teamId === match?.team1Id ? match?.team2Id : match?.team1Id;
+
+          setBattingTeamId(teamId);
+          setBowlingTeamId(nextBowlingId ?? null);
+        },
+        onBowlingTeamChange: (teamId) => setBowlingTeamId(teamId),
+        onConfirmToss: () => {
+          if (typeof tossWinnerId !== "number") {
+            toast.error("Select the toss winner.");
+            return;
+          }
+
+          setIsTossConfirmed(true);
+        },
+        onEditToss: () => setIsTossConfirmed(false),
+        onNonStrikerChange: setNonStrikerId,
+        onOpeningBowlerChange: setOpeningBowlerId,
+        onSaveLineups: () => {
+          saveLineupMutation.mutate();
+        },
+        onStartInnings: () => {
+          if (
+            !(
+              battingTeamId &&
+              bowlingTeamId &&
+              strikerId &&
+              nonStrikerId &&
+              openingBowlerId
+            )
+          ) {
+            toast.error("Complete all innings setup fields.");
+            return;
+          }
+
+          startInningsMutation.mutate({
+            battingTeamId,
+            bowlingTeamId,
+            inningsNumber: scoringSetup?.nextInningsDefaults?.inningsNumber,
+            strikerId,
+            nonStrikerId,
+            openingBowlerId,
+            tossWinnerId:
+              typeof tossWinnerId === "number" ? tossWinnerId : undefined,
+            tossDecision,
+          });
+        },
+        onStrikerChange: setStrikerId,
+        onTossDecisionChange: (decision) => {
+          setTossDecision(decision);
+          setIsTossConfirmed(false);
+        },
+        onTossWinnerChange: (teamId) => {
+          setTossWinnerId(teamId);
+          setIsTossConfirmed(false);
+        },
+        openingBowlerId,
+        openingBowlerOptions: toPlayerOptions(setupBowlingPlayers),
+        shouldShowEditToss: scoringSetup?.phase === "toss",
+        strikerId,
+        strikerOptions: toPlayerOptions(setupBattingPlayers),
+        team1Id: match?.team1Id ?? 0,
+        team1LineupNames,
+        team1Name,
+        team1Roster,
+        team1Selection,
+        team1ShortName,
+        team2Id: match?.team2Id ?? 0,
+        team2LineupNames,
+        team2Name,
+        team2Roster,
+        team2Selection,
+        team2ShortName,
+        tossDecision,
+        tossWinnerId,
+        setTeam1Selection,
+        setTeam2Selection,
+      }),
+    [
+      battingTeamId,
+      bowlingTeamId,
+      inningsSetupAvailable,
+      isLineupValid,
+      match?.team1Id,
+      match?.team2Id,
+      nonStrikerId,
+      openingBowlerId,
+      playersPerSide,
+      saveLineupMutation.mutate,
+      saveLineupMutation.isPending,
+      scoringSetup?.nextInningsDefaults?.inningsNumber,
+      scoringSetup?.phase,
+      setupBattingPlayers,
+      setupBowlingPlayers,
+      startInningsMutation.mutate,
+      startInningsMutation.isPending,
+      strikerId,
+      team1LineupNames,
+      team1Name,
+      team1Roster,
+      team1Selection,
+      team1ShortName,
+      team2LineupNames,
+      team2Name,
+      team2Roster,
+      team2Selection,
+      team2ShortName,
+      tossDecision,
+      tossWinnerId,
+    ]
+  );
 
   if (isLoading) {
     return (
@@ -1353,314 +1595,15 @@ function RouteComponent() {
           </section>
         )}
 
-        {scoringPhase === "lineup" ? (
-          <section className="space-y-5 rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
-            <div className="space-y-1">
-              <h2 className="font-medium text-xl">Choose playing lineups</h2>
-              <p className="text-muted-foreground text-sm">
-                Pick the players in today&apos;s XI for both teams before the
-                toss.
-              </p>
-            </div>
-
-            <p aria-live="polite" className="text-muted-foreground text-sm">
-              {team1ShortName}: {team1Selection.playerIds.length}/
-              {playersPerSide}
-              {" • "}
-              {team2ShortName}: {team2Selection.playerIds.length}/
-              {playersPerSide}
-            </p>
-
-            <div className="grid gap-4 xl:grid-cols-2">
-              <LineupSelectorCard
-                maxPlayers={playersPerSide}
-                roster={team1Roster}
-                selection={team1Selection}
-                setSelection={setTeam1Selection}
-                teamLabel={team1ShortName}
-              />
-              <LineupSelectorCard
-                maxPlayers={playersPerSide}
-                roster={team2Roster}
-                selection={team2Selection}
-                setSelection={setTeam2Selection}
-                teamLabel={team2ShortName}
-              />
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Button
-                className="h-12 rounded-2xl"
-                disabled={!isLineupValid || saveLineupMutation.isPending}
-                onClick={() => saveLineupMutation.mutate()}
-                type="button"
-              >
-                <CheckIcon className="mr-2 size-4" />
-                {saveLineupMutation.isPending
-                  ? "Saving..."
-                  : "Save playing lineups"}
-              </Button>
-              <p
-                aria-live="polite"
-                className={cn("text-sm", {
-                  "text-emerald-600": isLineupValid,
-                  "text-muted-foreground": !isLineupValid,
-                })}
-              >
-                {isLineupValid
-                  ? "Both teams have full playing lineups."
-                  : "Select a full playing lineup for both teams."}
-              </p>
-            </div>
-          </section>
-        ) : null}
-
-        {scoringPhase === "toss" ? (
-          <section className="space-y-4 rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
-            <div className="space-y-1">
-              <h2 className="font-medium text-xl">Confirm toss</h2>
-              <p className="text-muted-foreground text-sm">
-                Confirm who won the toss and whether they chose to bat or field
-                first.
-              </p>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-1">
-                <p className="text-muted-foreground text-xs">Toss winner</p>
-                <Select
-                  onValueChange={(value) => {
-                    if (!value) {
-                      return;
-                    }
-                    setTossWinnerId(Number.parseInt(value, 10));
-                    setIsTossConfirmed(false);
-                  }}
-                  value={tossWinnerId ? String(tossWinnerId) : ""}
-                >
-                  <SelectTrigger className="h-12 rounded-2xl">
-                    <SelectValue placeholder="Select toss winner" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[
-                      { id: match.team1Id, label: team1Name },
-                      { id: match.team2Id, label: team2Name },
-                    ]
-                      .filter((team) => typeof team.id === "number")
-                      .map((team) => (
-                        <SelectItem key={team.id} value={String(team.id)}>
-                          {team.label}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <p className="text-muted-foreground text-xs">Toss decision</p>
-                <Select
-                  onValueChange={(value) => {
-                    if (!value) {
-                      return;
-                    }
-                    setTossDecision(value === "bowl" ? "bowl" : "bat");
-                    setIsTossConfirmed(false);
-                  }}
-                  value={tossDecision}
-                >
-                  <SelectTrigger className="h-12 rounded-2xl">
-                    <SelectValue placeholder="Select toss decision" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="bat">Bat first</SelectItem>
-                    <SelectItem value="bowl">Field first</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <Button
-              className="h-12 rounded-2xl"
-              onClick={() => {
-                if (typeof tossWinnerId !== "number") {
-                  toast.error("Select the toss winner.");
-                  return;
-                }
-                setIsTossConfirmed(true);
-              }}
-              type="button"
-            >
-              Continue to innings setup
-            </Button>
-          </section>
-        ) : null}
-
-        {scoringPhase === "inningsSetup" ? (
-          <section className="space-y-5 rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
-            <div className="space-y-1">
-              <h2 className="font-medium text-xl">
-                {scoringSetup.nextInningsDefaults?.inningsNumber
-                  ? `Start innings ${scoringSetup.nextInningsDefaults.inningsNumber}`
-                  : "Start innings"}
-              </h2>
-              <p className="text-muted-foreground text-sm">
-                Choose batting and bowling teams, then set the opening pair and
-                opening bowler.
-              </p>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-1">
-                <p className="text-muted-foreground text-xs">Batting team</p>
-                <Select
-                  onValueChange={(value) => {
-                    if (!value) {
-                      return;
-                    }
-                    const nextBattingId = Number.parseInt(value, 10);
-                    const nextBowlingId =
-                      nextBattingId === match.team1Id
-                        ? match.team2Id
-                        : match.team1Id;
-                    setBattingTeamId(nextBattingId);
-                    setBowlingTeamId(nextBowlingId ?? null);
-                  }}
-                  value={battingTeamId ? String(battingTeamId) : ""}
-                >
-                  <SelectTrigger className="h-12 rounded-2xl">
-                    <SelectValue placeholder="Select batting side" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={String(match.team1Id)}>
-                      {team1Name}
-                    </SelectItem>
-                    <SelectItem value={String(match.team2Id)}>
-                      {team2Name}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <p className="text-muted-foreground text-xs">Bowling team</p>
-                <Select
-                  onValueChange={(value) => {
-                    if (!value) {
-                      return;
-                    }
-                    setBowlingTeamId(Number.parseInt(value, 10));
-                  }}
-                  value={bowlingTeamId ? String(bowlingTeamId) : ""}
-                >
-                  <SelectTrigger className="h-12 rounded-2xl">
-                    <SelectValue placeholder="Select bowling side" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={String(match.team1Id)}>
-                      {team1Name}
-                    </SelectItem>
-                    <SelectItem value={String(match.team2Id)}>
-                      {team2Name}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid gap-3 lg:grid-cols-3">
-              <PlayerPicker
-                label="Striker"
-                onValueChange={(value) =>
-                  setStrikerId(value ? Number.parseInt(value, 10) : null)
-                }
-                players={toPlayerOptions(setupBattingPlayers)}
-                value={strikerId ? String(strikerId) : ""}
-              />
-              <PlayerPicker
-                label="Non-striker"
-                onValueChange={(value) =>
-                  setNonStrikerId(value ? Number.parseInt(value, 10) : null)
-                }
-                players={toPlayerOptions(
-                  setupBattingPlayers.filter(
-                    (player) => player.id !== strikerId
-                  )
-                )}
-                value={nonStrikerId ? String(nonStrikerId) : ""}
-              />
-              <PlayerPicker
-                label="Opening bowler"
-                onValueChange={(value) =>
-                  setOpeningBowlerId(value ? Number.parseInt(value, 10) : null)
-                }
-                players={toPlayerOptions(setupBowlingPlayers)}
-                value={openingBowlerId ? String(openingBowlerId) : ""}
-              />
-            </div>
-
-            <div className="grid gap-3 lg:grid-cols-2">
-              <LineupSummary
-                players={team1LineupNames}
-                teamLabel={team1ShortName}
-              />
-              <LineupSummary
-                players={team2LineupNames}
-                teamLabel={team2ShortName}
-              />
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Button
-                className="h-12 rounded-2xl"
-                disabled={
-                  !inningsSetupAvailable || startInningsMutation.isPending
-                }
-                onClick={() => {
-                  if (
-                    !(
-                      battingTeamId &&
-                      bowlingTeamId &&
-                      strikerId &&
-                      nonStrikerId &&
-                      openingBowlerId
-                    )
-                  ) {
-                    toast.error("Complete all innings setup fields.");
-                    return;
-                  }
-
-                  startInningsMutation.mutate({
-                    battingTeamId,
-                    bowlingTeamId,
-                    inningsNumber:
-                      scoringSetup.nextInningsDefaults?.inningsNumber,
-                    strikerId,
-                    nonStrikerId,
-                    openingBowlerId,
-                    tossWinnerId:
-                      typeof tossWinnerId === "number"
-                        ? tossWinnerId
-                        : undefined,
-                    tossDecision,
-                  });
-                }}
-                type="button"
-              >
-                <PlayIcon className="mr-2 size-4" />
-                {startInningsMutation.isPending
-                  ? "Starting..."
-                  : "Start innings"}
-              </Button>
-              {scoringSetup.phase === "toss" ? (
-                <Button
-                  className="h-12 rounded-2xl"
-                  onClick={() => setIsTossConfirmed(false)}
-                  type="button"
-                  variant="outline"
-                >
-                  Edit toss
-                </Button>
-              ) : null}
-            </div>
-          </section>
+        {isPreMatchPhase ? (
+          <Suspense fallback={<PreMatchSetupSkeleton />}>
+            <PreMatchSetupFlow
+              inningsSetup={preMatchSetupViewModel.inningsSetup}
+              lineup={preMatchSetupViewModel.lineup}
+              phase={scoringPhase}
+              toss={preMatchSetupViewModel.toss}
+            />
+          </Suspense>
         ) : null}
 
         {scoringPhase === "scoring" && currentInnings ? (
@@ -1948,269 +1891,5 @@ function StepPill({ active, label }: { active: boolean; label: string }) {
     >
       {label}
     </span>
-  );
-}
-
-function LineupSummary({
-  teamLabel,
-  players,
-}: {
-  teamLabel: string;
-  players: string[];
-}) {
-  return (
-    <section className="space-y-2 rounded-[1.5rem] border border-border/60 bg-muted/10 p-4">
-      <h3 className="font-medium text-sm sm:text-base">{teamLabel} lineup</h3>
-      <p className="text-muted-foreground text-sm leading-relaxed">
-        {players.join(", ")}
-      </p>
-    </section>
-  );
-}
-
-function PlayerPicker({
-  label,
-  onValueChange,
-  players,
-  value,
-}: {
-  label: string;
-  onValueChange: (value: string | null) => void;
-  players: ScoringPlayerOption[];
-  value: string;
-}) {
-  const selectedPlayerName =
-    players.find((player) => String(player.id) === value)?.name ?? "";
-
-  return (
-    <div className="space-y-1">
-      <p className="text-muted-foreground text-xs">{label}</p>
-      <Select onValueChange={onValueChange} value={value}>
-        <SelectTrigger className="h-12 rounded-2xl">
-          <SelectValue placeholder={`Select ${label.toLowerCase()}`}>
-            {selectedPlayerName}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {players.map((player) => (
-            <SelectItem
-              key={player.id}
-              label={player.name}
-              value={String(player.id)}
-            >
-              {player.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-}
-
-function LineupSelectorCard({
-  roster,
-  selection,
-  setSelection,
-  maxPlayers,
-  teamLabel,
-}: {
-  maxPlayers: number;
-  roster: RosterPlayer[];
-  selection: TeamSelection;
-  setSelection: (selection: TeamSelection) => void;
-  teamLabel: string;
-}) {
-  const selectedPlayerSet = useMemo(
-    () => new Set(selection.playerIds),
-    [selection.playerIds]
-  );
-
-  const idPrefix = useMemo(
-    () =>
-      `${teamLabel.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${
-        roster[0]?.teamId ?? "team"
-      }`,
-    [teamLabel, roster]
-  );
-
-  const removePlayerDependentFlags = (
-    nextPlayerIds: number[],
-    previousSelection: TeamSelection
-  ) => ({
-    playerIds: nextPlayerIds,
-    captainPlayerId: nextPlayerIds.includes(
-      previousSelection.captainPlayerId ?? -1
-    )
-      ? previousSelection.captainPlayerId
-      : undefined,
-    viceCaptainPlayerId: nextPlayerIds.includes(
-      previousSelection.viceCaptainPlayerId ?? -1
-    )
-      ? previousSelection.viceCaptainPlayerId
-      : undefined,
-    wicketKeeperPlayerId: nextPlayerIds.includes(
-      previousSelection.wicketKeeperPlayerId ?? -1
-    )
-      ? previousSelection.wicketKeeperPlayerId
-      : undefined,
-  });
-
-  const togglePlayer = (playerId: number) => {
-    const isSelected = selectedPlayerSet.has(playerId);
-
-    if (isSelected) {
-      const nextPlayerIds = selection.playerIds.filter((id) => id !== playerId);
-      setSelection(removePlayerDependentFlags(nextPlayerIds, selection));
-      return;
-    }
-
-    if (selection.playerIds.length >= maxPlayers) {
-      return;
-    }
-
-    setSelection({
-      ...selection,
-      playerIds: [...selection.playerIds, playerId],
-    });
-  };
-
-  const selectedPlayers = roster.filter((player) =>
-    selection.playerIds.includes(player.playerId)
-  );
-
-  const setOptionalRole = (
-    key: "captainPlayerId" | "viceCaptainPlayerId" | "wicketKeeperPlayerId",
-    rawValue: string
-  ) => {
-    setSelection({
-      ...selection,
-      [key]: rawValue.length > 0 ? Number.parseInt(rawValue, 10) : undefined,
-    });
-  };
-
-  return (
-    <section className="space-y-4 rounded-[1.5rem] border border-border/60 bg-muted/10 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-medium text-sm sm:text-base">{teamLabel} lineup</h3>
-        <p className="text-muted-foreground text-xs sm:text-sm">
-          Selected: {selection.playerIds.length}/{maxPlayers}
-        </p>
-      </div>
-
-      <fieldset className="space-y-2">
-        <legend className="sr-only">Select players for {teamLabel}</legend>
-        <ul className="grid gap-2 sm:grid-cols-2">
-          {roster.map((player) => {
-            const isChecked = selectedPlayerSet.has(player.playerId);
-            const isDisabled =
-              !isChecked && selection.playerIds.length >= maxPlayers;
-            const inputId = `${idPrefix}-player-${String(player.playerId)}`;
-
-            return (
-              <li key={player.playerId}>
-                <label
-                  className={cn(
-                    "flex cursor-pointer items-center gap-2 rounded-[1.1rem] border bg-background p-2.5 text-sm transition-colors",
-                    {
-                      "border-primary/60 bg-primary/5": isChecked,
-                      "cursor-not-allowed opacity-60": isDisabled,
-                    }
-                  )}
-                  htmlFor={inputId}
-                >
-                  <Checkbox
-                    checked={isChecked}
-                    disabled={isDisabled}
-                    id={inputId}
-                    onCheckedChange={() => togglePlayer(player.playerId)}
-                  />
-                  <span className="min-w-0">
-                    <span className="block truncate font-medium">
-                      {player.name}
-                    </span>
-                    <span className="text-muted-foreground text-xs">
-                      {player.role}
-                    </span>
-                  </span>
-                </label>
-              </li>
-            );
-          })}
-        </ul>
-      </fieldset>
-
-      <fieldset className="space-y-2">
-        <legend className="font-medium text-sm">Optional roles</legend>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <RolePicker
-            id={`${idPrefix}-captain`}
-            label="Captain"
-            onChange={(value) => setOptionalRole("captainPlayerId", value)}
-            players={selectedPlayers}
-            value={
-              selection.captainPlayerId ? String(selection.captainPlayerId) : ""
-            }
-          />
-          <RolePicker
-            id={`${idPrefix}-vice-captain`}
-            label="Vice captain"
-            onChange={(value) => setOptionalRole("viceCaptainPlayerId", value)}
-            players={selectedPlayers}
-            value={
-              selection.viceCaptainPlayerId
-                ? String(selection.viceCaptainPlayerId)
-                : ""
-            }
-          />
-          <RolePicker
-            id={`${idPrefix}-wicket-keeper`}
-            label="Wicket keeper"
-            onChange={(value) => setOptionalRole("wicketKeeperPlayerId", value)}
-            players={selectedPlayers}
-            value={
-              selection.wicketKeeperPlayerId
-                ? String(selection.wicketKeeperPlayerId)
-                : ""
-            }
-          />
-        </div>
-      </fieldset>
-    </section>
-  );
-}
-
-function RolePicker({
-  id,
-  label,
-  onChange,
-  players,
-  value,
-}: {
-  id: string;
-  label: string;
-  onChange: (value: string) => void;
-  players: RosterPlayer[];
-  value: string;
-}) {
-  return (
-    <div className="space-y-1">
-      <label className="text-muted-foreground text-xs" htmlFor={id}>
-        {label}
-      </label>
-      <select
-        className="h-12 w-full rounded-2xl border border-input bg-background px-3 text-sm"
-        disabled={players.length === 0}
-        id={id}
-        onChange={(event) => onChange(event.target.value)}
-        value={value}
-      >
-        <option value="">Select {label.toLowerCase()}</option>
-        {players.map((player) => (
-          <option key={player.playerId} value={String(player.playerId)}>
-            {player.name}
-          </option>
-        ))}
-      </select>
-    </div>
   );
 }
