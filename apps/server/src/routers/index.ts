@@ -2034,8 +2034,11 @@ export const appRouter = {
           ...session,
           canCurrentUserScore: true,
         };
-      } catch (_error) {
-        throw new ORPCError("BAD_REQUEST");
+      } catch (error) {
+        if (error instanceof ORPCError) {
+          throw error;
+        }
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
       }
     }),
   recordScoringDelivery: sensitiveProcedure
@@ -2086,8 +2089,11 @@ export const appRouter = {
           ...session,
           canCurrentUserScore: true,
         };
-      } catch (_error) {
-        throw new ORPCError("BAD_REQUEST");
+      } catch (error) {
+        if (error instanceof ORPCError) {
+          throw error;
+        }
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
       }
     }),
   updateScoringDelivery: sensitiveProcedure
@@ -2138,8 +2144,11 @@ export const appRouter = {
           ...session,
           canCurrentUserScore: true,
         };
-      } catch (_error) {
-        throw new ORPCError("BAD_REQUEST");
+      } catch (error) {
+        if (error instanceof ORPCError) {
+          throw error;
+        }
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
       }
     }),
   deleteScoringDelivery: sensitiveProcedure
@@ -2204,8 +2213,11 @@ export const appRouter = {
           ...session,
           canCurrentUserScore: true,
         };
-      } catch (_error) {
-        throw new ORPCError("BAD_REQUEST");
+      } catch (error) {
+        if (error instanceof ORPCError) {
+          throw error;
+        }
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
       }
     }),
   closeCurrentScoringInnings: sensitiveProcedure
@@ -2256,8 +2268,11 @@ export const appRouter = {
           ...session,
           canCurrentUserScore: true,
         };
-      } catch (_error) {
-        throw new ORPCError("BAD_REQUEST");
+      } catch (error) {
+        if (error instanceof ORPCError) {
+          throw error;
+        }
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
       }
     }),
   saveScoringDelivery: sensitiveProcedure
@@ -2353,8 +2368,11 @@ export const appRouter = {
           innings: updatedInnings,
           delivery: updatedDelivery,
         };
-      } catch (_error) {
-        throw new ORPCError("BAD_REQUEST");
+      } catch (error) {
+        if (error instanceof ORPCError) {
+          throw error;
+        }
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
       }
     }),
   createNextScoringDelivery: sensitiveProcedure
@@ -2415,8 +2433,11 @@ export const appRouter = {
           ...result,
           delivery,
         };
-      } catch (_error) {
-        throw new ORPCError("BAD_REQUEST");
+      } catch (error) {
+        if (error instanceof ORPCError) {
+          throw error;
+        }
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
       }
     }),
   endScoringInnings: sensitiveProcedure
