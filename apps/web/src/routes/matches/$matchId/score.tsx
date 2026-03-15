@@ -512,7 +512,9 @@ function RouteComponent() {
       await invalidateScoringQueries();
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to save lineup");
+      toast.error(
+        error.message || "Couldn't save the playing lineup. Please try again."
+      );
     },
   });
 
@@ -536,7 +538,10 @@ function RouteComponent() {
       handleScoringSessionMutationSuccess(session);
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to start innings");
+      toast.error(
+        error.message ||
+          "Couldn't start the innings. Check the selected players and try again."
+      );
     },
   });
 
@@ -568,7 +573,9 @@ function RouteComponent() {
     },
     onError: (error) => {
       activeSubmitTraceRef.current = null;
-      toast.error(error.message || "Failed to record delivery");
+      toast.error(
+        error.message || "Couldn't record this delivery. Please try again."
+      );
     },
   });
 
@@ -601,7 +608,9 @@ function RouteComponent() {
     },
     onError: (error) => {
       activeSubmitTraceRef.current = null;
-      toast.error(error.message || "Failed to update delivery");
+      toast.error(
+        error.message || "Couldn't update this delivery. Please try again."
+      );
     },
   });
 
@@ -615,7 +624,9 @@ function RouteComponent() {
       });
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to delete delivery");
+      toast.error(
+        error.message || "Couldn't delete this delivery. Please try again."
+      );
     },
   });
 
@@ -623,13 +634,15 @@ function RouteComponent() {
     mutationFn: async (inningsId: number) =>
       client.closeCurrentScoringInnings({ inningsId }),
     onSuccess: (session) => {
-      toast.success("Innings closed");
+      toast.success("Innings ended");
       handleScoringSessionMutationSuccess(session, {
         clearSelectedDelivery: true,
       });
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to close innings");
+      toast.error(
+        error.message || "Couldn't end the innings. Please try again."
+      );
     },
   });
 
@@ -849,11 +862,11 @@ function RouteComponent() {
 
   const selectedInningsSummary =
     currentInnings ?? scoringSetup?.innings.at(-1) ?? null;
-  let matchStatusLabel = "Setup pending";
+  let matchStatusLabel = "Awaiting setup";
   if (match?.isCompleted) {
     matchStatusLabel = match.result ?? "Completed";
   } else if (currentInnings) {
-    matchStatusLabel = `Innings ${currentInnings.inningsNumber} live`;
+    matchStatusLabel = `Innings ${currentInnings.inningsNumber} in progress`;
   }
   const fallbackDraft = buildDraftFromEntryContext(
     scoringSetup?.entryContext as SessionEntryContext
@@ -861,12 +874,14 @@ function RouteComponent() {
 
   const submitDraft = async () => {
     if (!draft) {
-      toast.error("No delivery draft available");
+      toast.error(
+        "Can't record a delivery right now. Start or resume an innings."
+      );
       return;
     }
 
     if (!(draft.strikerId && draft.nonStrikerId && draft.bowlerId)) {
-      toast.error("Select striker, non-striker, and bowler");
+      toast.error("Select striker, non-striker, and bowler to continue.");
       return;
     }
 
@@ -909,7 +924,9 @@ function RouteComponent() {
   if (isLoading) {
     return (
       <main className="mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-3xl items-center px-4 py-8">
-        <p className="w-full text-center text-muted-foreground">Loading...</p>
+        <p className="w-full text-center text-muted-foreground">
+          Loading match scoring...
+        </p>
       </main>
     );
   }
@@ -920,7 +937,8 @@ function RouteComponent() {
         <section className="w-full space-y-4 rounded-xl border bg-card p-6 text-center shadow-sm">
           <h1 className="font-semibold text-2xl">Match not found</h1>
           <p className="text-muted-foreground">
-            The requested match could not be loaded.
+            This match could not be loaded. It may have been removed or you may
+            not have access.
           </p>
           <div className="flex justify-center">
             <Link
@@ -940,9 +958,12 @@ function RouteComponent() {
     return (
       <main className="mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-xl items-center px-4 py-8">
         <section className="w-full space-y-4 rounded-xl border bg-card p-6 text-center shadow-sm">
-          <h1 className="font-semibold text-2xl">Scoring Access Denied</h1>
+          <h1 className="font-semibold text-2xl">
+            You can&apos;t score this match
+          </h1>
           <p className="text-muted-foreground">
-            Only admins or players in this fixture roster can score this match.
+            Only organizers and players in this match can score. Ask an
+            organizer to add you if needed.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Link
@@ -972,15 +993,14 @@ function RouteComponent() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-2">
               <p className="text-muted-foreground text-xs uppercase tracking-[0.28em]">
-                Live Scoring Console
+                Live Match Scoring
               </p>
               <h1 className="font-semibold text-3xl tracking-tight sm:text-4xl">
                 {team1ShortName} vs {team2ShortName}
               </h1>
               <p className="max-w-3xl text-muted-foreground text-sm sm:text-base">
-                The scorer now runs on a server-owned timeline. Every delivery,
-                innings transition, and score recalculation comes from the same
-                session state.
+                Score every delivery here. Updates are shared live so both teams
+                stay in sync.
               </p>
             </div>
 
@@ -1041,12 +1061,12 @@ function RouteComponent() {
           </div>
 
           <aside className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
-            <h2 className="font-medium text-lg">Match Frame</h2>
+            <h2 className="font-medium text-lg">Match details</h2>
             <div className="mt-4 space-y-3 text-sm">
               <MatchFrameRow label="Format" value={match.format} />
               <MatchFrameRow
-                label="Overs / innings"
-                value={`${match.oversPerSide} overs • ${match.inningsPerSide} innings`}
+                label="Match rules"
+                value={`${match.oversPerSide} overs per innings • ${match.inningsPerSide} innings`}
               />
               <MatchFrameRow
                 label="Toss"
@@ -1067,10 +1087,10 @@ function RouteComponent() {
         {scoringPhase === "lineup" ? (
           <section className="space-y-5 rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
             <div className="space-y-1">
-              <h2 className="font-medium text-xl">Select playing lineups</h2>
+              <h2 className="font-medium text-xl">Choose playing lineups</h2>
               <p className="text-muted-foreground text-sm">
-                Lock the match-day players for both teams before toss and
-                scoring begin.
+                Pick the players in today&apos;s XI for both teams before the
+                toss.
               </p>
             </div>
 
@@ -1107,7 +1127,9 @@ function RouteComponent() {
                 type="button"
               >
                 <CheckIcon className="mr-2 size-4" />
-                {saveLineupMutation.isPending ? "Saving..." : "Save lineups"}
+                {saveLineupMutation.isPending
+                  ? "Saving..."
+                  : "Save playing lineups"}
               </Button>
               <p
                 aria-live="polite"
@@ -1117,8 +1139,8 @@ function RouteComponent() {
                 })}
               >
                 {isLineupValid
-                  ? "Both lineups are ready."
-                  : "Each side must have a full playing lineup."}
+                  ? "Both teams have full playing lineups."
+                  : "Select a full playing lineup for both teams."}
               </p>
             </div>
           </section>
@@ -1129,9 +1151,8 @@ function RouteComponent() {
             <div className="space-y-1">
               <h2 className="font-medium text-xl">Confirm toss</h2>
               <p className="text-muted-foreground text-sm">
-                Toss remains a deliberate setup step. It sets the first innings
-                defaults, but you can still override the batting order if the
-                format requires it later.
+                Confirm who won the toss and whether they chose to bat or field
+                first.
               </p>
             </div>
 
@@ -1166,7 +1187,7 @@ function RouteComponent() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <p className="text-muted-foreground text-xs">Decision</p>
+                <p className="text-muted-foreground text-xs">Toss decision</p>
                 <Select
                   onValueChange={(value) => {
                     if (!value) {
@@ -1192,7 +1213,7 @@ function RouteComponent() {
               className="h-12 rounded-2xl"
               onClick={() => {
                 if (typeof tossWinnerId !== "number") {
-                  toast.error("Select toss winner");
+                  toast.error("Select the toss winner.");
                   return;
                 }
                 setIsTossConfirmed(true);
@@ -1213,8 +1234,8 @@ function RouteComponent() {
                   : "Start innings"}
               </h2>
               <p className="text-muted-foreground text-sm">
-                Choose batting and bowling sides, then lock in the opening pair
-                and first over bowler.
+                Choose batting and bowling teams, then set the opening pair and
+                opening bowler.
               </p>
             </div>
 
@@ -1333,7 +1354,7 @@ function RouteComponent() {
                       openingBowlerId
                     )
                   ) {
-                    toast.error("Complete innings setup");
+                    toast.error("Complete all innings setup fields.");
                     return;
                   }
 
@@ -1419,7 +1440,9 @@ function RouteComponent() {
                     <p className="text-muted-foreground text-xs uppercase tracking-[0.22em]">
                       Timeline
                     </p>
-                    <h2 className="font-medium text-xl">Current innings log</h2>
+                    <h2 className="font-medium text-xl">
+                      Deliveries this innings
+                    </h2>
                   </div>
                   <div className="flex gap-2">
                     <Button
@@ -1431,7 +1454,7 @@ function RouteComponent() {
                         selectedDeliveryId === null ? "default" : "outline"
                       }
                     >
-                      New delivery
+                      Record delivery
                     </Button>
                     <Button
                       className="rounded-2xl"
@@ -1441,15 +1464,15 @@ function RouteComponent() {
                       type="button"
                       variant="outline"
                     >
-                      Close innings
+                      End innings
                     </Button>
                   </div>
                 </div>
 
                 {currentDeliveries.length === 0 ? (
                   <p className="mt-4 text-muted-foreground text-sm">
-                    No deliveries recorded yet. The first ball will establish
-                    the innings timeline.
+                    No deliveries recorded yet. Score the first delivery to
+                    start the innings timeline.
                   </p>
                 ) : (
                   <div className="mt-4 space-y-2">
@@ -1483,7 +1506,7 @@ function RouteComponent() {
               <section className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
                 <div className="flex items-center gap-2">
                   <TargetIcon className="size-4 text-muted-foreground" />
-                  <h2 className="font-medium text-lg">Innings ledger</h2>
+                  <h2 className="font-medium text-lg">Innings summary</h2>
                 </div>
                 <div className="mt-4 grid gap-3">
                   {scoringSetup.innings.map((innings) => (
@@ -1575,9 +1598,8 @@ function RouteComponent() {
                 {match.result ?? "Match complete"}
               </h2>
               <p className="text-muted-foreground text-sm">
-                The scoring session has no active innings. Review the timeline
-                in the scorecard or start a manual correction on an open innings
-                if needed.
+                Scoring is complete for now. Open the scorecard to review all
+                innings. If a change is needed, ask an organizer.
               </p>
             </div>
             <div className="grid gap-3 md:grid-cols-2">
@@ -1614,10 +1636,10 @@ function RouteComponent() {
         >
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Close this innings?</DialogTitle>
+              <DialogTitle>End this innings?</DialogTitle>
               <DialogDescription>
-                This will end the current innings and lock in the scoring state
-                before the next innings begins.
+                This will end the current innings before the next one starts.
+                You can still review the scorecard after this step.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -1634,9 +1656,7 @@ function RouteComponent() {
                 onClick={handleConfirmCloseInnings}
                 type="button"
               >
-                {closeInningsMutation.isPending
-                  ? "Closing..."
-                  : "Close innings"}
+                {closeInningsMutation.isPending ? "Ending..." : "End innings"}
               </Button>
             </DialogFooter>
           </DialogContent>

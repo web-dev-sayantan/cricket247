@@ -84,8 +84,8 @@ function RouteComponent() {
             {team1ShortName} vs {team2ShortName}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {scorecard.match.format} • {scorecard.match.oversPerSide}{" "}
-            overs/innings
+            {scorecard.match.format} • {scorecard.match.oversPerSide} overs per
+            innings
           </p>
         </div>
         {canShowBackToScoring ? (
@@ -154,7 +154,7 @@ function RouteComponent() {
               <div>
                 <div className="text-muted-foreground text-xs">Result</div>
                 <div className="font-semibold">
-                  {scorecard.match.result ?? "In progress"}
+                  {scorecard.match.result ?? "Match underway"}
                 </div>
               </div>
             </CardContent>
@@ -166,6 +166,12 @@ function RouteComponent() {
                 <CardTitle>Batting</CardTitle>
               </CardHeader>
               <CardContent>
+                <div className="mb-2 grid grid-cols-[1fr_auto_auto_auto] gap-2 text-muted-foreground text-xs uppercase tracking-wide">
+                  <div>Batter</div>
+                  <div className="text-right">Runs</div>
+                  <div className="text-right">Balls</div>
+                  <div className="text-right">Strike rate</div>
+                </div>
                 <div className="space-y-2">
                   {selectedInnings.batting.map((row) => (
                     <div
@@ -196,6 +202,12 @@ function RouteComponent() {
                 <CardTitle>Bowling</CardTitle>
               </CardHeader>
               <CardContent>
+                <div className="mb-2 grid grid-cols-[1fr_auto_auto_auto] gap-2 text-muted-foreground text-xs uppercase tracking-wide">
+                  <div>Bowler</div>
+                  <div className="text-right">Overs</div>
+                  <div className="text-right">R/W</div>
+                  <div className="text-right">Economy</div>
+                </div>
                 <div className="space-y-2">
                   {selectedInnings.bowling.map((row) => (
                     <div
@@ -224,11 +236,11 @@ function RouteComponent() {
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-2 text-sm">
                 <div>Wides: {selectedInnings.extras.wides}</div>
-                <div>No balls: {selectedInnings.extras.noBalls}</div>
+                <div>No-balls: {selectedInnings.extras.noBalls}</div>
                 <div>Byes: {selectedInnings.extras.byes}</div>
-                <div>Leg byes: {selectedInnings.extras.legByes}</div>
-                <div>Penalty: {selectedInnings.extras.penaltyRuns}</div>
-                <div>Others: {selectedInnings.extras.others}</div>
+                <div>Leg-byes: {selectedInnings.extras.legByes}</div>
+                <div>Penalty runs: {selectedInnings.extras.penaltyRuns}</div>
+                <div>Other extras: {selectedInnings.extras.others}</div>
               </CardContent>
             </Card>
 

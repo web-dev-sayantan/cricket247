@@ -140,9 +140,9 @@ function ScoreABall({
 
   let submitLabel = "Record delivery";
   if (isSubmitting) {
-    submitLabel = isEditing ? "Saving correction..." : "Recording...";
+    submitLabel = isEditing ? "Updating delivery..." : "Recording delivery...";
   } else if (isEditing) {
-    submitLabel = "Save correction";
+    submitLabel = "Update delivery";
   }
 
   return (
@@ -151,10 +151,10 @@ function ScoreABall({
         <div className="flex flex-wrap items-start justify-between gap-3 sm:flex-nowrap">
           <div className="min-w-0 flex-1 space-y-1">
             <p className="truncate font-medium text-muted-foreground text-xs uppercase tracking-[0.22em]">
-              Delivery Editor
+              Live scoring
             </p>
             <h2 className="truncate font-semibold text-xl">
-              {isEditing ? "Repair Timeline" : "Record Next Ball"}
+              {isEditing ? "Edit delivery" : "Record next delivery"}
             </h2>
           </div>
           <div className="max-w-full shrink-0 truncate rounded-full border border-border/70 bg-muted/30 px-3 py-1 text-sm">
@@ -164,14 +164,16 @@ function ScoreABall({
 
         <div className="grid gap-3 rounded-[1.5rem] border border-border/60 bg-muted/20 p-3 sm:grid-cols-2">
           <StatChip label="Batting" value={battingLabel} />
-          <StatChip label="Fielding" value={bowlingLabel} />
+          <StatChip label="Bowling" value={bowlingLabel} />
         </div>
       </div>
 
       <div className="space-y-6">
         {/* Players on the ball */}
         <fieldset className="space-y-3">
-          <legend className="font-medium text-sm">Players on the ball</legend>
+          <legend className="font-medium text-sm">
+            Players for this delivery
+          </legend>
           <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
             <PlayerSelect
               label={
@@ -248,7 +250,7 @@ function ScoreABall({
             ))}
           </div>
           <NumberField
-            label="Custom bat runs"
+            label="Other bat runs"
             onChange={(value) => onChange({ batterRuns: value })}
             value={draft.batterRuns}
           />
@@ -370,7 +372,7 @@ function ScoreABall({
               <PlayerSelect
                 label={
                   dismissalRequiresAssist
-                    ? "Assisting fielder"
+                    ? "Fielder (required)"
                     : "Fielder (optional)"
                 }
                 onValueChange={(value) =>
