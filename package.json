@@ -1,11 +1,11 @@
 {
   "name": "cricket247",
   "devDependencies": {
-    "@biomejs/biome": "^2.4.6",
+    "@biomejs/biome": "^2.4.7",
     "husky": "^9.1.7",
-    "lint-staged": "^16.3.3",
-    "turbo": "^2.8.16",
-    "ultracite": "^7.2.5"
+    "lint-staged": "^16.4.0",
+    "turbo": "^2.8.17",
+    "ultracite": "^7.3.1"
   },
   "packageManager": "bun@1.3.5",
   "private": true,

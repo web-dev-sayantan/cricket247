@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { shouldShowBackToScoring } from "./scorecard-visibility";
+import { shouldShowBackToScoring } from "./-scorecard-visibility";
 
 export const Route = createFileRoute("/matches/$matchId/scorecard")({
   component: RouteComponent,
