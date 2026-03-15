@@ -192,6 +192,24 @@ describe("scoring.service initializeMatchScoring", () => {
 });
 
 describe("scoring.service replay helpers", () => {
+  it("derives append delivery write metadata from the current entry context", async () => {
+    const { scoringSessionInternals } = await scoringServiceModule;
+
+    expect(
+      scoringSessionInternals.buildAppendDeliveryPosition({
+        currentEntry: {
+          ballInOver: 3,
+          overNumber: 4,
+        },
+        deliveryCount: 14,
+      })
+    ).toEqual({
+      ballInOver: 3,
+      overNumber: 4,
+      sequenceNo: 15,
+    });
+  });
+
   it("treats extra wide runs beyond the automatic penalty as movement runs", async () => {
     const { scoringSessionInternals } = await scoringServiceModule;
 
@@ -301,5 +319,153 @@ describe("scoring.service replay helpers", () => {
       result: "Match tied",
       winnerId: null,
     });
+  });
+
+  it("rotates strike and requests a new bowler after an over-ending single", async () => {
+    const { scoringSessionInternals } = await scoringServiceModule;
+
+    expect(
+      scoringSessionInternals.getEntryContext({
+        battingPlayers: [
+          { battingOrder: 1, id: 101, name: "A1", teamId: 10 },
+          { battingOrder: 2, id: 102, name: "A2", teamId: 10 },
+          { battingOrder: 3, id: 103, name: "A3", teamId: 10 },
+        ],
+        bowlingPlayers: [
+          { battingOrder: 1, id: 201, name: "B1", teamId: 20 },
+          { battingOrder: 2, id: 202, name: "B2", teamId: 20 },
+        ],
+        inningsRow: {
+          battingTeamId: 10,
+          bowlingTeamId: 20,
+          id: 1,
+          inningsNumber: 1,
+          openingBowlerId: 201,
+          openingNonStrikerId: 102,
+          openingStrikerId: 101,
+          targetRuns: null,
+        },
+        matchRules: {
+          ballsPerOver: 6,
+          maxOversPerBowler: 4,
+        },
+        playersPerSide: 3,
+        timeline: [
+          {
+            ballInOver: 6,
+            batterRuns: 1,
+            bowlerId: 201,
+            byeRuns: 0,
+            dismissedPlayerId: null,
+            isLegalDelivery: true,
+            isWicket: false,
+            legByeRuns: 0,
+            noBallRuns: 0,
+            nonStrikerId: 102,
+            overNumber: 1,
+            strikerId: 101,
+            totalRuns: 1,
+            wideRuns: 0,
+          },
+        ],
+      })
+    ).toMatchObject({
+      entryContext: {
+        ballInOver: 1,
+        bowlerId: null,
+        nonStrikerId: 102,
+        overNumber: 2,
+        strikerId: 101,
+      },
+      requiredSelections: {
+        bowler: true,
+      },
+    });
+  });
+
+  it("marks a dismissed striker for replacement on the next entry context", async () => {
+    const { scoringSessionInternals } = await scoringServiceModule;
+
+    expect(
+      scoringSessionInternals.getEntryContext({
+        battingPlayers: [
+          { battingOrder: 1, id: 101, name: "A1", teamId: 10 },
+          { battingOrder: 2, id: 102, name: "A2", teamId: 10 },
+          { battingOrder: 3, id: 103, name: "A3", teamId: 10 },
+        ],
+        bowlingPlayers: [
+          { battingOrder: 1, id: 201, name: "B1", teamId: 20 },
+          { battingOrder: 2, id: 202, name: "B2", teamId: 20 },
+        ],
+        inningsRow: {
+          battingTeamId: 10,
+          bowlingTeamId: 20,
+          id: 1,
+          inningsNumber: 1,
+          openingBowlerId: 201,
+          openingNonStrikerId: 102,
+          openingStrikerId: 101,
+          targetRuns: null,
+        },
+        matchRules: {
+          ballsPerOver: 6,
+          maxOversPerBowler: 4,
+        },
+        playersPerSide: 3,
+        timeline: [
+          {
+            ballInOver: 2,
+            batterRuns: 0,
+            bowlerId: 201,
+            byeRuns: 0,
+            dismissedPlayerId: 101,
+            isLegalDelivery: true,
+            isWicket: true,
+            legByeRuns: 0,
+            noBallRuns: 0,
+            nonStrikerId: 102,
+            overNumber: 3,
+            strikerId: 101,
+            totalRuns: 0,
+            wideRuns: 0,
+          },
+        ],
+      })
+    ).toMatchObject({
+      entryContext: {
+        dismissedPlayerId: 101,
+        nonStrikerId: 102,
+        strikerId: null,
+      },
+      requiredSelections: {
+        striker: true,
+      },
+    });
+  });
+
+  it("auto-completes an innings when the batting side is all out or reaches the target", async () => {
+    const { scoringSessionInternals } = await scoringServiceModule;
+
+    expect(
+      scoringSessionInternals.shouldAutoCompleteInnings({
+        ballsBowled: 48,
+        matchRulesMaxLegalBallsPerInnings: 120,
+        playersPerSide: 11,
+        targetRuns: null,
+        totalScore: 180,
+        wickets: 10,
+      })
+    ).toBe(true);
+
+    expect(
+      scoringSessionInternals.shouldAutoCompleteInnings({
+        ballsBowled: 36,
+        matchRulesMaxLegalBallsPerInnings: 120,
+        playersPerSide: 11,
+        targetRuns: 151,
+        totalScore: 151,
+        wickets: 3,
+      })
+    ).toBe(true);
   });
 });

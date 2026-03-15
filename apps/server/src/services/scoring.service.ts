@@ -10,6 +10,7 @@ import {
   teamPlayers,
 } from "@/db/schema";
 import type { NewDelivery } from "@/db/types";
+import { measureDevTiming } from "@/lib/dev-timing";
 import { createNewBallAction } from "@/services/ball.service";
 import {
   createInningsAction,
@@ -1402,6 +1403,17 @@ function getNextBallPosition(params: {
   };
 }
 
+function buildAppendDeliveryPosition(params: {
+  currentEntry: Pick<ScoringEntryContext, "ballInOver" | "overNumber">;
+  deliveryCount: number;
+}) {
+  return {
+    ballInOver: params.currentEntry.ballInOver,
+    overNumber: params.currentEntry.overNumber,
+    sequenceNo: params.deliveryCount + 1,
+  };
+}
+
 function getTeamAggregate(
   inningsRows: Array<{
     battingTeamId: number;
@@ -1564,8 +1576,14 @@ async function resequenceDeliveriesForInnings(inningsId: number) {
   }
 }
 
-async function syncReplayState(inningsId: number) {
-  await resequenceDeliveriesForInnings(inningsId);
+async function syncReplayState(
+  inningsId: number,
+  mode: "append" | "rewrite" = "rewrite"
+) {
+  if (mode === "rewrite") {
+    await resequenceDeliveriesForInnings(inningsId);
+  }
+
   await syncInningsAndStats(inningsId);
 }
 
@@ -1918,7 +1936,7 @@ function getActiveLineupPlayers(params: {
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Session assembly intentionally returns the full scorer contract in one query path.
-export async function getMatchScoringSession(matchId: number) {
+async function assembleMatchScoringSession(matchId: number) {
   const match = await getMatchById(matchId);
   if (!match) {
     return null;
@@ -2008,61 +2026,68 @@ export async function getMatchScoringSession(matchId: number) {
     },
   });
 
+  const currentInningsId =
+    inningsRows.find((inning) => !inning.isCompleted)?.id ??
+    inningsRows.at(-1)?.id ??
+    null;
+
   const inningsWithDeliveries = await Promise.all(
     inningsRows.map(async (inningsRow) => ({
       ...inningsRow,
-      deliveries: await db.query.deliveries.findMany({
-        where: {
-          inningsId: inningsRow.id,
-        },
-        with: {
-          striker: {
-            columns: {
-              id: true,
-              name: true,
-            },
-          },
-          nonStriker: {
-            columns: {
-              id: true,
-              name: true,
-            },
-          },
-          bowler: {
-            columns: {
-              id: true,
-              name: true,
-            },
-          },
-          dismissedPlayer: {
-            columns: {
-              id: true,
-              name: true,
-            },
-          },
-          assistedBy: {
-            columns: {
-              id: true,
-              name: true,
-            },
-          },
-          dismissedBy: {
-            columns: {
-              id: true,
-              name: true,
-            },
-          },
-        },
-        orderBy: {
-          sequenceNo: "asc",
-        },
-      }),
+      deliveries:
+        inningsRow.id === currentInningsId
+          ? await db.query.deliveries.findMany({
+              where: {
+                inningsId: inningsRow.id,
+              },
+              with: {
+                striker: {
+                  columns: {
+                    id: true,
+                    name: true,
+                  },
+                },
+                nonStriker: {
+                  columns: {
+                    id: true,
+                    name: true,
+                  },
+                },
+                bowler: {
+                  columns: {
+                    id: true,
+                    name: true,
+                  },
+                },
+                dismissedPlayer: {
+                  columns: {
+                    id: true,
+                    name: true,
+                  },
+                },
+                assistedBy: {
+                  columns: {
+                    id: true,
+                    name: true,
+                  },
+                },
+                dismissedBy: {
+                  columns: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+              orderBy: {
+                sequenceNo: "asc",
+              },
+            })
+          : [],
     }))
   );
 
   const currentInnings =
-    inningsWithDeliveries.find((inning) => !inning.isCompleted) ??
-    inningsWithDeliveries.at(-1) ??
+    inningsWithDeliveries.find((inning) => inning.id === currentInningsId) ??
     null;
 
   const matchRules = await getMatchFormatRulesByMatchId(match.id);
@@ -2169,6 +2194,14 @@ export async function getMatchScoringSession(matchId: number) {
     },
     nextInningsDefaults,
   };
+}
+
+export async function getMatchScoringSession(matchId: number) {
+  return await measureDevTiming(
+    "scoring.getMatchScoringSession",
+    async () => await assembleMatchScoringSession(matchId),
+    `matchId:${matchId}`
+  );
 }
 
 async function assertLineupMembership(params: {
@@ -2374,38 +2407,49 @@ export async function recordScoringDelivery(input: DeliveryDraftInput) {
     canDismissNonStriker: true,
   });
 
-  const currentEntry = session.entryContext;
-  const sequenceNo = session.currentInnings.deliveries.length + 1;
-
-  await db.insert(deliveries).values({
-    inningsId: input.inningsId,
-    sequenceNo,
-    overNumber: currentEntry.overNumber,
-    ballInOver: currentEntry.ballInOver,
-    isLegalDelivery: normalized.isLegalDelivery,
-    strikerId: input.strikerId,
-    nonStrikerId: input.nonStrikerId,
-    bowlerId: input.bowlerId,
-    batterRuns: normalized.batterRuns,
-    wideRuns: normalized.wideRuns,
-    noBallRuns: normalized.noBallRuns,
-    byeRuns: normalized.byeRuns,
-    legByeRuns: normalized.legByeRuns,
-    penaltyRuns: normalized.penaltyRuns,
-    totalRuns: normalized.totalRuns,
-    isWicket: normalized.isWicket,
-    wicketType: normalized.wicketType,
-    dismissedPlayerId: normalized.dismissedPlayerId,
-    dismissedById:
-      normalized.isWicket &&
-      normalized.wicketType &&
-      !NON_BOWLER_WICKETS.has(normalized.wicketType)
-        ? input.bowlerId
-        : null,
-    assistedById: normalized.assistedById,
+  const deliveryPosition = buildAppendDeliveryPosition({
+    currentEntry: session.entryContext,
+    deliveryCount: session.currentInnings.deliveries.length,
   });
 
-  await syncReplayState(input.inningsId);
+  await measureDevTiming(
+    "scoring.recordScoringDelivery.write",
+    async () =>
+      await db.insert(deliveries).values({
+        inningsId: input.inningsId,
+        sequenceNo: deliveryPosition.sequenceNo,
+        overNumber: deliveryPosition.overNumber,
+        ballInOver: deliveryPosition.ballInOver,
+        isLegalDelivery: normalized.isLegalDelivery,
+        strikerId: input.strikerId,
+        nonStrikerId: input.nonStrikerId,
+        bowlerId: input.bowlerId,
+        batterRuns: normalized.batterRuns,
+        wideRuns: normalized.wideRuns,
+        noBallRuns: normalized.noBallRuns,
+        byeRuns: normalized.byeRuns,
+        legByeRuns: normalized.legByeRuns,
+        penaltyRuns: normalized.penaltyRuns,
+        totalRuns: normalized.totalRuns,
+        isWicket: normalized.isWicket,
+        wicketType: normalized.wicketType,
+        dismissedPlayerId: normalized.dismissedPlayerId,
+        dismissedById:
+          normalized.isWicket &&
+          normalized.wicketType &&
+          !NON_BOWLER_WICKETS.has(normalized.wicketType)
+            ? input.bowlerId
+            : null,
+        assistedById: normalized.assistedById,
+      }),
+    `inningsId:${input.inningsId}`
+  );
+
+  await measureDevTiming(
+    "scoring.recordScoringDelivery.syncReplayState",
+    async () => await syncReplayState(input.inningsId, "append"),
+    `inningsId:${input.inningsId}`
+  );
 
   const updatedInnings = await db.query.innings.findFirst({
     where: {
@@ -2488,34 +2532,43 @@ export async function updateScoringDelivery(input: UpdateScoringDeliveryInput) {
     canDismissNonStriker: true,
   });
 
-  await db
-    .update(deliveries)
-    .set({
-      isLegalDelivery: normalized.isLegalDelivery,
-      strikerId: input.strikerId,
-      nonStrikerId: input.nonStrikerId,
-      bowlerId: input.bowlerId,
-      batterRuns: normalized.batterRuns,
-      wideRuns: normalized.wideRuns,
-      noBallRuns: normalized.noBallRuns,
-      byeRuns: normalized.byeRuns,
-      legByeRuns: normalized.legByeRuns,
-      penaltyRuns: normalized.penaltyRuns,
-      totalRuns: normalized.totalRuns,
-      isWicket: normalized.isWicket,
-      wicketType: normalized.wicketType,
-      dismissedPlayerId: normalized.dismissedPlayerId,
-      dismissedById:
-        normalized.isWicket &&
-        normalized.wicketType &&
-        !NON_BOWLER_WICKETS.has(normalized.wicketType)
-          ? input.bowlerId
-          : null,
-      assistedById: normalized.assistedById,
-    })
-    .where(eq(deliveries.id, input.deliveryId));
+  await measureDevTiming(
+    "scoring.updateScoringDelivery.write",
+    async () =>
+      await db
+        .update(deliveries)
+        .set({
+          isLegalDelivery: normalized.isLegalDelivery,
+          strikerId: input.strikerId,
+          nonStrikerId: input.nonStrikerId,
+          bowlerId: input.bowlerId,
+          batterRuns: normalized.batterRuns,
+          wideRuns: normalized.wideRuns,
+          noBallRuns: normalized.noBallRuns,
+          byeRuns: normalized.byeRuns,
+          legByeRuns: normalized.legByeRuns,
+          penaltyRuns: normalized.penaltyRuns,
+          totalRuns: normalized.totalRuns,
+          isWicket: normalized.isWicket,
+          wicketType: normalized.wicketType,
+          dismissedPlayerId: normalized.dismissedPlayerId,
+          dismissedById:
+            normalized.isWicket &&
+            normalized.wicketType &&
+            !NON_BOWLER_WICKETS.has(normalized.wicketType)
+              ? input.bowlerId
+              : null,
+          assistedById: normalized.assistedById,
+        })
+        .where(eq(deliveries.id, input.deliveryId)),
+    `inningsId:${input.inningsId}`
+  );
 
-  await syncReplayState(input.inningsId);
+  await measureDevTiming(
+    "scoring.updateScoringDelivery.syncReplayState",
+    async () => await syncReplayState(input.inningsId, "rewrite"),
+    `inningsId:${input.inningsId}`
+  );
   return await getMatchScoringSession(inningsRow.matchId);
 }
 
@@ -2539,8 +2592,17 @@ export async function deleteScoringDelivery(deliveryId: number) {
     throw new Error("Completed innings cannot be edited");
   }
 
-  await db.delete(deliveries).where(eq(deliveries.id, deliveryId));
-  await syncReplayState(existingDelivery.inningsId);
+  await measureDevTiming(
+    "scoring.deleteScoringDelivery.write",
+    async () =>
+      await db.delete(deliveries).where(eq(deliveries.id, deliveryId)),
+    `inningsId:${existingDelivery.inningsId}`
+  );
+  await measureDevTiming(
+    "scoring.deleteScoringDelivery.syncReplayState",
+    async () => await syncReplayState(existingDelivery.inningsId, "rewrite"),
+    `inningsId:${existingDelivery.inningsId}`
+  );
   return await getMatchScoringSession(inningsRow.matchId);
 }
 
@@ -2556,7 +2618,9 @@ export async function closeCurrentScoringInnings(inningsId: number) {
 }
 
 export const scoringSessionInternals = {
+  buildAppendDeliveryPosition,
   deriveTargetRunsForInnings,
+  getEntryContext,
   getMatchCompletionSnapshot,
   getMovementRuns,
   getNextBallPosition,

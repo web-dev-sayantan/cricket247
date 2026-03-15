@@ -7,10 +7,18 @@ import {
   PlayIcon,
   TargetIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -23,6 +31,10 @@ import ScoreABall, {
   type DeliveryDraft,
   type ScoringPlayerOption,
 } from "@/routes/matches/$matchId/-components/score-a-ball";
+import {
+  applyScoringSessionMutationResult,
+  buildBackgroundScoreRefreshQueries,
+} from "@/routes/matches/$matchId/-score-mutation-utils";
 import { resolveBattingAndBowlingTeamIds } from "@/routes/matches/$matchId/-scoring-flow";
 import { client, orpc } from "@/utils/orpc";
 
@@ -98,6 +110,119 @@ interface SessionDelivery {
   totalRuns: number;
   wicketType: null | string;
   wideRuns: number;
+}
+
+type ScoringSessionMutationResult = Awaited<
+  ReturnType<typeof client.recordScoringDelivery>
+>;
+
+type ClientScoringTraceStage =
+  | "background-refresh-complete"
+  | "cache-updated"
+  | "mutation-response"
+  | "mutation-start"
+  | "submit-click";
+
+interface ClientScoringTimingEntry {
+  at: string;
+  durationMs: number;
+  operation: string;
+  sampleId: string;
+  span: string;
+}
+
+type GlobalWithClientTimings = typeof globalThis & {
+  __CRICKET247_SCORING_TIMINGS__?: ClientScoringTimingEntry[];
+};
+
+function isClientScoringTimingEnabled() {
+  return import.meta.env.DEV && typeof performance !== "undefined";
+}
+
+function pushClientScoringTiming(entry: ClientScoringTimingEntry) {
+  if (!isClientScoringTimingEnabled()) {
+    return;
+  }
+
+  const timingStore = globalThis as GlobalWithClientTimings;
+  timingStore.__CRICKET247_SCORING_TIMINGS__ ??= [];
+  timingStore.__CRICKET247_SCORING_TIMINGS__.push(entry);
+}
+
+function createClientScoringTrace(operation: string) {
+  if (!isClientScoringTimingEnabled()) {
+    return null;
+  }
+
+  const sampleId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const prefix = `cricket247:${operation}:${sampleId}`;
+  const marks = new Map<ClientScoringTraceStage, number>();
+
+  const mark = (stage: ClientScoringTraceStage) => {
+    performance.mark(`${prefix}:${stage}`);
+    marks.set(stage, performance.now());
+  };
+
+  const measure = (
+    span: string,
+    start: ClientScoringTraceStage,
+    end: ClientScoringTraceStage
+  ) => {
+    const startMark = `${prefix}:${start}`;
+    const endMark = `${prefix}:${end}`;
+    const startTime = marks.get(start);
+    const endTime = marks.get(end);
+
+    performance.measure(`${prefix}:${span}`, startMark, endMark);
+
+    if (typeof startTime !== "number" || typeof endTime !== "number") {
+      return;
+    }
+
+    pushClientScoringTiming({
+      at: new Date().toISOString(),
+      durationMs: Number((endTime - startTime).toFixed(2)),
+      operation,
+      sampleId,
+      span,
+    });
+  };
+
+  mark("submit-click");
+
+  return {
+    markBackgroundRefreshComplete() {
+      mark("background-refresh-complete");
+      measure(
+        "cache_to_background_refresh_complete",
+        "cache-updated",
+        "background-refresh-complete"
+      );
+      measure(
+        "submit_to_background_refresh_complete",
+        "submit-click",
+        "background-refresh-complete"
+      );
+    },
+    markCacheUpdated() {
+      mark("cache-updated");
+      measure("response_to_cache_update", "mutation-response", "cache-updated");
+      measure("submit_to_cache_update", "submit-click", "cache-updated");
+    },
+    markMutationResponse() {
+      mark("mutation-response");
+      measure(
+        "mutation_start_to_response",
+        "mutation-start",
+        "mutation-response"
+      );
+      measure("submit_to_response", "submit-click", "mutation-response");
+    },
+    markMutationStart() {
+      mark("mutation-start");
+      measure("submit_to_mutation_start", "submit-click", "mutation-start");
+    },
+  };
 }
 
 function normalizeSelection(
@@ -237,6 +362,9 @@ function RouteComponent() {
   const team1Roster = scoringSetup?.team1Roster ?? [];
   const team2Roster = scoringSetup?.team2Roster ?? [];
   const tournamentId = match?.tournamentId;
+  const activeSubmitTraceRef = useRef<ReturnType<
+    typeof createClientScoringTrace
+  > | null>(null);
 
   const [team1Selection, setTeam1Selection] = useState<TeamSelection>(
     normalizeSelection(scoringSetup?.savedLineup?.team1)
@@ -264,6 +392,9 @@ function RouteComponent() {
   const [selectedDeliveryId, setSelectedDeliveryId] = useState<number | null>(
     null
   );
+  const [pendingCloseInningsId, setPendingCloseInningsId] = useState<
+    number | null
+  >(null);
   const [draft, setDraft] = useState<DeliveryDraft | null>(null);
 
   const invalidateScoringQueries = async () => {
@@ -296,6 +427,52 @@ function RouteComponent() {
     }
 
     await Promise.all(tasks);
+  };
+
+  const backgroundRefreshQueries = useMemo(
+    () =>
+      buildBackgroundScoreRefreshQueries({
+        matchId: numericMatchId,
+        tournamentId,
+      }),
+    [numericMatchId, tournamentId]
+  );
+
+  const queueBackgroundRefresh = (
+    refreshTasks: Promise<unknown>[],
+    trace?: ReturnType<typeof createClientScoringTrace> | null
+  ) => {
+    if (refreshTasks.length === 0) {
+      trace?.markBackgroundRefreshComplete();
+      return;
+    }
+
+    Promise.allSettled(refreshTasks).then(() => {
+      trace?.markBackgroundRefreshComplete();
+    });
+  };
+
+  const handleScoringSessionMutationSuccess = (
+    session: ScoringSessionMutationResult,
+    options?: {
+      clearSelectedDelivery?: boolean;
+      trace?: ReturnType<typeof createClientScoringTrace> | null;
+    }
+  ) => {
+    options?.trace?.markMutationResponse();
+    const refreshTasks = applyScoringSessionMutationResult({
+      backgroundQueries: backgroundRefreshQueries,
+      queryClient,
+      scoringQuery: scoringQueryOptions,
+      session,
+    });
+
+    if (options?.clearSelectedDelivery) {
+      setSelectedDeliveryId(null);
+    }
+
+    options?.trace?.markCacheUpdated();
+    queueBackgroundRefresh(refreshTasks, options?.trace);
   };
 
   useEffect(() => {
@@ -354,9 +531,9 @@ function RouteComponent() {
         matchId: numericMatchId,
         ...payload,
       }),
-    onSuccess: async () => {
+    onSuccess: (session) => {
       toast.success("Innings started");
-      await invalidateScoringQueries();
+      handleScoringSessionMutationSuccess(session);
     },
     onError: (error) => {
       toast.error(error.message || "Failed to start innings");
@@ -380,12 +557,17 @@ function RouteComponent() {
         dismissedPlayerId: payload.dismissedPlayerId,
         assistedById: payload.assistedById,
       }),
-    onSuccess: async () => {
+    onSuccess: (session) => {
+      const trace = activeSubmitTraceRef.current;
       toast.success("Delivery recorded");
-      setSelectedDeliveryId(null);
-      await invalidateScoringQueries();
+      handleScoringSessionMutationSuccess(session, {
+        clearSelectedDelivery: true,
+        trace,
+      });
+      activeSubmitTraceRef.current = null;
     },
     onError: (error) => {
+      activeSubmitTraceRef.current = null;
       toast.error(error.message || "Failed to record delivery");
     },
   });
@@ -408,12 +590,17 @@ function RouteComponent() {
         dismissedPlayerId: payload.dismissedPlayerId,
         assistedById: payload.assistedById,
       }),
-    onSuccess: async () => {
+    onSuccess: (session) => {
+      const trace = activeSubmitTraceRef.current;
       toast.success("Delivery updated");
-      setSelectedDeliveryId(null);
-      await invalidateScoringQueries();
+      handleScoringSessionMutationSuccess(session, {
+        clearSelectedDelivery: true,
+        trace,
+      });
+      activeSubmitTraceRef.current = null;
     },
     onError: (error) => {
+      activeSubmitTraceRef.current = null;
       toast.error(error.message || "Failed to update delivery");
     },
   });
@@ -421,10 +608,11 @@ function RouteComponent() {
   const deleteDeliveryMutation = useMutation({
     mutationFn: async (deliveryId: number) =>
       client.deleteScoringDelivery({ deliveryId }),
-    onSuccess: async () => {
+    onSuccess: (session) => {
       toast.success("Delivery deleted");
-      setSelectedDeliveryId(null);
-      await invalidateScoringQueries();
+      handleScoringSessionMutationSuccess(session, {
+        clearSelectedDelivery: true,
+      });
     },
     onError: (error) => {
       toast.error(error.message || "Failed to delete delivery");
@@ -434,15 +622,29 @@ function RouteComponent() {
   const closeInningsMutation = useMutation({
     mutationFn: async (inningsId: number) =>
       client.closeCurrentScoringInnings({ inningsId }),
-    onSuccess: async () => {
+    onSuccess: (session) => {
       toast.success("Innings closed");
-      setSelectedDeliveryId(null);
-      await invalidateScoringQueries();
+      handleScoringSessionMutationSuccess(session, {
+        clearSelectedDelivery: true,
+      });
     },
     onError: (error) => {
       toast.error(error.message || "Failed to close innings");
     },
   });
+
+  const handleCloseInnings = (inningsId: number) => {
+    setPendingCloseInningsId(inningsId);
+  };
+
+  const handleConfirmCloseInnings = () => {
+    if (pendingCloseInningsId === null) {
+      return;
+    }
+
+    closeInningsMutation.mutate(pendingCloseInningsId);
+    setPendingCloseInningsId(null);
+  };
 
   const team1RosterById = useMemo(
     () => new Map(team1Roster.map((player) => [player.playerId, player.name])),
@@ -618,7 +820,7 @@ function RouteComponent() {
   );
 
   const currentBallLabel = scoringSetup?.entryContext
-    ? `Over ${scoringSetup.entryContext.overNumber}.${scoringSetup.entryContext.ballInOver}`
+    ? `Over ${scoringSetup.entryContext.overNumber - 1}.${scoringSetup.entryContext.ballInOver}`
     : "No active innings";
 
   const isLineupValid =
@@ -672,6 +874,11 @@ function RouteComponent() {
       toast.error("Striker and non-striker must be different");
       return;
     }
+
+    activeSubmitTraceRef.current = createClientScoringTrace(
+      editingDelivery ? "update-delivery" : "record-delivery"
+    );
+    activeSubmitTraceRef.current?.markMutationStart();
 
     if (editingDelivery) {
       await updateDeliveryMutation.mutateAsync({
@@ -1197,7 +1404,7 @@ function RouteComponent() {
                   />
                   <ScoreboardCard
                     label="Next ball"
-                    value={`${scoringSetup.entryContext.overNumber}.${scoringSetup.entryContext.ballInOver}`}
+                    value={`${scoringSetup.entryContext.overNumber - 1}.${scoringSetup.entryContext.ballInOver}`}
                   />
                   <ScoreboardCard
                     label="Batting side"
@@ -1229,9 +1436,7 @@ function RouteComponent() {
                     <Button
                       className="rounded-2xl"
                       disabled={closeInningsMutation.isPending}
-                      onClick={() =>
-                        closeInningsMutation.mutate(currentInnings.id)
-                      }
+                      onClick={() => handleCloseInnings(currentInnings.id)}
                       size="sm"
                       type="button"
                       variant="outline"
@@ -1310,53 +1515,55 @@ function RouteComponent() {
             </div>
 
             {(draft ?? fallbackDraft) ? (
-              <ScoreABall
-                battingLabel={
-                  currentInnings.battingTeam?.shortName ?? team1ShortName
-                }
-                battingPlayers={battingPlayers}
-                bowlingLabel={
-                  currentInnings.bowlingTeam?.shortName ?? team2ShortName
-                }
-                bowlingPlayers={bowlingPlayers}
-                currentBallLabel={currentBallLabel}
-                draft={(draft ?? fallbackDraft) as DeliveryDraft}
-                fieldingOptions={bowlingPlayers}
-                isEditing={editingDelivery !== null}
-                isSubmitting={
-                  recordDeliveryMutation.isPending ||
-                  updateDeliveryMutation.isPending ||
-                  deleteDeliveryMutation.isPending
-                }
-                matchFlags={{
-                  hasBoundaryOut: Boolean(match.hasBoundaryOut),
-                  hasBye: Boolean(match.hasBye),
-                  hasLBW: Boolean(match.hasLBW),
-                  hasLegBye: Boolean(match.hasLegBye),
-                  hasNoBalls: Boolean(match.hasNoBalls),
-                  hasPenaltyRuns: Boolean(match.hasPenaltyRuns),
-                  hasWides: Boolean(match.hasWides),
-                }}
-                onChange={(patch) =>
-                  setDraft((previous) =>
-                    previous ? { ...previous, ...patch } : previous
-                  )
-                }
-                onDelete={
-                  editingDelivery
-                    ? () => deleteDeliveryMutation.mutate(editingDelivery.id)
-                    : undefined
-                }
-                onReset={resetDraft}
-                onSubmit={submitDraft}
-                requiredSelections={{
-                  striker: Boolean(scoringSetup.requiredSelections.striker),
-                  nonStriker: Boolean(
-                    scoringSetup.requiredSelections.nonStriker
-                  ),
-                  bowler: Boolean(scoringSetup.requiredSelections.bowler),
-                }}
-              />
+              <div className="lg:sticky lg:top-4 lg:self-start">
+                <ScoreABall
+                  battingLabel={
+                    currentInnings.battingTeam?.shortName ?? team1ShortName
+                  }
+                  battingPlayers={battingPlayers}
+                  bowlingLabel={
+                    currentInnings.bowlingTeam?.shortName ?? team2ShortName
+                  }
+                  bowlingPlayers={bowlingPlayers}
+                  currentBallLabel={currentBallLabel}
+                  draft={(draft ?? fallbackDraft) as DeliveryDraft}
+                  fieldingOptions={bowlingPlayers}
+                  isEditing={editingDelivery !== null}
+                  isSubmitting={
+                    recordDeliveryMutation.isPending ||
+                    updateDeliveryMutation.isPending ||
+                    deleteDeliveryMutation.isPending
+                  }
+                  matchFlags={{
+                    hasBoundaryOut: Boolean(match.hasBoundaryOut),
+                    hasBye: Boolean(match.hasBye),
+                    hasLBW: Boolean(match.hasLBW),
+                    hasLegBye: Boolean(match.hasLegBye),
+                    hasNoBalls: Boolean(match.hasNoBalls),
+                    hasPenaltyRuns: Boolean(match.hasPenaltyRuns),
+                    hasWides: Boolean(match.hasWides),
+                  }}
+                  onChange={(patch) =>
+                    setDraft((previous) =>
+                      previous ? { ...previous, ...patch } : previous
+                    )
+                  }
+                  onDelete={
+                    editingDelivery
+                      ? () => deleteDeliveryMutation.mutate(editingDelivery.id)
+                      : undefined
+                  }
+                  onReset={resetDraft}
+                  onSubmit={submitDraft}
+                  requiredSelections={{
+                    striker: Boolean(scoringSetup.requiredSelections.striker),
+                    nonStriker: Boolean(
+                      scoringSetup.requiredSelections.nonStriker
+                    ),
+                    bowler: Boolean(scoringSetup.requiredSelections.bowler),
+                  }}
+                />
+              </div>
             ) : null}
           </section>
         ) : null}
@@ -1396,6 +1603,44 @@ function RouteComponent() {
             </div>
           </section>
         ) : null}
+
+        <Dialog
+          onOpenChange={(open) => {
+            if (!(open || closeInningsMutation.isPending)) {
+              setPendingCloseInningsId(null);
+            }
+          }}
+          open={pendingCloseInningsId !== null}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Close this innings?</DialogTitle>
+              <DialogDescription>
+                This will end the current innings and lock in the scoring state
+                before the next innings begins.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                disabled={closeInningsMutation.isPending}
+                onClick={() => setPendingCloseInningsId(null)}
+                type="button"
+                variant="outline"
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={closeInningsMutation.isPending}
+                onClick={handleConfirmCloseInnings}
+                type="button"
+              >
+                {closeInningsMutation.isPending
+                  ? "Closing..."
+                  : "Close innings"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </main>
   );

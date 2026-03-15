@@ -1,5 +1,11 @@
 import type { WicketType } from "@cricket247/server/types";
-import { RotateCcwIcon, Trash2Icon } from "lucide-react";
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  RotateCcwIcon,
+  Trash2Icon,
+} from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,7 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 export interface ScoringPlayerOption {
@@ -112,13 +117,27 @@ function ScoreABall({
     return true;
   }) as WicketType[];
 
-  const dismissalRequiresAssist = new Set<WicketType>([
+  const dismissalTypesWithAssist = new Set<WicketType>([
     "boundary out",
     "caught",
     "run out",
     "stumped",
-  ]).has(draft.wicketType as WicketType);
+  ]);
+  const strikerOnlyDismissalTypes = new Set<WicketType>(["bowled", "lbw"]);
+  const dismissalRequiresAssist = draft.wicketType
+    ? dismissalTypesWithAssist.has(draft.wicketType)
+    : false;
   const emptyDismissalValue = "__none__";
+
+  const hasExtras =
+    draft.wideRuns > 0 ||
+    draft.noBallRuns > 0 ||
+    draft.byeRuns > 0 ||
+    draft.legByeRuns > 0 ||
+    draft.penaltyRuns > 0;
+  const [showExtras, setShowExtras] = useState(false);
+  const extrasVisible = showExtras || hasExtras;
+
   let submitLabel = "Record delivery";
   if (isSubmitting) {
     submitLabel = isEditing ? "Saving correction..." : "Recording...";
@@ -149,73 +168,109 @@ function ScoreABall({
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-        <div className="min-w-0 flex-1 space-y-6">
-          <fieldset className="space-y-3">
-            <legend className="font-medium text-sm">Players on the ball</legend>
-            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-              <PlayerSelect
-                label={
-                  requiredSelections.striker ? "Striker (required)" : "Striker"
-                }
-                onValueChange={(value) =>
-                  onChange({
-                    strikerId:
-                      value && value.length > 0
-                        ? Number.parseInt(value, 10)
-                        : null,
-                  })
-                }
-                options={battingPlayers}
-                value={draft.strikerId ? String(draft.strikerId) : ""}
-              />
-              <PlayerSelect
-                label={
-                  requiredSelections.nonStriker
-                    ? "Non-striker (required)"
-                    : "Non-striker"
-                }
-                onValueChange={(value) =>
-                  onChange({
-                    nonStrikerId:
-                      value && value.length > 0
-                        ? Number.parseInt(value, 10)
-                        : null,
-                  })
-                }
-                options={battingPlayers.filter(
-                  (player) => player.id !== draft.strikerId
+      <div className="space-y-6">
+        {/* Players on the ball */}
+        <fieldset className="space-y-3">
+          <legend className="font-medium text-sm">Players on the ball</legend>
+          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+            <PlayerSelect
+              label={
+                requiredSelections.striker ? "Striker (required)" : "Striker"
+              }
+              onValueChange={(value) => {
+                const nextStrikerId =
+                  value && value.length > 0 ? Number.parseInt(value, 10) : null;
+
+                onChange({
+                  strikerId: nextStrikerId,
+                  nonStrikerId:
+                    draft.nonStrikerId === nextStrikerId
+                      ? null
+                      : draft.nonStrikerId,
+                });
+              }}
+              options={battingPlayers}
+              value={draft.strikerId ? String(draft.strikerId) : ""}
+            />
+            <PlayerSelect
+              label={
+                requiredSelections.nonStriker
+                  ? "Non-striker (required)"
+                  : "Non-striker"
+              }
+              onValueChange={(value) =>
+                onChange({
+                  nonStrikerId:
+                    value && value.length > 0
+                      ? Number.parseInt(value, 10)
+                      : null,
+                })
+              }
+              options={battingPlayers.filter(
+                (player) => player.id !== draft.strikerId
+              )}
+              value={draft.nonStrikerId ? String(draft.nonStrikerId) : ""}
+            />
+            <PlayerSelect
+              label={requiredSelections.bowler ? "Bowler (required)" : "Bowler"}
+              onValueChange={(value) =>
+                onChange({
+                  bowlerId:
+                    value && value.length > 0
+                      ? Number.parseInt(value, 10)
+                      : null,
+                })
+              }
+              options={bowlingPlayers}
+              value={draft.bowlerId ? String(draft.bowlerId) : ""}
+            />
+          </div>
+        </fieldset>
+
+        {/* Bat runs quick-pick */}
+        <fieldset className="space-y-3">
+          <legend className="font-medium text-sm">Bat runs</legend>
+          <div className="grid grid-cols-6 gap-2 sm:gap-3">
+            {[0, 1, 2, 3, 4, 6].map((runs) => (
+              <button
+                className={cn(
+                  "flex aspect-square w-full items-center justify-center rounded-2xl border font-semibold text-base transition-colors",
+                  draft.batterRuns === runs
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border/70 bg-background hover:border-primary/50"
                 )}
-                value={draft.nonStrikerId ? String(draft.nonStrikerId) : ""}
-              />
-              <PlayerSelect
-                label={
-                  requiredSelections.bowler ? "Bowler (required)" : "Bowler"
-                }
-                onValueChange={(value) =>
-                  onChange({
-                    bowlerId:
-                      value && value.length > 0
-                        ? Number.parseInt(value, 10)
-                        : null,
-                  })
-                }
-                options={bowlingPlayers}
-                value={draft.bowlerId ? String(draft.bowlerId) : ""}
-              />
-            </div>
-          </fieldset>
+                key={runs}
+                onClick={() => onChange({ batterRuns: runs })}
+                type="button"
+              >
+                {runs}
+              </button>
+            ))}
+          </div>
+          <NumberField
+            label="Custom bat runs"
+            onChange={(value) => onChange({ batterRuns: value })}
+            value={draft.batterRuns}
+          />
+        </fieldset>
 
-          <Separator />
+        {/* Extras (collapsible) */}
+        <div className="space-y-3">
+          <button
+            className="flex w-full items-center justify-between rounded-2xl border border-border/60 bg-muted/20 px-4 py-3 font-medium text-sm transition-colors hover:bg-muted/40"
+            onClick={() => setShowExtras((prev) => !prev)}
+            type="button"
+          >
+            <span>Extras</span>
+            {extrasVisible && !hasExtras ? (
+              <ChevronUpIcon className="size-4 text-muted-foreground" />
+            ) : (
+              <ChevronDownIcon className="size-4 text-muted-foreground" />
+            )}
+          </button>
 
-          <fieldset className="space-y-4">
-            <legend className="font-medium text-sm">Runs and extras</legend>
+          {extrasVisible ? (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <NumberField
-                label="Bat runs"
-                onChange={(value) => onChange({ batterRuns: value })}
-                value={draft.batterRuns}
-              />
               <NumberField
                 disabled={!matchFlags.hasWides}
                 label="Wide runs"
@@ -247,62 +302,48 @@ function ScoreABall({
                 value={draft.penaltyRuns}
               />
             </div>
-
-            <div className="flex flex-wrap gap-2">
-              {[0, 1, 2, 3, 4, 6].map((runs) => (
-                <button
-                  className={cn(
-                    "rounded-full border px-3 py-1.5 text-sm transition-colors",
-                    draft.batterRuns === runs
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border/70 bg-background hover:border-primary/50"
-                  )}
-                  key={runs}
-                  onClick={() => onChange({ batterRuns: runs })}
-                  type="button"
-                >
-                  {runs}
-                </button>
-              ))}
-            </div>
-          </fieldset>
+          ) : null}
         </div>
 
-        <div className="flex min-w-0 flex-col space-y-5 rounded-[1.5rem] border border-border/60 bg-muted/15 p-4 sm:p-5">
-          <div className="min-w-0 space-y-2">
-            <p className="font-medium text-sm">Dismissal</p>
-            <Select
-              onValueChange={(value) =>
+        {/* Dismissal */}
+        <div className="space-y-4 rounded-[1.5rem] border border-border/60 bg-muted/15 p-4 sm:p-5">
+          <p className="font-medium text-sm">Dismissal</p>
+          <Select
+            onValueChange={(value) => {
+              if (value === null || value === emptyDismissalValue) {
                 onChange({
-                  wicketType:
-                    value === null || value === emptyDismissalValue
-                      ? ""
-                      : (value as "" | WicketType),
-                  dismissedPlayerId:
-                    value !== null && value !== emptyDismissalValue
-                      ? (draft.dismissedPlayerId ?? draft.strikerId)
-                      : null,
-                  assistedById:
-                    value !== null && value !== emptyDismissalValue
-                      ? draft.assistedById
-                      : null,
-                })
+                  wicketType: "",
+                  dismissedPlayerId: null,
+                  assistedById: null,
+                });
+                return;
               }
-              value={draft.wicketType || emptyDismissalValue}
-            >
-              <SelectTrigger className="h-12 w-full rounded-2xl capitalize [&>span]:min-w-0 [&>span]:truncate">
-                <SelectValue placeholder="No wicket on this delivery" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={emptyDismissalValue}>No wicket</SelectItem>
-                {wicketOptions.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    <span className="block truncate capitalize">{option}</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+
+              const nextWicketType = value as WicketType;
+              onChange({
+                wicketType: nextWicketType,
+                dismissedPlayerId: strikerOnlyDismissalTypes.has(nextWicketType)
+                  ? draft.strikerId
+                  : null,
+                assistedById: dismissalTypesWithAssist.has(nextWicketType)
+                  ? draft.assistedById
+                  : null,
+              });
+            }}
+            value={draft.wicketType || emptyDismissalValue}
+          >
+            <SelectTrigger className="h-14 w-full rounded-2xl capitalize [&>span]:min-w-0 [&>span]:truncate">
+              <SelectValue placeholder="No wicket on this delivery" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={emptyDismissalValue}>No wicket</SelectItem>
+              {wicketOptions.map((option) => (
+                <SelectItem key={option} value={option}>
+                  <span className="block truncate capitalize">{option}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           {draft.wicketType ? (
             <div className="space-y-3">
@@ -345,40 +386,39 @@ function ScoreABall({
               />
             </div>
           ) : null}
+        </div>
 
-          <Separator />
+        {/* Action buttons */}
+        <div className="space-y-2">
+          <Button
+            className="h-14 w-full rounded-2xl font-semibold text-base [&_svg]:shrink-0"
+            disabled={isSubmitting}
+            onClick={onSubmit}
+            type="button"
+          >
+            {submitLabel}
+          </Button>
 
-          <div className="grid gap-2 pt-1">
+          <div className="grid grid-cols-2 gap-2">
             <Button
               className="h-12 w-full truncate rounded-2xl [&_svg]:shrink-0"
-              disabled={isSubmitting}
-              onClick={onSubmit}
+              onClick={onReset}
               type="button"
+              variant="outline"
             >
-              {submitLabel}
+              <RotateCcwIcon className="mr-2 size-4" />
+              <span className="truncate">Reset</span>
             </Button>
-
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Button
-                className="h-11 w-full truncate rounded-2xl [&_svg]:shrink-0"
-                onClick={onReset}
-                type="button"
-                variant="outline"
-              >
-                <RotateCcwIcon className="mr-2 size-4" />
-                <span className="truncate">Reset form</span>
-              </Button>
-              <Button
-                className="h-11 w-full truncate rounded-2xl [&_svg]:shrink-0"
-                disabled={!(isEditing && onDelete) || isSubmitting}
-                onClick={onDelete}
-                type="button"
-                variant="destructive"
-              >
-                <Trash2Icon className="mr-2 size-4" />
-                <span className="truncate">Delete delivery</span>
-              </Button>
-            </div>
+            <Button
+              className="h-12 w-full truncate rounded-2xl [&_svg]:shrink-0"
+              disabled={!(isEditing && onDelete) || isSubmitting}
+              onClick={onDelete}
+              type="button"
+              variant="destructive"
+            >
+              <Trash2Icon className="mr-2 size-4" />
+              <span className="truncate">Delete</span>
+            </Button>
           </div>
         </div>
       </div>
@@ -403,7 +443,7 @@ function NumberField({
         {label}
       </span>
       <Input
-        className="h-12 w-full rounded-2xl text-base"
+        className="h-14 w-full rounded-2xl text-base"
         disabled={disabled}
         min={0}
         onChange={(event) =>
@@ -436,7 +476,7 @@ function PlayerSelect({
         {label}
       </span>
       <Select onValueChange={onValueChange} value={value}>
-        <SelectTrigger className="h-12 w-full rounded-2xl [&>span]:min-w-0 [&>span]:truncate">
+        <SelectTrigger className="h-14 w-full rounded-2xl [&>span]:min-w-0 [&>span]:truncate">
           <SelectValue placeholder="Select player">
             {selectedPlayerName}
           </SelectValue>
