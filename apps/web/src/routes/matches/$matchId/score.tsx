@@ -3,11 +3,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowLeftIcon,
   CheckIcon,
-  PencilIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
   PlayIcon,
   TargetIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -29,6 +30,7 @@ import {
 import { cn } from "@/lib/utils";
 import ScoreABall, {
   type DeliveryDraft,
+  type MatchFlags,
   type ScoringPlayerOption,
 } from "@/routes/matches/$matchId/-components/score-a-ball";
 import {
@@ -110,6 +112,13 @@ interface SessionDelivery {
   totalRuns: number;
   wicketType: null | string;
   wideRuns: number;
+}
+
+export type DeliveryChipTone = "default" | "scoring" | "wicket";
+
+interface DeliveryOverGroup {
+  deliveries: SessionDelivery[];
+  overNumber: number;
 }
 
 type ScoringSessionMutationResult = Awaited<
@@ -297,6 +306,81 @@ function formatOvers(balls: number, ballsPerOver: number) {
   return `${Math.floor(balls / ballsPerOver)}.${balls % ballsPerOver}`;
 }
 
+export function groupDeliveriesByOver(deliveries: SessionDelivery[]) {
+  const groupedDeliveries = new Map<number, SessionDelivery[]>();
+
+  for (const delivery of deliveries) {
+    const deliveriesForOver = groupedDeliveries.get(delivery.overNumber) ?? [];
+    deliveriesForOver.push(delivery);
+    groupedDeliveries.set(delivery.overNumber, deliveriesForOver);
+  }
+
+  return Array.from(groupedDeliveries.entries()).map(
+    ([overNumber, deliveriesForOver]) =>
+      ({
+        overNumber,
+        deliveries: deliveriesForOver,
+      }) satisfies DeliveryOverGroup
+  );
+}
+
+export function getDeliveryChipTone(
+  delivery: Pick<SessionDelivery, "isWicket" | "totalRuns">
+): DeliveryChipTone {
+  if (delivery.isWicket) {
+    return "wicket";
+  }
+
+  if (delivery.totalRuns === 0) {
+    return "default";
+  }
+
+  return "scoring";
+}
+
+function getDeliveryChipLabel(delivery: SessionDelivery) {
+  if (delivery.isWicket) {
+    return "W";
+  }
+
+  return String(delivery.totalRuns);
+}
+
+function getDeliveryChipClasses({
+  isSelected,
+  tone,
+}: {
+  isSelected: boolean;
+  tone: DeliveryChipTone;
+}) {
+  let toneClasses =
+    "border-border/70 bg-background text-foreground hover:border-primary/40";
+
+  if (tone === "wicket") {
+    toneClasses =
+      "border-destructive/40 bg-destructive text-destructive-foreground hover:bg-destructive/90";
+  } else if (tone === "scoring") {
+    toneClasses =
+      "border-primary/30 bg-primary text-primary-foreground hover:bg-primary/90";
+  }
+
+  let selectedClasses: null | string = null;
+
+  if (isSelected) {
+    if (tone === "wicket") {
+      selectedClasses = "ring-2 ring-destructive/30 ring-offset-2";
+    } else {
+      selectedClasses = "ring-2 ring-primary/30 ring-offset-2";
+    }
+  }
+
+  return cn(
+    "flex size-11 items-center justify-center rounded-full border text-center font-semibold text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+    toneClasses,
+    selectedClasses
+  );
+}
+
 function renderDeliveryLabel(delivery: SessionDelivery) {
   const parts: string[] = [];
 
@@ -338,6 +422,139 @@ function resolveLineupPlayersByTeam(params: {
   }
 
   return [] as SessionLineupPlayer[];
+}
+
+function DeliveryChipButton({
+  delivery,
+  isSelected,
+  onSelectDelivery,
+}: {
+  delivery: SessionDelivery;
+  isSelected: boolean;
+  onSelectDelivery: (deliveryId: number) => void;
+}) {
+  const tone = getDeliveryChipTone(delivery);
+
+  return (
+    <button
+      aria-label={`Edit over ${delivery.overNumber - 1}.${delivery.ballInOver}: ${renderDeliveryLabel(delivery)}`}
+      className={getDeliveryChipClasses({ isSelected, tone })}
+      onClick={() => onSelectDelivery(delivery.id)}
+      title={renderDeliveryLabel(delivery)}
+      type="button"
+    >
+      {getDeliveryChipLabel(delivery)}
+    </button>
+  );
+}
+
+export function DeliveryTimelineCard({
+  actions,
+  deliveries,
+  isDesktop,
+  isExpanded,
+  onToggleExpanded,
+  onSelectDelivery,
+  selectedDeliveryId,
+}: {
+  actions?: ReactNode;
+  deliveries: SessionDelivery[];
+  isDesktop: boolean;
+  isExpanded: boolean;
+  onSelectDelivery: (deliveryId: number) => void;
+  onToggleExpanded: () => void;
+  selectedDeliveryId: number | null;
+}) {
+  const groupedDeliveries = groupDeliveriesByOver(deliveries);
+  const summaryLabel =
+    deliveries.length === 0
+      ? "No deliveries recorded yet."
+      : `${deliveries.length} deliveries across ${groupedDeliveries.length} overs.`;
+  let timelineContent: ReactNode;
+
+  if (!isExpanded) {
+    timelineContent = (
+      <div className="mt-4 rounded-[1.35rem] border border-border/60 border-dashed bg-muted/10 px-4 py-3 text-muted-foreground text-sm">
+        {isDesktop
+          ? "Timeline hidden. Expand it when you need to review or edit a delivery."
+          : "Timeline collapsed so the live scoring card stays in reach."}
+      </div>
+    );
+  } else if (deliveries.length === 0) {
+    timelineContent = (
+      <p className="mt-4 text-muted-foreground text-sm">
+        No deliveries recorded yet. Score the first delivery to start the
+        innings timeline.
+      </p>
+    );
+  } else {
+    timelineContent = (
+      <div className="mt-4 space-y-3">
+        {groupedDeliveries.map((overGroup) => (
+          <div
+            className="rounded-[1.4rem] border border-border/60 bg-muted/10 px-4 py-3"
+            key={overGroup.overNumber}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="font-medium text-sm">
+                  Over {overGroup.overNumber - 1}
+                </p>
+                <p className="text-muted-foreground text-xs">
+                  {overGroup.deliveries.length} ball
+                  {overGroup.deliveries.length === 1 ? "" : "s"}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {overGroup.deliveries.map((delivery) => (
+                  <DeliveryChipButton
+                    delivery={delivery}
+                    isSelected={selectedDeliveryId === delivery.id}
+                    key={delivery.id}
+                    onSelectDelivery={onSelectDelivery}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <section className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <p className="text-muted-foreground text-xs uppercase tracking-[0.22em]">
+            Timeline
+          </p>
+          <h2 className="font-medium text-xl">Deliveries this innings</h2>
+          <p className="text-muted-foreground text-sm">{summaryLabel}</p>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {actions}
+          <Button
+            aria-expanded={isExpanded}
+            className="rounded-2xl"
+            onClick={onToggleExpanded}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            {isExpanded ? (
+              <ChevronUpIcon className="mr-2 size-4" />
+            ) : (
+              <ChevronDownIcon className="mr-2 size-4" />
+            )}
+            {isExpanded ? "Hide timeline" : "Show timeline"}
+          </Button>
+        </div>
+      </div>
+      {timelineContent}
+    </section>
+  );
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: The scoring route coordinates multiple setup and scoring phases in one screen.
@@ -396,6 +613,8 @@ function RouteComponent() {
     number | null
   >(null);
   const [draft, setDraft] = useState<DeliveryDraft | null>(null);
+  const [isDesktopTimeline, setIsDesktopTimeline] = useState(false);
+  const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
 
   const invalidateScoringQueries = async () => {
     const tasks = [
@@ -474,6 +693,25 @@ function RouteComponent() {
     options?.trace?.markCacheUpdated();
     queueBackgroundRefresh(refreshTasks, options?.trace);
   };
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
+    const syncTimelineViewport = () => {
+      setIsDesktopTimeline(mediaQuery.matches);
+      setIsTimelineExpanded(mediaQuery.matches);
+    };
+
+    syncTimelineViewport();
+    mediaQuery.addEventListener("change", syncTimelineViewport);
+
+    return () => {
+      mediaQuery.removeEventListener("change", syncTimelineViewport);
+    };
+  }, []);
 
   useEffect(() => {
     setTeam1Selection(normalizeSelection(scoringSetup?.savedLineup?.team1));
@@ -780,6 +1018,15 @@ function RouteComponent() {
   const currentInnings = scoringSetup?.currentInnings ?? null;
   const currentDeliveries = (currentInnings?.deliveries ??
     []) as SessionDelivery[];
+  const matchFlags: MatchFlags = {
+    hasBoundaryOut: Boolean(match?.hasBoundaryOut),
+    hasBye: Boolean(match?.hasBye),
+    hasLBW: Boolean(match?.hasLBW),
+    hasLegBye: Boolean(match?.hasLegBye),
+    hasNoBalls: Boolean(match?.hasNoBalls),
+    hasPenaltyRuns: Boolean(match?.hasPenaltyRuns),
+    hasWides: Boolean(match?.hasWides),
+  };
   const editingDelivery =
     currentDeliveries.find((delivery) => delivery.id === selectedDeliveryId) ??
     null;
@@ -871,6 +1118,21 @@ function RouteComponent() {
   const fallbackDraft = buildDraftFromEntryContext(
     scoringSetup?.entryContext as SessionEntryContext
   );
+  const handleRecordDeliveryView = () => {
+    setSelectedDeliveryId(null);
+
+    if (!isDesktopTimeline) {
+      setIsTimelineExpanded(false);
+    }
+  };
+
+  const handleSelectDelivery = (deliveryId: number) => {
+    setSelectedDeliveryId(deliveryId);
+
+    if (!isDesktopTimeline) {
+      setIsTimelineExpanded(false);
+    }
+  };
 
   const submitDraft = async () => {
     if (!draft) {
@@ -1034,55 +1296,62 @@ function RouteComponent() {
           </div>
         </header>
 
-        <section className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]">
-          <div className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
-            <div className="grid gap-4 md:grid-cols-3">
-              <ScoreboardCard label="Match Status" value={matchStatusLabel} />
-              <ScoreboardCard
-                label="Current Score"
-                value={
-                  selectedInningsSummary
-                    ? `${selectedInningsSummary.totalScore}/${selectedInningsSummary.wickets}`
-                    : "0/0"
-                }
-              />
-              <ScoreboardCard
-                label="Overs"
-                value={
-                  selectedInningsSummary
-                    ? formatOvers(
-                        selectedInningsSummary.ballsBowled ?? 0,
-                        scoringSetup.matchRules?.ballsPerOver ?? 6
-                      )
-                    : "0.0"
-                }
-              />
+        {scoringPhase === "scoring" ? null : (
+          <section className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]">
+            <div className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
+              <div className="grid gap-4 md:grid-cols-3">
+                <ScoreboardCard label="Match Status" value={matchStatusLabel} />
+                <ScoreboardCard
+                  label="Current Score"
+                  value={
+                    selectedInningsSummary ? (
+                      <ScoreWithWickets
+                        score={selectedInningsSummary.totalScore}
+                        wickets={selectedInningsSummary.wickets}
+                      />
+                    ) : (
+                      "0/0"
+                    )
+                  }
+                />
+                <ScoreboardCard
+                  label="Overs"
+                  value={
+                    selectedInningsSummary
+                      ? formatOvers(
+                          selectedInningsSummary.ballsBowled ?? 0,
+                          scoringSetup.matchRules?.ballsPerOver ?? 6
+                        )
+                      : "0.0"
+                  }
+                />
+              </div>
             </div>
-          </div>
 
-          <aside className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
-            <h2 className="font-medium text-lg">Match details</h2>
-            <div className="mt-4 space-y-3 text-sm">
-              <MatchFrameRow label="Format" value={match.format} />
-              <MatchFrameRow
-                label="Match rules"
-                value={`${match.oversPerSide} overs per innings • ${match.inningsPerSide} innings`}
-              />
-              <MatchFrameRow
-                label="Toss"
-                value={
-                  typeof match.tossWinnerId === "number"
-                    ? `${
-                        match.tossWinnerId === match.team1Id
-                          ? team1ShortName
-                          : team2ShortName
-                      } chose ${match.tossDecision ?? "to play"}`
-                    : "Pending"
-                }
-              />
-            </div>
-          </aside>
-        </section>
+            <aside className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
+              <h2 className="font-medium text-lg">Match details</h2>
+              <div className="mt-4 space-y-3 text-sm">
+                <MatchFrameRow label="Format" value={match.format} />
+                <MatchFrameRow
+                  label="Match rules"
+                  value={`${match.oversPerSide} overs per innings • ${match.inningsPerSide} innings`}
+                />
+                <MatchFrameRow
+                  label="Toss"
+                  value={
+                    typeof match.tossWinnerId === "number"
+                      ? `${
+                          match.tossWinnerId === match.team1Id
+                            ? team1ShortName
+                            : team2ShortName
+                        } chose ${match.tossDecision ?? "to play"}`
+                      : "Pending"
+                  }
+                />
+              </div>
+            </aside>
+          </section>
+        )}
 
         {scoringPhase === "lineup" ? (
           <section className="space-y-5 rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
@@ -1395,7 +1664,7 @@ function RouteComponent() {
         ) : null}
 
         {scoringPhase === "scoring" && currentInnings ? (
-          <section className="grid gap-5 lg:grid-cols-[minmax(0,0.92fr)_minmax(420px,1.08fr)]">
+          <section className="grid gap-5 lg:grid-cols-[minmax(0,0.82fr)_minmax(420px,1.18fr)]">
             <div className="space-y-5">
               <section className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1405,7 +1674,10 @@ function RouteComponent() {
                     </p>
                     <h2 className="font-semibold text-2xl">
                       {currentInnings.battingTeam?.shortName ?? "BAT"}{" "}
-                      {currentInnings.totalScore}/{currentInnings.wickets}
+                      <ScoreWithWickets
+                        score={currentInnings.totalScore}
+                        wickets={currentInnings.wickets}
+                      />
                     </h2>
                   </div>
                   {typeof currentInnings.targetRuns === "number" ? (
@@ -1434,20 +1706,12 @@ function RouteComponent() {
                 </div>
               </section>
 
-              <section className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="text-muted-foreground text-xs uppercase tracking-[0.22em]">
-                      Timeline
-                    </p>
-                    <h2 className="font-medium text-xl">
-                      Deliveries this innings
-                    </h2>
-                  </div>
-                  <div className="flex gap-2">
+              <DeliveryTimelineCard
+                actions={
+                  <>
                     <Button
                       className="rounded-2xl"
-                      onClick={() => setSelectedDeliveryId(null)}
+                      onClick={handleRecordDeliveryView}
                       size="sm"
                       type="button"
                       variant={
@@ -1466,44 +1730,19 @@ function RouteComponent() {
                     >
                       End innings
                     </Button>
-                  </div>
-                </div>
+                  </>
+                }
+                deliveries={currentDeliveries}
+                isDesktop={isDesktopTimeline}
+                isExpanded={isTimelineExpanded}
+                onSelectDelivery={handleSelectDelivery}
+                onToggleExpanded={() =>
+                  setIsTimelineExpanded((previous) => !previous)
+                }
+                selectedDeliveryId={selectedDeliveryId}
+              />
 
-                {currentDeliveries.length === 0 ? (
-                  <p className="mt-4 text-muted-foreground text-sm">
-                    No deliveries recorded yet. Score the first delivery to
-                    start the innings timeline.
-                  </p>
-                ) : (
-                  <div className="mt-4 space-y-2">
-                    {currentDeliveries.map((delivery) => (
-                      <button
-                        className={cn(
-                          "flex w-full items-center justify-between rounded-[1.2rem] border px-3 py-3 text-left transition-colors",
-                          selectedDeliveryId === delivery.id
-                            ? "border-primary bg-primary/8"
-                            : "border-border/60 bg-muted/15 hover:border-primary/35"
-                        )}
-                        key={delivery.id}
-                        onClick={() => setSelectedDeliveryId(delivery.id)}
-                        type="button"
-                      >
-                        <div className="space-y-1">
-                          <p className="font-medium text-sm">
-                            Over {delivery.overNumber - 1}.{delivery.ballInOver}
-                          </p>
-                          <p className="text-muted-foreground text-sm">
-                            {renderDeliveryLabel(delivery)}
-                          </p>
-                        </div>
-                        <PencilIcon className="size-4 text-muted-foreground" />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              <section className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
+              <section className="rounded-[2rem] border border-border/60 bg-muted/5 p-4 shadow-none">
                 <div className="flex items-center gap-2">
                   <TargetIcon className="size-4 text-muted-foreground" />
                   <h2 className="font-medium text-lg">Innings summary</h2>
@@ -1520,7 +1759,10 @@ function RouteComponent() {
                         </p>
                         <p className="text-muted-foreground text-sm">
                           {innings.battingTeam?.shortName ?? "BAT"}{" "}
-                          {innings.totalScore}/{innings.wickets}
+                          <ScoreWithWickets
+                            score={innings.totalScore}
+                            wickets={innings.wickets}
+                          />
                         </p>
                       </div>
                       <p className="mt-1 text-muted-foreground text-xs">
@@ -1540,13 +1782,7 @@ function RouteComponent() {
             {(draft ?? fallbackDraft) ? (
               <div className="lg:sticky lg:top-4 lg:self-start">
                 <ScoreABall
-                  battingLabel={
-                    currentInnings.battingTeam?.shortName ?? team1ShortName
-                  }
                   battingPlayers={battingPlayers}
-                  bowlingLabel={
-                    currentInnings.bowlingTeam?.shortName ?? team2ShortName
-                  }
                   bowlingPlayers={bowlingPlayers}
                   currentBallLabel={currentBallLabel}
                   draft={(draft ?? fallbackDraft) as DeliveryDraft}
@@ -1557,15 +1793,7 @@ function RouteComponent() {
                     updateDeliveryMutation.isPending ||
                     deleteDeliveryMutation.isPending
                   }
-                  matchFlags={{
-                    hasBoundaryOut: Boolean(match.hasBoundaryOut),
-                    hasBye: Boolean(match.hasBye),
-                    hasLBW: Boolean(match.hasLBW),
-                    hasLegBye: Boolean(match.hasLegBye),
-                    hasNoBalls: Boolean(match.hasNoBalls),
-                    hasPenaltyRuns: Boolean(match.hasPenaltyRuns),
-                    hasWides: Boolean(match.hasWides),
-                  }}
+                  matchFlags={matchFlags}
                   onChange={(patch) =>
                     setDraft((previous) =>
                       previous ? { ...previous, ...patch } : previous
@@ -1613,7 +1841,11 @@ function RouteComponent() {
                   </p>
                   <p className="mt-1 text-muted-foreground text-sm">
                     {innings.battingTeam?.shortName ?? "BAT"}{" "}
-                    {innings.totalScore}/{innings.wickets} in{" "}
+                    <ScoreWithWickets
+                      score={innings.totalScore}
+                      wickets={innings.wickets}
+                    />{" "}
+                    in{" "}
                     {formatOvers(
                       innings.ballsBowled,
                       scoringSetup.matchRules.ballsPerOver
@@ -1666,7 +1898,25 @@ function RouteComponent() {
   );
 }
 
-function ScoreboardCard({ label, value }: { label: string; value: string }) {
+function ScoreWithWickets({
+  score,
+  wickets,
+}: {
+  score: number;
+  wickets: number;
+}) {
+  return (
+    <span>
+      <span>{score}</span>
+      <span className="text-muted-foreground">/</span>
+      <span className={wickets > 0 ? "text-destructive" : undefined}>
+        {wickets}
+      </span>
+    </span>
+  );
+}
+
+function ScoreboardCard({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="rounded-[1.35rem] border border-border/60 bg-muted/10 px-4 py-3">
       <p className="text-muted-foreground text-xs uppercase tracking-[0.22em]">

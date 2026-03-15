@@ -5,10 +5,19 @@ import { createTanstackQueryUtils } from "@orpc/tanstack-query";
 import { QueryCache, QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-const rpcUrl =
-  typeof window === "undefined"
-    ? "/rpc"
-    : new URL("/rpc", window.location.origin).toString();
+function resolveRpcUrl() {
+  if (typeof window === "undefined") {
+    return "/rpc";
+  }
+
+  try {
+    return new URL("/rpc", window.location.href).toString();
+  } catch {
+    return "http://localhost/rpc";
+  }
+}
+
+const rpcUrl = resolveRpcUrl();
 
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
