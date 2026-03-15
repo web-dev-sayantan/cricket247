@@ -90,7 +90,7 @@ describe("ScoreABall", () => {
           byeRuns: 0,
           legByeRuns: 0,
           penaltyRuns: 0,
-          wicketType: '',
+          wicketType: "",
           dismissedPlayerId: null,
           assistedById: null,
         }}
@@ -116,8 +116,8 @@ describe("ScoreABall", () => {
       />
     );
 
-    expect(getByText('A One')).toBeTruthy();
-    expect(getByText('A Two')).toBeTruthy();
-    expect(getByText('B One')).toBeTruthy();
+    expect(getByText("A One")).toBeTruthy();
+    expect(getByText("A Two")).toBeTruthy();
+    expect(getByText("B One")).toBeTruthy();
   });
 });

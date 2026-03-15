@@ -1286,7 +1286,7 @@ export function TournamentWizardForm(props: TournamentWizardFormProps) {
               {values.teams.createTeams.map((team, index) => (
                 <div
                   className="flex items-center justify-between rounded border px-3 py-2"
-                  key={`${team.name}-${team.shortName}-${index}`}
+                  key={`${team.name}-${team.shortName}`}
                 >
                   <div>
                     <p className="font-medium text-sm">{team.name}</p>

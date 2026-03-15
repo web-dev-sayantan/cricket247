@@ -1,5 +1,5 @@
 import type { WicketType } from "@cricket247/server/types";
-import { AlertCircleIcon, RotateCcwIcon, Trash2Icon } from "lucide-react";
+import { RotateCcwIcon, Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
