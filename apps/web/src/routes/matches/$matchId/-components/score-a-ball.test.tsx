@@ -49,18 +49,22 @@ const allMatchFlags: MatchFlags = {
 function renderScoreABall(
   overrides?: Partial<{
     draft: DeliveryDraft;
+    isEditing: boolean;
     matchFlags: MatchFlags;
     onChange: ReturnType<typeof mock>;
+    onDiscardEdit: ReturnType<typeof mock>;
     onReset: ReturnType<typeof mock>;
     onSubmit: ReturnType<typeof mock>;
   }>
 ) {
   const onChange = overrides?.onChange ?? mock(() => undefined);
+  const onDiscardEdit = overrides?.onDiscardEdit ?? mock(() => undefined);
   const onReset = overrides?.onReset ?? mock(() => undefined);
   const onSubmit = overrides?.onSubmit ?? mock(() => undefined);
 
   return {
     onChange,
+    onDiscardEdit,
     onReset,
     onSubmit,
     ...renderWithProviders(
@@ -70,9 +74,10 @@ function renderScoreABall(
         currentBallLabel="Over 4.2"
         draft={overrides?.draft ?? baseDraft}
         fieldingOptions={bowlingPlayers}
-        isEditing={false}
+        isEditing={overrides?.isEditing ?? false}
         matchFlags={overrides?.matchFlags ?? allMatchFlags}
         onChange={onChange}
+        onDiscardEdit={onDiscardEdit}
         onReset={onReset}
         onSubmit={onSubmit}
         requiredSelections={{
@@ -95,6 +100,41 @@ describe("ScoreABall", () => {
     expect(onReset).toHaveBeenCalledTimes(1);
     expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("shows discard edit only while editing and exits edit mode", () => {
+    const { getByRole, onDiscardEdit, queryByRole, rerender } =
+      renderScoreABall({
+        isEditing: true,
+      });
+
+    expect(getByRole("button", { name: "Discard edit" })).toBeTruthy();
+
+    fireEvent.click(getByRole("button", { name: "Discard edit" }));
+
+    expect(onDiscardEdit).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <ScoreABall
+        battingPlayers={battingPlayers}
+        bowlingPlayers={bowlingPlayers}
+        currentBallLabel="Over 4.2"
+        draft={baseDraft}
+        fieldingOptions={bowlingPlayers}
+        isEditing={false}
+        matchFlags={allMatchFlags}
+        onChange={mock(() => undefined)}
+        onReset={mock(() => undefined)}
+        onSubmit={mock(() => undefined)}
+        requiredSelections={{
+          striker: false,
+          nonStriker: false,
+          bowler: false,
+        }}
+      />
+    );
+
+    expect(queryByRole("button", { name: "Discard edit" })).toBeNull();
   });
 
   it("only exposes extras that are enabled for the match", () => {

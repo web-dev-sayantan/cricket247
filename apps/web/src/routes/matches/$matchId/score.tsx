@@ -1747,6 +1747,9 @@ function RouteComponent() {
                       ? () => deleteDeliveryMutation.mutate(editingDelivery.id)
                       : undefined
                   }
+                  onDiscardEdit={
+                    editingDelivery ? handleRecordDeliveryView : undefined
+                  }
                   onReset={resetDraft}
                   onSubmit={submitDraft}
                   requiredSelections={{

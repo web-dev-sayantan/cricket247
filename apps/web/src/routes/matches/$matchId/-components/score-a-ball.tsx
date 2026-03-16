@@ -15,6 +15,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 export interface ScoringPlayerOption {
@@ -68,6 +73,7 @@ interface ScoreABallProps {
   matchFlags: MatchFlags;
   onChange: (patch: Partial<DeliveryDraft>) => void;
   onDelete?: () => void;
+  onDiscardEdit?: () => void;
   onReset: () => void;
   onSubmit: () => void;
   requiredSelections: {
@@ -186,6 +192,7 @@ function ScoreABall({
   isEditing,
   isSubmitting,
   onChange,
+  onDiscardEdit,
   onDelete,
   onReset,
   onSubmit,
@@ -621,14 +628,38 @@ function ScoreABall({
 
         {/* Action buttons */}
         <div className="space-y-2">
-          <Button
-            className="h-14 w-full rounded-2xl font-semibold text-base [&_svg]:shrink-0"
-            disabled={isSubmitting}
-            onClick={onSubmit}
-            type="button"
-          >
-            {submitLabel}
-          </Button>
+          <div className="md:flex md:items-center md:justify-between md:gap-2">
+            <Button
+              className="h-14 flex-1 rounded-2xl font-semibold text-base [&_svg]:shrink-0"
+              disabled={isSubmitting}
+              onClick={onSubmit}
+              type="button"
+            >
+              {submitLabel}
+            </Button>
+
+            {isEditing && onDiscardEdit ? (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      className="h-12 rounded-2xl"
+                      disabled={isSubmitting}
+                      onClick={onDiscardEdit}
+                      title="Back to Latest Delivery"
+                      type="button"
+                      variant="destructive"
+                    >
+                      Discard edit
+                    </Button>
+                  }
+                />
+                <TooltipContent side="top">
+                  Back to Latest Delivery
+                </TooltipContent>
+              </Tooltip>
+            ) : null}
+          </div>
 
           <div className="grid grid-cols-2 gap-2">
             <Button
