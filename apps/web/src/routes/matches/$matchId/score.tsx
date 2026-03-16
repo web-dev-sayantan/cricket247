@@ -265,6 +265,62 @@ function toPlayerOptions(
   }));
 }
 
+export function resolveScoringBattingOptions(params: {
+  availableBatters: ScoringPlayerOption[];
+  battingLineup: ScoringPlayerOption[];
+  currentDeliveries: Pick<
+    SessionDelivery,
+    "dismissedPlayerId" | "isWicket" | "sequenceNo"
+  >[];
+  draft: null | Pick<DeliveryDraft, "nonStrikerId" | "strikerId">;
+  editingDelivery: null | Pick<
+    SessionDelivery,
+    "nonStrikerId" | "sequenceNo" | "strikerId"
+  >;
+}): ScoringPlayerOption[] {
+  const eligibleBatterIds = new Set<number>();
+
+  const editingDelivery = params.editingDelivery;
+
+  if (editingDelivery) {
+    const dismissedBeforeEdit = new Set(
+      params.currentDeliveries
+        .filter(
+          (delivery) =>
+            delivery.sequenceNo < editingDelivery.sequenceNo &&
+            delivery.isWicket &&
+            typeof delivery.dismissedPlayerId === "number"
+        )
+        .map((delivery) => delivery.dismissedPlayerId as number)
+    );
+
+    for (const player of params.battingLineup) {
+      if (!dismissedBeforeEdit.has(player.id)) {
+        eligibleBatterIds.add(player.id);
+      }
+    }
+
+    eligibleBatterIds.add(editingDelivery.strikerId);
+    eligibleBatterIds.add(editingDelivery.nonStrikerId);
+  } else {
+    for (const player of params.availableBatters) {
+      eligibleBatterIds.add(player.id);
+    }
+
+    if (typeof params.draft?.strikerId === "number") {
+      eligibleBatterIds.add(params.draft.strikerId);
+    }
+
+    if (typeof params.draft?.nonStrikerId === "number") {
+      eligibleBatterIds.add(params.draft.nonStrikerId);
+    }
+  }
+
+  return params.battingLineup.filter((player) =>
+    eligibleBatterIds.has(player.id)
+  );
+}
+
 function buildDraftFromEntryContext(
   entryContext: SessionEntryContext
 ): DeliveryDraft | null {
@@ -284,7 +340,7 @@ function buildDraftFromEntryContext(
     legByeRuns: 0,
     penaltyRuns: 0,
     wicketType: "",
-    dismissedPlayerId: entryContext.dismissedPlayerId,
+    dismissedPlayerId: null,
     assistedById: null,
   };
 }
@@ -304,6 +360,30 @@ function buildDraftFromDelivery(delivery: SessionDelivery): DeliveryDraft {
     wicketType: (delivery.wicketType as DeliveryDraft["wicketType"]) ?? "",
     dismissedPlayerId: delivery.dismissedPlayerId,
     assistedById: delivery.assistedBy?.id ?? delivery.assistedById ?? null,
+  };
+}
+
+function buildDeliveryMutationPayload(payload: DeliveryDraft) {
+  const wicketType = payload.wicketType || undefined;
+
+  return {
+    inningsId: payload.inningsId,
+    strikerId: payload.strikerId as number,
+    nonStrikerId: payload.nonStrikerId as number,
+    bowlerId: payload.bowlerId as number,
+    batterRuns: payload.batterRuns,
+    wideRuns: payload.wideRuns,
+    noBallRuns: payload.noBallRuns,
+    byeRuns: payload.byeRuns,
+    legByeRuns: payload.legByeRuns,
+    penaltyRuns: payload.penaltyRuns,
+    wicketType,
+    ...(wicketType
+      ? {
+          dismissedPlayerId: payload.dismissedPlayerId,
+          assistedById: payload.assistedById,
+        }
+      : {}),
   };
 }
 
@@ -894,21 +974,7 @@ function RouteComponent() {
 
   const recordDeliveryMutation = useMutation({
     mutationFn: async (payload: DeliveryDraft) =>
-      client.recordScoringDelivery({
-        inningsId: payload.inningsId,
-        strikerId: payload.strikerId as number,
-        nonStrikerId: payload.nonStrikerId as number,
-        bowlerId: payload.bowlerId as number,
-        batterRuns: payload.batterRuns,
-        wideRuns: payload.wideRuns,
-        noBallRuns: payload.noBallRuns,
-        byeRuns: payload.byeRuns,
-        legByeRuns: payload.legByeRuns,
-        penaltyRuns: payload.penaltyRuns,
-        wicketType: payload.wicketType || undefined,
-        dismissedPlayerId: payload.dismissedPlayerId,
-        assistedById: payload.assistedById,
-      }),
+      client.recordScoringDelivery(buildDeliveryMutationPayload(payload)),
     onSuccess: (session) => {
       const trace = activeSubmitTraceRef.current;
       toast.success("Delivery recorded");
@@ -930,19 +996,7 @@ function RouteComponent() {
     mutationFn: async (payload: DeliveryDraft & { deliveryId: number }) =>
       client.updateScoringDelivery({
         deliveryId: payload.deliveryId,
-        inningsId: payload.inningsId,
-        strikerId: payload.strikerId as number,
-        nonStrikerId: payload.nonStrikerId as number,
-        bowlerId: payload.bowlerId as number,
-        batterRuns: payload.batterRuns,
-        wideRuns: payload.wideRuns,
-        noBallRuns: payload.noBallRuns,
-        byeRuns: payload.byeRuns,
-        legByeRuns: payload.legByeRuns,
-        penaltyRuns: payload.penaltyRuns,
-        wicketType: payload.wicketType || undefined,
-        dismissedPlayerId: payload.dismissedPlayerId,
-        assistedById: payload.assistedById,
+        ...buildDeliveryMutationPayload(payload),
       }),
     onSuccess: (session) => {
       const trace = activeSubmitTraceRef.current;
@@ -1168,8 +1222,11 @@ function RouteComponent() {
     bowlingTeamId ??
     scoringSetup?.entryContext.bowlingTeamId ??
     null;
-
-  const battingPlayers = toPlayerOptions(
+  const fallbackDraft = buildDraftFromEntryContext(
+    scoringSetup?.entryContext as SessionEntryContext
+  );
+  const activeDraft = draft ?? fallbackDraft;
+  const battingLineup = toPlayerOptions(
     resolveLineupPlayersByTeam({
       teamId: activeBattingTeamId,
       team1Id: match?.team1Id,
@@ -1177,6 +1234,24 @@ function RouteComponent() {
       team2Id: match?.team2Id,
       team2Players: teamLineupPlayers.team2,
     })
+  );
+
+  const battingPlayers = useMemo(
+    () =>
+      resolveScoringBattingOptions({
+        availableBatters: toPlayerOptions(scoringSetup?.availableBatters ?? []),
+        battingLineup,
+        currentDeliveries,
+        draft: activeDraft,
+        editingDelivery,
+      }),
+    [
+      activeDraft,
+      battingLineup,
+      currentDeliveries,
+      editingDelivery,
+      scoringSetup,
+    ]
   );
   const bowlingPlayers = toPlayerOptions(
     resolveLineupPlayersByTeam({
@@ -1224,9 +1299,6 @@ function RouteComponent() {
   } else if (currentInnings) {
     matchStatusLabel = `Innings ${currentInnings.inningsNumber} in progress`;
   }
-  const fallbackDraft = buildDraftFromEntryContext(
-    scoringSetup?.entryContext as SessionEntryContext
-  );
   const handleRecordDeliveryView = () => {
     setSelectedDeliveryId(null);
 
@@ -1728,7 +1800,7 @@ function RouteComponent() {
                   battingPlayers={battingPlayers}
                   bowlingPlayers={bowlingPlayers}
                   currentBallLabel={currentBallLabel}
-                  draft={(draft ?? fallbackDraft) as DeliveryDraft}
+                  draft={activeDraft as DeliveryDraft}
                   fieldingOptions={bowlingPlayers}
                   isEditing={editingDelivery !== null}
                   isSubmitting={

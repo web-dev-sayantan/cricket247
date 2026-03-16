@@ -203,7 +203,15 @@ function ScoreABall({
     "run out",
     "stumped",
   ]);
-  const strikerOnlyDismissalTypes = new Set<WicketType>(["bowled", "lbw"]);
+  const strikerOnlyDismissalTypes = new Set<WicketType>([
+    "bowled",
+    "lbw",
+    "caught",
+    "hit wicket",
+    "caught and bowled",
+    "stumped",
+    "handled the ball",
+  ]);
   const visibleExtras = getVisibleExtras(matchFlags);
   const visibleDismissals = getVisibleDismissals(matchFlags);
   const commonDismissals = COMMON_DISMISSAL_TYPES.filter((type) =>

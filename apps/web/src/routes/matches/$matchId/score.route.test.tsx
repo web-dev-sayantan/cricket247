@@ -215,7 +215,7 @@ function createScoringSetup(phase: "inningsSetup" | "lineup" | "scoring") {
       battingTeamId: phase === "scoring" ? 1 : null,
       bowlerId: phase === "scoring" ? 21 : null,
       bowlingTeamId: phase === "scoring" ? 2 : null,
-      dismissedPlayerId: null,
+      dismissedPlayerId: null as null | number,
       inningsId: phase === "scoring" ? 501 : null,
       inningsNumber: phase === "scoring" ? 1 : null,
       nonStrikerId: phase === "scoring" ? 12 : null,
@@ -426,6 +426,46 @@ describe("score route pre-match extraction", () => {
         strikerId: 11,
         tossDecision: "bat",
         tossWinnerId: 1,
+      })
+    );
+  });
+
+  it("does not forward a dismissed player from the previous ball into the next delivery", async () => {
+    const scoringSetup = createScoringSetup("scoring");
+
+    currentScoringSetup = {
+      ...scoringSetup,
+      entryContext: {
+        ...scoringSetup.entryContext,
+        dismissedPlayerId: 63 as number | null,
+      },
+    };
+
+    const { findAllByRole } = await renderScoreRoute();
+    const recordButtons = await findAllByRole("button", {
+      name: "Record delivery",
+    });
+    const scoringButton = recordButtons.at(-1);
+
+    if (!scoringButton) {
+      throw new Error("Scoring submit button not found");
+    }
+
+    fireEvent.click(scoringButton);
+
+    await waitFor(() =>
+      expect(recordScoringDelivery).toHaveBeenCalledWith({
+        inningsId: 501,
+        strikerId: 11,
+        nonStrikerId: 12,
+        bowlerId: 21,
+        batterRuns: 0,
+        wideRuns: 0,
+        noBallRuns: 0,
+        byeRuns: 0,
+        legByeRuns: 0,
+        penaltyRuns: 0,
+        wicketType: undefined,
       })
     );
   });
