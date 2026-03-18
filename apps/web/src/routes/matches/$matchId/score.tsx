@@ -35,16 +35,16 @@ import ScoreABall, {
   type ScoringPlayerOption,
 } from "@/routes/matches/$matchId/-components/score-a-ball";
 import type { TossPhaseCardProps } from "@/routes/matches/$matchId/-components/toss-phase-card";
+import type {
+  PreMatchPhase,
+  RosterPlayer,
+  TeamSelection,
+} from "@/routes/matches/$matchId/-pre-match-types";
 import {
   applyScoringSessionMutationResult,
   buildBackgroundScoreRefreshQueries,
 } from "@/routes/matches/$matchId/-score-mutation-utils";
 import { resolveBattingAndBowlingTeamIds } from "@/routes/matches/$matchId/-scoring-flow";
-import type {
-  PreMatchPhase,
-  RosterPlayer,
-  TeamSelection,
-} from "@/routes/matches/$matchId/pre-match-types";
 import { client, orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/matches/$matchId/score")({
@@ -695,17 +695,15 @@ export function DeliveryTimelineCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="text-muted-foreground text-xs uppercase tracking-[0.22em]">
-            Timeline
+            Over by Over Timeline
           </p>
-          <h2 className="font-medium text-xl">Deliveries this innings</h2>
-          <p className="text-muted-foreground text-sm">{summaryLabel}</p>
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-2">
           {actions}
           <Button
             aria-expanded={isExpanded}
-            className="rounded-2xl"
+            className="rounded-xl"
             onClick={onToggleExpanded}
             size="sm"
             type="button"
@@ -1648,17 +1646,13 @@ function RouteComponent() {
                   ) : null}
                 </div>
 
-                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
                   <ScoreboardCard
                     label="Overs"
                     value={formatOvers(
                       currentInnings.ballsBowled,
                       scoringSetup.matchRules.ballsPerOver
                     )}
-                  />
-                  <ScoreboardCard
-                    label="Next ball"
-                    value={`${scoringSetup.entryContext.overNumber - 1}.${scoringSetup.entryContext.ballInOver}`}
                   />
                   <ScoreboardCard
                     label="Batting side"
@@ -1671,7 +1665,7 @@ function RouteComponent() {
                 actions={
                   <>
                     <Button
-                      className="rounded-2xl"
+                      className="rounded-xl"
                       onClick={handleRecordDeliveryView}
                       size="sm"
                       type="button"
@@ -1682,7 +1676,7 @@ function RouteComponent() {
                       Record delivery
                     </Button>
                     <Button
-                      className="rounded-2xl"
+                      className="rounded-xl"
                       disabled={closeInningsMutation.isPending}
                       onClick={() => handleCloseInnings(currentInnings.id)}
                       size="sm"

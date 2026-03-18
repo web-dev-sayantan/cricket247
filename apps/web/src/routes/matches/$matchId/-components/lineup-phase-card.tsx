@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import type {
   RosterPlayer,
   TeamSelection,
-} from "@/routes/matches/$matchId/pre-match-types";
+} from "@/routes/matches/$matchId/-pre-match-types";
 
 export interface LineupPhaseCardProps {
   isLineupValid: boolean;

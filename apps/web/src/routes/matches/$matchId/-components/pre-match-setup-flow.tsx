@@ -10,7 +10,7 @@ import {
   TossPhaseCard,
   type TossPhaseCardProps,
 } from "@/routes/matches/$matchId/-components/toss-phase-card";
-import type { PreMatchPhase } from "@/routes/matches/$matchId/pre-match-types";
+import type { PreMatchPhase } from "@/routes/matches/$matchId/-pre-match-types";
 
 interface PreMatchSetupFlowProps {
   inningsSetup: InningsSetupPhaseCardProps;

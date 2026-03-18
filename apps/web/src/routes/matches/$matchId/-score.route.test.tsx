@@ -342,7 +342,7 @@ async function renderScoreRoute(): Promise<RenderResult & { router: unknown }> {
   });
   let renderResult: null | RenderResult = null;
 
-  await act(async () => {
+  act(() => {
     renderResult = render(<routerModule.RouterProvider router={router} />);
   });
 
