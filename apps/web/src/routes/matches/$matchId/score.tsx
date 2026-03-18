@@ -131,8 +131,9 @@ function MatchScoringLoadingSkeleton() {
     "score",
     "result",
   ] as const;
-  const loadingScoreCardKeys = ["status", "score", "overs"] as const;
-  const loadingDetailKeys = ["format", "rules", "toss"] as const;
+  const loadingOverKeys = ["over1", "over2", "over3"] as const;
+  const loadingDeliveryChipKeys = ["d1", "d2", "d3", "d4", "d5", "d6"] as const;
+  const loadingBatRunKeys = [0, 1, 2, 3, 4, 5] as const;
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(216,180,80,0.14),transparent_30%),linear-gradient(180deg,rgba(255,248,233,0.55),transparent_28%),var(--background)] pb-24">
@@ -164,53 +165,117 @@ function MatchScoringLoadingSkeleton() {
           </div>
         </section>
 
-        <section className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]">
-          <div className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
-            <div className="grid gap-4 md:grid-cols-3">
-              {loadingScoreCardKeys.map((cardKey) => (
-                <div
-                  className="space-y-3 rounded-[1.5rem] border p-4"
-                  key={cardKey}
-                >
-                  <Skeleton className="h-3 w-24 rounded-full" />
-                  <Skeleton className="h-8 w-28 rounded-2xl" />
+        <section className="grid gap-5 lg:grid-cols-[minmax(0,0.82fr)_minmax(420px,1.18fr)]">
+          {/* Left column: innings info + timeline */}
+          <div className="space-y-5">
+            <div className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-32 rounded-full" />
+                  <Skeleton className="h-8 w-40 rounded-2xl" />
                 </div>
-              ))}
+              </div>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <div className="space-y-3 rounded-[1.5rem] border p-4">
+                  <Skeleton className="h-3 w-16 rounded-full" />
+                  <Skeleton className="h-7 w-20 rounded-2xl" />
+                </div>
+                <div className="space-y-3 rounded-[1.5rem] border p-4">
+                  <Skeleton className="h-3 w-24 rounded-full" />
+                  <Skeleton className="h-7 w-36 rounded-2xl" />
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <Skeleton className="h-3 w-40 rounded-full" />
+                <div className="flex flex-wrap gap-2">
+                  <Skeleton className="h-8 w-32 rounded-xl" />
+                  <Skeleton className="h-8 w-28 rounded-xl" />
+                  <Skeleton className="h-8 w-32 rounded-xl" />
+                </div>
+              </div>
+              <div className="mt-4 space-y-3">
+                {loadingOverKeys.map((overKey) => (
+                  <div
+                    className="rounded-[1.4rem] border border-border/60 bg-muted/10 px-4 py-3"
+                    key={overKey}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="space-y-1">
+                        <Skeleton className="h-4 w-14 rounded-full" />
+                        <Skeleton className="h-3 w-10 rounded-full" />
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {loadingDeliveryChipKeys.map((chipKey) => (
+                          <Skeleton
+                            className="size-11 rounded-full"
+                            key={chipKey}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
-          <aside className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
-            <Skeleton className="h-6 w-32 rounded-2xl" />
-            <div className="mt-4 space-y-3">
-              {loadingDetailKeys.map((detailKey) => (
-                <Skeleton className="h-5 w-full rounded-full" key={detailKey} />
-              ))}
-            </div>
-          </aside>
-        </section>
+          {/* Right column: ScoreABall */}
+          <div className="lg:sticky lg:top-4 lg:self-start">
+            <div className="space-y-5 rounded-[1.75rem] border border-border/70 bg-card px-4 py-5 shadow-sm sm:px-5">
+              <div className="flex flex-wrap items-start justify-between gap-3 sm:flex-nowrap">
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-24 rounded-full" />
+                  <Skeleton className="h-7 w-48 rounded-2xl" />
+                </div>
+                <Skeleton className="h-8 w-20 shrink-0 rounded-full" />
+              </div>
 
-        <section className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
-          <div className="space-y-2">
-            <Skeleton className="h-3 w-28 rounded-full" />
-            <Skeleton className="h-8 w-52 rounded-2xl" />
-            <Skeleton className="h-4 w-full max-w-md rounded-full" />
-          </div>
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <Skeleton className="h-4 w-44 rounded-full" />
+                  <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+                    <Skeleton className="h-10 w-full rounded-xl" />
+                    <Skeleton className="h-10 w-full rounded-xl" />
+                    <Skeleton className="h-10 w-full rounded-xl" />
+                  </div>
+                </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <div className="space-y-3">
-              <Skeleton className="h-10 w-full rounded-2xl" />
-              <Skeleton className="h-10 w-full rounded-2xl" />
-              <Skeleton className="h-28 w-full rounded-[1.5rem]" />
-            </div>
-            <div className="space-y-3">
-              <Skeleton className="h-10 w-full rounded-2xl" />
-              <Skeleton className="h-10 w-full rounded-2xl" />
-              <Skeleton className="h-28 w-full rounded-[1.5rem]" />
-            </div>
-          </div>
+                <div className="space-y-3">
+                  <Skeleton className="h-4 w-20 rounded-full" />
+                  <div className="grid grid-cols-6 gap-2 sm:gap-3">
+                    {loadingBatRunKeys.map((i) => (
+                      <Skeleton
+                        className="aspect-square w-full rounded-2xl"
+                        key={i}
+                      />
+                    ))}
+                  </div>
+                  <Skeleton className="h-10 w-full rounded-xl" />
+                </div>
 
-          <div className="mt-6 flex justify-end">
-            <Skeleton className="h-11 w-40 rounded-full" />
+                <Skeleton className="h-12 w-full rounded-2xl" />
+
+                <div className="space-y-4 rounded-[1.5rem] border border-border/60 bg-muted/15 p-4 sm:p-5">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-24 rounded-full" />
+                    <Skeleton className="h-3 w-full max-w-xs rounded-full" />
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <Skeleton className="h-10 w-full rounded-xl" />
+                    <Skeleton className="h-10 w-full rounded-xl" />
+                    <Skeleton className="h-10 w-full rounded-xl" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap justify-end gap-2 pt-1">
+                <Skeleton className="h-11 w-24 rounded-full" />
+                <Skeleton className="h-11 w-36 rounded-full" />
+              </div>
+            </div>
           </div>
         </section>
       </div>
