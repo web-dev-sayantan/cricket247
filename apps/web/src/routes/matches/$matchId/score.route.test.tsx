@@ -97,6 +97,7 @@ const deleteScoringDelivery = mock(async () => createScoringSetup("scoring"));
 const closeCurrentScoringInnings = mock(async () =>
   createScoringSetup("scoring")
 );
+const getMatchScoringSetup = mock(async () => currentScoringSetup);
 
 let currentScoringSetup = createScoringSetup("lineup");
 
@@ -125,10 +126,9 @@ mock.module("@/utils/orpc", () => ({
       }),
     },
     getMatchScoringSetup: {
-      call: async () => currentScoringSetup,
       queryOptions: ({ input }: { input: { matchId: number } }) => ({
         queryKey: ["getMatchScoringSetup", input.matchId],
-        queryFn: async () => currentScoringSetup,
+        queryFn: getMatchScoringSetup,
       }),
     },
     liveMatches: {
@@ -344,7 +344,6 @@ async function renderScoreRoute(): Promise<RenderResult & { router: unknown }> {
 
   await act(async () => {
     renderResult = render(<routerModule.RouterProvider router={router} />);
-    await router.load();
   });
 
   if (!renderResult) {
@@ -363,6 +362,13 @@ beforeEach(() => {
 });
 
 describe("score route pre-match extraction", () => {
+  it("fetches the scoring setup exactly once on initial load", async () => {
+    const { findByText } = await renderScoreRoute();
+
+    expect(await findByText("Choose playing lineups")).toBeTruthy();
+    expect(getMatchScoringSetup).toHaveBeenCalledTimes(1);
+  });
+
   it("does not render the pre-match branch during the scoring phase", async () => {
     currentScoringSetup = createScoringSetup("scoring");
 
@@ -373,13 +379,12 @@ describe("score route pre-match extraction", () => {
     expect(queryByText("Choose playing lineups")).toBeNull();
   });
 
-  it("renders the lazy-loaded setup flow through the Suspense fallback for pre-match phases", async () => {
+  it("renders the lazy-loaded setup flow for pre-match phases", async () => {
     currentScoringSetup = createScoringSetup("lineup");
     shouldDelayPreMatchSetupFlow = true;
 
-    const { findByText, getByText } = await renderScoreRoute();
+    const { findByText } = await renderScoreRoute();
 
-    expect(getByText("Loading match setup...")).toBeTruthy();
     expect(await findByText("Choose playing lineups")).toBeTruthy();
   });
 

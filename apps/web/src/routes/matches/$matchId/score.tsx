@@ -12,7 +12,6 @@ import {
   Suspense,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { toast } from "sonner";
@@ -25,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { InningsSetupPhaseCardProps } from "@/routes/matches/$matchId/-components/innings-setup-phase-card";
 import type { LineupPhaseCardProps } from "@/routes/matches/$matchId/-components/lineup-phase-card";
@@ -49,13 +49,6 @@ import { client, orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/matches/$matchId/score")({
   component: RouteComponent,
-  loader: async ({ params, context }) => {
-    const scoringSetup = await context.orpc.getMatchScoringSetup.call({
-      matchId: Number(params.matchId),
-    });
-
-    return { scoringSetup };
-  },
 });
 
 const PreMatchSetupFlow = lazy(() =>
@@ -122,25 +115,6 @@ type ScoringSessionMutationResult = Awaited<
   ReturnType<typeof client.recordScoringDelivery>
 >;
 
-type ClientScoringTraceStage =
-  | "background-refresh-complete"
-  | "cache-updated"
-  | "mutation-response"
-  | "mutation-start"
-  | "submit-click";
-
-interface ClientScoringTimingEntry {
-  at: string;
-  durationMs: number;
-  operation: string;
-  sampleId: string;
-  span: string;
-}
-
-type GlobalWithClientTimings = typeof globalThis & {
-  __CRICKET247_SCORING_TIMINGS__?: ClientScoringTimingEntry[];
-};
-
 type ScoringPhase = PreMatchPhase | "completed" | "scoring";
 
 interface PreMatchSetupViewModel {
@@ -149,94 +123,99 @@ interface PreMatchSetupViewModel {
   toss: TossPhaseCardProps;
 }
 
-function isClientScoringTimingEnabled() {
-  return import.meta.env.DEV && typeof performance !== "undefined";
-}
+function MatchScoringLoadingSkeleton() {
+  const loadingStepKeys = [
+    "lineup",
+    "toss",
+    "innings",
+    "score",
+    "result",
+  ] as const;
+  const loadingScoreCardKeys = ["status", "score", "overs"] as const;
+  const loadingDetailKeys = ["format", "rules", "toss"] as const;
 
-function pushClientScoringTiming(entry: ClientScoringTimingEntry) {
-  if (!isClientScoringTimingEnabled()) {
-    return;
-  }
+  return (
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(216,180,80,0.14),transparent_30%),linear-gradient(180deg,rgba(255,248,233,0.55),transparent_28%),var(--background)] pb-24">
+      <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:py-10">
+        <section
+          aria-busy="true"
+          className="space-y-4 rounded-[2rem] border border-border/70 bg-card/90 p-5 shadow-sm backdrop-blur"
+        >
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="space-y-2">
+              <Skeleton className="h-3 w-32 rounded-full" />
+              <Skeleton className="h-10 w-56 rounded-2xl sm:w-72" />
+              <Skeleton className="h-4 w-full max-w-2xl rounded-full" />
+              <Skeleton className="h-4 w-4/5 max-w-xl rounded-full" />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Skeleton className="h-9 w-28 rounded-full" />
+              <Skeleton className="h-9 w-20 rounded-full" />
+            </div>
+          </div>
 
-  const timingStore = globalThis as GlobalWithClientTimings;
-  timingStore.__CRICKET247_SCORING_TIMINGS__ ??= [];
-  timingStore.__CRICKET247_SCORING_TIMINGS__.push(entry);
-}
+          <div className="flex flex-wrap gap-2">
+            {loadingStepKeys.map((stepKey) => (
+              <Skeleton
+                className="h-8 w-24 rounded-full sm:w-28"
+                key={stepKey}
+              />
+            ))}
+          </div>
+        </section>
 
-function createClientScoringTrace(operation: string) {
-  if (!isClientScoringTimingEnabled()) {
-    return null;
-  }
+        <section className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]">
+          <div className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
+            <div className="grid gap-4 md:grid-cols-3">
+              {loadingScoreCardKeys.map((cardKey) => (
+                <div
+                  className="space-y-3 rounded-[1.5rem] border p-4"
+                  key={cardKey}
+                >
+                  <Skeleton className="h-3 w-24 rounded-full" />
+                  <Skeleton className="h-8 w-28 rounded-2xl" />
+                </div>
+              ))}
+            </div>
+          </div>
 
-  const sampleId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const prefix = `cricket247:${operation}:${sampleId}`;
-  const marks = new Map<ClientScoringTraceStage, number>();
+          <aside className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
+            <Skeleton className="h-6 w-32 rounded-2xl" />
+            <div className="mt-4 space-y-3">
+              {loadingDetailKeys.map((detailKey) => (
+                <Skeleton className="h-5 w-full rounded-full" key={detailKey} />
+              ))}
+            </div>
+          </aside>
+        </section>
 
-  const mark = (stage: ClientScoringTraceStage) => {
-    performance.mark(`${prefix}:${stage}`);
-    marks.set(stage, performance.now());
-  };
+        <section className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-28 rounded-full" />
+            <Skeleton className="h-8 w-52 rounded-2xl" />
+            <Skeleton className="h-4 w-full max-w-md rounded-full" />
+          </div>
 
-  const measure = (
-    span: string,
-    start: ClientScoringTraceStage,
-    end: ClientScoringTraceStage
-  ) => {
-    const startMark = `${prefix}:${start}`;
-    const endMark = `${prefix}:${end}`;
-    const startTime = marks.get(start);
-    const endTime = marks.get(end);
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <div className="space-y-3">
+              <Skeleton className="h-10 w-full rounded-2xl" />
+              <Skeleton className="h-10 w-full rounded-2xl" />
+              <Skeleton className="h-28 w-full rounded-[1.5rem]" />
+            </div>
+            <div className="space-y-3">
+              <Skeleton className="h-10 w-full rounded-2xl" />
+              <Skeleton className="h-10 w-full rounded-2xl" />
+              <Skeleton className="h-28 w-full rounded-[1.5rem]" />
+            </div>
+          </div>
 
-    performance.measure(`${prefix}:${span}`, startMark, endMark);
-
-    if (typeof startTime !== "number" || typeof endTime !== "number") {
-      return;
-    }
-
-    pushClientScoringTiming({
-      at: new Date().toISOString(),
-      durationMs: Number((endTime - startTime).toFixed(2)),
-      operation,
-      sampleId,
-      span,
-    });
-  };
-
-  mark("submit-click");
-
-  return {
-    markBackgroundRefreshComplete() {
-      mark("background-refresh-complete");
-      measure(
-        "cache_to_background_refresh_complete",
-        "cache-updated",
-        "background-refresh-complete"
-      );
-      measure(
-        "submit_to_background_refresh_complete",
-        "submit-click",
-        "background-refresh-complete"
-      );
-    },
-    markCacheUpdated() {
-      mark("cache-updated");
-      measure("response_to_cache_update", "mutation-response", "cache-updated");
-      measure("submit_to_cache_update", "submit-click", "cache-updated");
-    },
-    markMutationResponse() {
-      mark("mutation-response");
-      measure(
-        "mutation_start_to_response",
-        "mutation-start",
-        "mutation-response"
-      );
-      measure("submit_to_response", "submit-click", "mutation-response");
-    },
-    markMutationStart() {
-      mark("mutation-start");
-      measure("submit_to_mutation_start", "submit-click", "mutation-start");
-    },
-  };
+          <div className="mt-6 flex justify-end">
+            <Skeleton className="h-11 w-40 rounded-full" />
+          </div>
+        </section>
+      </div>
+    </main>
+  );
 }
 
 function normalizeSelection(
@@ -751,16 +730,12 @@ function RouteComponent() {
   const { matchId } = Route.useParams();
   const numericMatchId = Number(matchId);
   const queryClient = useQueryClient();
-  const initialData = Route.useLoaderData().scoringSetup;
 
   const scoringQueryOptions = orpc.getMatchScoringSetup.queryOptions({
     input: { matchId: numericMatchId },
   });
 
-  const { data: scoringSetup, isLoading } = useQuery({
-    ...scoringQueryOptions,
-    initialData,
-  });
+  const { data: scoringSetup, isLoading } = useQuery(scoringQueryOptions);
 
   const match = scoringSetup?.match ?? null;
   const canCurrentUserScore = scoringSetup?.canCurrentUserScore ?? false;
@@ -768,9 +743,6 @@ function RouteComponent() {
   const team1Roster = scoringSetup?.team1Roster ?? [];
   const team2Roster = scoringSetup?.team2Roster ?? [];
   const tournamentId = match?.tournamentId;
-  const activeSubmitTraceRef = useRef<ReturnType<
-    typeof createClientScoringTrace
-  > | null>(null);
 
   const [team1Selection, setTeam1Selection] = useState<TeamSelection>(
     normalizeSelection(scoringSetup?.savedLineup?.team1)
@@ -846,28 +818,20 @@ function RouteComponent() {
     [numericMatchId, tournamentId]
   );
 
-  const queueBackgroundRefresh = (
-    refreshTasks: Promise<unknown>[],
-    trace?: ReturnType<typeof createClientScoringTrace> | null
-  ) => {
+  const queueBackgroundRefresh = (refreshTasks: Promise<unknown>[]) => {
     if (refreshTasks.length === 0) {
-      trace?.markBackgroundRefreshComplete();
       return;
     }
 
-    Promise.allSettled(refreshTasks).then(() => {
-      trace?.markBackgroundRefreshComplete();
-    });
+    Promise.allSettled(refreshTasks);
   };
 
   const handleScoringSessionMutationSuccess = (
     session: ScoringSessionMutationResult,
     options?: {
       clearSelectedDelivery?: boolean;
-      trace?: ReturnType<typeof createClientScoringTrace> | null;
     }
   ) => {
-    options?.trace?.markMutationResponse();
     const refreshTasks = applyScoringSessionMutationResult({
       backgroundQueries: backgroundRefreshQueries,
       queryClient,
@@ -879,8 +843,7 @@ function RouteComponent() {
       setSelectedDeliveryId(null);
     }
 
-    options?.trace?.markCacheUpdated();
-    queueBackgroundRefresh(refreshTasks, options?.trace);
+    queueBackgroundRefresh(refreshTasks);
   };
 
   useEffect(() => {
@@ -976,16 +939,12 @@ function RouteComponent() {
     mutationFn: async (payload: DeliveryDraft) =>
       client.recordScoringDelivery(buildDeliveryMutationPayload(payload)),
     onSuccess: (session) => {
-      const trace = activeSubmitTraceRef.current;
       toast.success("Delivery recorded");
       handleScoringSessionMutationSuccess(session, {
         clearSelectedDelivery: true,
-        trace,
       });
-      activeSubmitTraceRef.current = null;
     },
     onError: (error) => {
-      activeSubmitTraceRef.current = null;
       toast.error(
         error.message || "Couldn't record this delivery. Please try again."
       );
@@ -999,16 +958,12 @@ function RouteComponent() {
         ...buildDeliveryMutationPayload(payload),
       }),
     onSuccess: (session) => {
-      const trace = activeSubmitTraceRef.current;
       toast.success("Delivery updated");
       handleScoringSessionMutationSuccess(session, {
         clearSelectedDelivery: true,
-        trace,
       });
-      activeSubmitTraceRef.current = null;
     },
     onError: (error) => {
-      activeSubmitTraceRef.current = null;
       toast.error(
         error.message || "Couldn't update this delivery. Please try again."
       );
@@ -1222,9 +1177,11 @@ function RouteComponent() {
     bowlingTeamId ??
     scoringSetup?.entryContext.bowlingTeamId ??
     null;
-  const fallbackDraft = buildDraftFromEntryContext(
-    scoringSetup?.entryContext as SessionEntryContext
-  );
+  const fallbackDraft = scoringSetup?.entryContext
+    ? buildDraftFromEntryContext(
+        scoringSetup.entryContext as SessionEntryContext
+      )
+    : null;
   const activeDraft = draft ?? fallbackDraft;
   const battingLineup = toPlayerOptions(
     resolveLineupPlayersByTeam({
@@ -1332,11 +1289,6 @@ function RouteComponent() {
       toast.error("Striker and non-striker must be different");
       return;
     }
-
-    activeSubmitTraceRef.current = createClientScoringTrace(
-      editingDelivery ? "update-delivery" : "record-delivery"
-    );
-    activeSubmitTraceRef.current?.markMutationStart();
 
     if (editingDelivery) {
       await updateDeliveryMutation.mutateAsync({
@@ -1498,13 +1450,7 @@ function RouteComponent() {
   );
 
   if (isLoading) {
-    return (
-      <main className="mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-3xl items-center px-4 py-8">
-        <p className="w-full text-center text-muted-foreground">
-          Loading match scoring...
-        </p>
-      </main>
-    );
+    return <MatchScoringLoadingSkeleton />;
   }
 
   if (!(scoringSetup && match)) {

@@ -3,7 +3,6 @@ import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { teamPlayers } from "@/db/schema";
-import { measureDevTiming } from "@/lib/dev-timing";
 import {
   protectedProcedure,
   publicProcedure,
@@ -182,27 +181,6 @@ async function withCurrentUserScoringRights<T extends object>(
   };
 }
 
-async function requireTimedScoreAccess(params: {
-  email: string;
-  match: {
-    id?: number;
-    team1Id: null | number;
-    team2Id: null | number;
-    tournamentId: number;
-  };
-  scope: string;
-}) {
-  await measureDevTiming(
-    "scoring.requireScoreAccessByEmail",
-    async () =>
-      await requireScoreAccessByEmail({
-        email: params.email,
-        match: params.match,
-      }),
-    params.scope
-  );
-}
-
 export const scoringRouter = {
   getMatchScoringSetup: publicProcedure
     .input(MatchScoringSetupInputSchema)
@@ -235,10 +213,9 @@ export const scoringRouter = {
         throw new ORPCError("NOT_FOUND");
       }
 
-      await requireTimedScoreAccess({
+      await requireScoreAccessByEmail({
         email: context.session.user.email,
         match,
-        scope: `saveMatchLineup:${input.matchId}`,
       });
 
       const existingInnings = await db.query.innings.findFirst({
@@ -274,10 +251,9 @@ export const scoringRouter = {
         throw new ORPCError("BAD_REQUEST");
       }
 
-      await requireTimedScoreAccess({
+      await requireScoreAccessByEmail({
         email: context.session.user.email,
         match,
-        scope: `initializeMatchScoring:${input.matchId}`,
       });
 
       if (
@@ -393,10 +369,9 @@ export const scoringRouter = {
         throw new ORPCError("NOT_FOUND");
       }
 
-      await requireTimedScoreAccess({
+      await requireScoreAccessByEmail({
         email: context.session.user.email,
         match,
-        scope: `startScoringInnings:${input.matchId}`,
       });
 
       try {
@@ -421,10 +396,9 @@ export const scoringRouter = {
         throw new ORPCError("NOT_FOUND");
       }
 
-      await requireTimedScoreAccess({
+      await requireScoreAccessByEmail({
         email: context.session.user.email,
         match,
-        scope: `startScoringInnings:${input.matchId}`,
       });
 
       try {
@@ -450,10 +424,9 @@ export const scoringRouter = {
         throw new ORPCError("NOT_FOUND");
       }
 
-      await requireTimedScoreAccess({
+      await requireScoreAccessByEmail({
         email: context.session.user.email,
         match,
-        scope: `recordScoringDelivery:${input.inningsId}`,
       });
 
       try {
@@ -478,10 +451,9 @@ export const scoringRouter = {
         throw new ORPCError("NOT_FOUND");
       }
 
-      await requireTimedScoreAccess({
+      await requireScoreAccessByEmail({
         email: context.session.user.email,
         match,
-        scope: `updateScoringDelivery:${input.deliveryId}`,
       });
 
       try {
@@ -506,10 +478,9 @@ export const scoringRouter = {
         throw new ORPCError("NOT_FOUND");
       }
 
-      await requireTimedScoreAccess({
+      await requireScoreAccessByEmail({
         email: context.session.user.email,
         match,
-        scope: `deleteScoringDelivery:${input.deliveryId}`,
       });
 
       try {
@@ -534,10 +505,9 @@ export const scoringRouter = {
         throw new ORPCError("NOT_FOUND");
       }
 
-      await requireTimedScoreAccess({
+      await requireScoreAccessByEmail({
         email: context.session.user.email,
         match,
-        scope: `closeCurrentScoringInnings:${input.inningsId}`,
       });
 
       try {
@@ -688,15 +658,10 @@ export const scoringRouter = {
       })
     )
     .handler(async ({ context, input }) => {
-      const scorecard = await measureDevTiming(
-        "scoring.getMatchScorecard",
-        async () =>
-          await getMatchScorecard(input.matchId, {
-            inningsNumber: input.inningsNumber,
-            includeBallByBall: input.includeBallByBall,
-          }),
-        `matchId:${input.matchId}`
-      );
+      const scorecard = await getMatchScorecard(input.matchId, {
+        inningsNumber: input.inningsNumber,
+        includeBallByBall: input.includeBallByBall,
+      });
 
       if (!scorecard) {
         return null;
