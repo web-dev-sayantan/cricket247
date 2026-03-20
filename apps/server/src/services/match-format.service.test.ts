@@ -3,9 +3,11 @@ import { beforeEach, describe, expect, it, mock } from "bun:test";
 interface MatchFormatRow {
   ballsPerOver: number | null;
   id: number;
+  isFollowOnAllowed: boolean | null;
   maxLegalBallsPerInnings: number | null;
   maxOversPerBowler: number | null;
   name: string;
+  noOfInnings: number | null;
   noOfOvers: number | null;
 }
 
@@ -67,7 +69,9 @@ describe("match-format.service", () => {
       id: 7,
       name: "T20",
       ballsPerOver: null,
+      isFollowOnAllowed: false,
       noOfOvers: 20,
+      noOfInnings: 2,
       maxOversPerBowler: 4,
       maxLegalBallsPerInnings: null,
     };
@@ -82,6 +86,8 @@ describe("match-format.service", () => {
       matchFormatId: 7,
       formatLabel: "T20",
       ballsPerOver: 6,
+      followOnAllowed: false,
+      noOfInnings: 2,
       noOfOvers: 20,
       maxOversPerBowler: 4,
       maxLegalBallsPerInnings: 120,
@@ -95,7 +101,9 @@ describe("match-format.service", () => {
       id: 5,
       name: "ODI",
       ballsPerOver: 6,
+      isFollowOnAllowed: false,
       noOfOvers: 50,
+      noOfInnings: 2,
       maxOversPerBowler: 10,
       maxLegalBallsPerInnings: 300,
     };
@@ -108,6 +116,8 @@ describe("match-format.service", () => {
 
     expect(result?.matchFormatId).toBe(5);
     expect(result?.formatLabel).toBe("ODI");
+    expect(result?.followOnAllowed).toBe(false);
+    expect(result?.noOfInnings).toBe(2);
     expect(result?.maxLegalBallsPerInnings).toBe(300);
   });
 

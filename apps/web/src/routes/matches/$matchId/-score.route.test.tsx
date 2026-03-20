@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
+import type { AppRouterClient } from "@cricket247/server/contract";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
@@ -155,7 +156,17 @@ const routeTreeModulePromise = import("@/routeTree.gen");
 const routerModulePromise = import("@tanstack/react-router");
 const orpcModulePromise = import("@/utils/orpc");
 
-function createScoringSetup(phase: "inningsSetup" | "lineup" | "scoring") {
+type RouteScoringMutationResult = Awaited<
+  ReturnType<AppRouterClient["recordScoringDelivery"]>
+>;
+type RouteScoringSetup = Exclude<
+  Awaited<ReturnType<AppRouterClient["getMatchScoringSetup"]>>,
+  null
+>;
+
+function createScoringSetup(
+  phase: "inningsSetup" | "lineup" | "scoring"
+): RouteScoringSetup {
   const team1Roster = [
     {
       isCaptain: false,
@@ -282,8 +293,9 @@ function createScoringSetup(phase: "inningsSetup" | "lineup" | "scoring") {
         : {
             battingTeamId: 1,
             bowlingTeamId: 2,
-            inningsNumber: 1,
-          },
+          inningsNumber: 1,
+        },
+    pendingInningsClosure: null,
     phase,
     playersPerSide: 2,
     requiredSelections: {
@@ -317,10 +329,12 @@ function createScoringSetup(phase: "inningsSetup" | "lineup" | "scoring") {
         teamId: player.teamId,
       })),
     },
-  };
+  } as unknown as RouteScoringSetup;
 }
 
-function createScoringMutationResult(action: "delete" | "record" | "update") {
+function createScoringMutationResult(
+  action: "delete" | "record" | "update"
+): RouteScoringMutationResult {
   return {
     action,
     affectedInnings: {
@@ -395,6 +409,7 @@ function createScoringMutationResult(action: "delete" | "record" | "update") {
       winnerId: null,
     },
     nextInningsDefaults: null,
+    pendingInningsClosure: null,
     phase: "scoring" as const,
     requiredSelections: {
       battingTeam: false,
@@ -403,7 +418,78 @@ function createScoringMutationResult(action: "delete" | "record" | "update") {
       nonStriker: false,
       striker: false,
     },
+  } as unknown as RouteScoringMutationResult;
+}
+
+function createPendingScoringMutationResult(): RouteScoringMutationResult {
+  const base = createScoringMutationResult("record");
+
+  return {
+    ...base,
+    pendingInningsClosure: {
+      deliveryId: 9001,
+      inningsId: 501,
+      reason: "max_balls" as const,
+    },
   };
+}
+
+function createPendingClosureScoringSetup(): RouteScoringSetup {
+  const base = createScoringSetup("scoring");
+
+  return {
+    ...base,
+    currentInnings: base.currentInnings
+      ? {
+          ...base.currentInnings,
+          ballsBowled: 120,
+          deliveries: [
+            {
+              assistedById: null,
+              ballInOver: 6,
+              batterRuns: 1,
+              bowlerId: 21,
+              byeRuns: 0,
+              dismissedById: null,
+              dismissedPlayerId: null,
+              id: 9001,
+              inningsId: 501,
+              isLegalDelivery: true,
+              isWicket: false,
+              legByeRuns: 0,
+              noBallRuns: 0,
+              nonStrikerId: 12,
+              overNumber: 20,
+              penaltyRuns: 0,
+              sequenceNo: 120,
+              strikerId: 11,
+              totalRuns: 1,
+              wicketType: null,
+              wideRuns: 0,
+            },
+          ],
+          totalScore: 1,
+        }
+      : null,
+    innings: [
+      {
+        ballsBowled: 120,
+        battingTeam: {
+          shortName: "KNI",
+        },
+        id: 501,
+        inningsNumber: 1,
+        isCompleted: false,
+        totalScore: 1,
+        wickets: 0,
+      },
+    ],
+    pendingInningsClosure: {
+      deliveryId: 9001,
+      inningsId: 501,
+      reason: "max_balls" as const,
+    },
+  } as unknown as RouteScoringSetup;
 }
 
 async function renderScoreRoute(): Promise<RenderResult & { router: unknown }> {
@@ -536,7 +622,7 @@ describe("score route pre-match extraction", () => {
         ...scoringSetup.entryContext,
         dismissedPlayerId: 63 as number | null,
       },
-    };
+    } as unknown as RouteScoringSetup;
 
     const { findAllByRole } = await renderScoreRoute();
     const recordButtons = await findAllByRole("button", {
@@ -565,5 +651,110 @@ describe("score route pre-match extraction", () => {
         wicketType: undefined,
       })
     );
+  });
+
+  it("opens the shared confirmation dialog when a recorded delivery requires innings-end confirmation", async () => {
+    currentScoringSetup = createScoringSetup("scoring");
+    recordScoringDelivery.mockImplementationOnce(async () =>
+      createPendingScoringMutationResult()
+    );
+
+    const { findAllByRole, findByText, findByRole } = await renderScoreRoute();
+    const recordButtons = await findAllByRole("button", {
+      name: "Record delivery",
+    });
+    const scoringButton = recordButtons.at(-1);
+
+    if (!scoringButton) {
+      throw new Error("Scoring submit button not found");
+    }
+
+    fireEvent.click(scoringButton);
+
+    expect(await findByText("End this innings?")).toBeTruthy();
+    expect(
+      await findByRole("button", { name: "No, review last ball" })
+    ).toBeTruthy();
+    expect(
+      await findByRole("button", { name: "Yes, end innings" })
+    ).toBeTruthy();
+  });
+
+  it("returns to the last ball in edit mode when the scorer declines the auto-end prompt", async () => {
+    currentScoringSetup = createScoringSetup("scoring");
+    recordScoringDelivery.mockImplementationOnce(async () =>
+      createPendingScoringMutationResult()
+    );
+
+    const { findAllByRole, findByRole, queryByText } = await renderScoreRoute();
+    const recordButtons = await findAllByRole("button", {
+      name: "Record delivery",
+    });
+    const scoringButton = recordButtons.at(-1);
+
+    if (!scoringButton) {
+      throw new Error("Scoring submit button not found");
+    }
+
+    fireEvent.click(scoringButton);
+    fireEvent.click(await findByRole("button", { name: "No, review last ball" }));
+
+    expect(await findByRole("button", { name: "Update delivery" })).toBeTruthy();
+    expect(queryByText("End this innings?")).toBeNull();
+  });
+
+  it("confirms the innings end from the auto-end dialog", async () => {
+    currentScoringSetup = createScoringSetup("scoring");
+    recordScoringDelivery.mockImplementationOnce(async () =>
+      createPendingScoringMutationResult()
+    );
+
+    const { findAllByRole, findByRole } = await renderScoreRoute();
+    const recordButtons = await findAllByRole("button", {
+      name: "Record delivery",
+    });
+    const scoringButton = recordButtons.at(-1);
+
+    if (!scoringButton) {
+      throw new Error("Scoring submit button not found");
+    }
+
+    fireEvent.click(scoringButton);
+    fireEvent.click(await findByRole("button", { name: "Yes, end innings" }));
+
+    await waitFor(() =>
+      expect(closeCurrentScoringInnings).toHaveBeenCalledWith({
+        inningsId: 501,
+      })
+    );
+  });
+
+  it("reuses the same dialog for manual innings end", async () => {
+    currentScoringSetup = createScoringSetup("scoring");
+
+    const { findByRole, findByText } = await renderScoreRoute();
+
+    fireEvent.click(await findByRole("button", { name: "End innings" }));
+
+    expect(await findByText("End this innings?")).toBeTruthy();
+    fireEvent.click(await findByRole("button", { name: "Yes, end innings" }));
+
+    await waitFor(() =>
+      expect(closeCurrentScoringInnings).toHaveBeenCalledWith({
+        inningsId: 501,
+      })
+    );
+  });
+
+  it("restores pending-closure review state on load", async () => {
+    currentScoringSetup = createPendingClosureScoringSetup();
+
+    const { findByRole } = await renderScoreRoute();
+
+    expect(await findByRole("button", { name: "Update delivery" })).toBeTruthy();
+    expect(
+      (await findByRole("button", { name: "Record delivery" }))
+        .hasAttribute("disabled")
+    ).toBe(true);
   });
 });

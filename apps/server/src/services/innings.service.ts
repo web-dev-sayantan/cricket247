@@ -3,6 +3,152 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { innings, matches } from "@/db/schema";
 
+interface InningsSequenceRow {
+  battingTeamId: number;
+  bowlingTeamId: number;
+  inningsNumber: number;
+  isCompleted: boolean | null;
+  totalScore: number;
+}
+
+function resolveScheduledInningsCount(match: {
+  inningsPerSide: number;
+  matchFormat?: {
+    noOfInnings: number | null;
+  } | null;
+}) {
+  const formatNoOfInnings = match.matchFormat?.noOfInnings;
+  if (formatNoOfInnings === 2 || formatNoOfInnings === 4) {
+    return formatNoOfInnings;
+  }
+
+  const scheduledInningsCount = match.inningsPerSide * 2;
+  if (scheduledInningsCount === 2 || scheduledInningsCount === 4) {
+    return scheduledInningsCount;
+  }
+
+  throw new Error("Matches must be configured for 2 or 4 innings");
+}
+
+function isFollowOnEligible(params: {
+  battingTeamId: number;
+  inningsNumber: number;
+  inningsRows: InningsSequenceRow[];
+  scheduledInningsCount: number;
+  followOnAllowed: boolean;
+}) {
+  if (
+    !params.followOnAllowed ||
+    params.scheduledInningsCount !== 4 ||
+    params.inningsNumber !== 3 ||
+    params.inningsRows.length !== 2
+  ) {
+    return false;
+  }
+
+  const [firstInnings, secondInnings] = params.inningsRows;
+  if (!(firstInnings && secondInnings)) {
+    return false;
+  }
+
+  if (!(firstInnings.isCompleted && secondInnings.isCompleted)) {
+    return false;
+  }
+
+  if (params.battingTeamId !== secondInnings.battingTeamId) {
+    return false;
+  }
+
+  return firstInnings.totalScore - secondInnings.totalScore >= 200;
+}
+
+async function validateInningsCreation(params: {
+  battingTeamId: number;
+  bowlingTeamId: number;
+  inningsNumber: number;
+  matchId: number;
+}) {
+  const match = await db.query.matches.findFirst({
+    where: {
+      id: params.matchId,
+    },
+    columns: {
+      id: true,
+      inningsPerSide: true,
+      team1Id: true,
+      team2Id: true,
+    },
+    with: {
+      matchFormat: {
+        columns: {
+          isFollowOnAllowed: true,
+          noOfInnings: true,
+        },
+      },
+    },
+  });
+
+  if (!match) {
+    throw new Error("Match not found");
+  }
+
+  if (typeof match.team1Id !== "number" || typeof match.team2Id !== "number") {
+    throw new Error("Match participants are not finalized");
+  }
+
+  const participantIds = new Set([match.team1Id, match.team2Id]);
+  if (
+    params.battingTeamId === params.bowlingTeamId ||
+    !participantIds.has(params.battingTeamId) ||
+    !participantIds.has(params.bowlingTeamId)
+  ) {
+    throw new Error("Innings teams must match the two teams in the match");
+  }
+
+  const inningsRows = await db.query.innings.findMany({
+    where: {
+      matchId: params.matchId,
+    },
+    columns: {
+      battingTeamId: true,
+      bowlingTeamId: true,
+      inningsNumber: true,
+      isCompleted: true,
+      totalScore: true,
+    },
+    orderBy: {
+      inningsNumber: "asc",
+    },
+  });
+
+  const expectedInningsNumber = inningsRows.length + 1;
+  if (params.inningsNumber !== expectedInningsNumber) {
+    throw new Error("Innings must be created in sequence");
+  }
+
+  const scheduledInningsCount = resolveScheduledInningsCount(match);
+  if (params.inningsNumber > scheduledInningsCount) {
+    throw new Error("This match has no innings remaining");
+  }
+
+  const previousInnings = inningsRows.at(-1);
+  if (
+    previousInnings &&
+    params.battingTeamId === previousInnings.battingTeamId &&
+    !isFollowOnEligible({
+      battingTeamId: params.battingTeamId,
+      inningsNumber: params.inningsNumber,
+      inningsRows,
+      scheduledInningsCount,
+      followOnAllowed: Boolean(match.matchFormat?.isFollowOnAllowed),
+    })
+  ) {
+    throw new Error(
+      "Teams cannot bat in consecutive innings unless a follow-on is enforced"
+    );
+  }
+}
+
 export async function getInningsById(id: number) {
   const inningsRow = await db.query.innings.findFirst({
     where: {
@@ -173,6 +319,13 @@ export async function createInningsAction({
   openingNonStrikerId?: number | null;
   openingBowlerId?: number | null;
 }) {
+  await validateInningsCreation({
+    matchId,
+    battingTeamId,
+    bowlingTeamId,
+    inningsNumber,
+  });
+
   const newInnings = await db.insert(innings).values({
     matchId,
     battingTeamId,

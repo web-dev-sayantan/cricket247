@@ -1,7 +1,7 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "35cb8fac-74fb-45d0-afc2-12dc6f902f66",
+  "id": "71d4707f-8ec9-4cd3-8407-39eae7b8a43b",
   "prevIds": [
     "00000000-0000-0000-0000-000000000000"
   ],
@@ -1242,6 +1242,36 @@
     },
     {
       "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "opening_striker_id",
+      "entityType": "columns",
+      "table": "innings"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "opening_non_striker_id",
+      "entityType": "columns",
+      "table": "innings"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "opening_bowler_id",
+      "entityType": "columns",
+      "table": "innings"
+    },
+    {
+      "type": "integer",
       "notNull": true,
       "autoincrement": false,
       "default": "false",
@@ -1307,6 +1337,16 @@
       "default": "2",
       "generated": null,
       "name": "no_of_innings",
+      "entityType": "columns",
+      "table": "match_formats"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "name": "is_follow_on_allowed",
       "entityType": "columns",
       "table": "match_formats"
     },
@@ -1682,7 +1722,7 @@
     },
     {
       "type": "integer",
-      "notNull": true,
+      "notNull": false,
       "autoincrement": false,
       "default": null,
       "generated": null,
@@ -1692,7 +1732,7 @@
     },
     {
       "type": "text",
-      "notNull": true,
+      "notNull": false,
       "autoincrement": false,
       "default": null,
       "generated": null,
@@ -1702,7 +1742,7 @@
     },
     {
       "type": "integer",
-      "notNull": true,
+      "notNull": false,
       "autoincrement": false,
       "default": null,
       "generated": null,
@@ -1712,7 +1752,7 @@
     },
     {
       "type": "integer",
-      "notNull": true,
+      "notNull": false,
       "autoincrement": false,
       "default": null,
       "generated": null,
@@ -5021,6 +5061,16 @@
       "table": "tournaments"
     },
     {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'UTC'",
+      "generated": null,
+      "name": "time_zone",
+      "entityType": "columns",
+      "table": "tournaments"
+    },
+    {
       "type": "integer",
       "notNull": true,
       "autoincrement": false,
@@ -5847,6 +5897,51 @@
       "onDelete": "NO ACTION",
       "nameExplicit": false,
       "name": "fk_innings_bowling_team_id_teams_id_fk",
+      "entityType": "fks",
+      "table": "innings"
+    },
+    {
+      "columns": [
+        "opening_striker_id"
+      ],
+      "tableTo": "players",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_innings_opening_striker_id_players_id_fk",
+      "entityType": "fks",
+      "table": "innings"
+    },
+    {
+      "columns": [
+        "opening_non_striker_id"
+      ],
+      "tableTo": "players",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_innings_opening_non_striker_id_players_id_fk",
+      "entityType": "fks",
+      "table": "innings"
+    },
+    {
+      "columns": [
+        "opening_bowler_id"
+      ],
+      "tableTo": "players",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "nameExplicit": false,
+      "name": "fk_innings_opening_bowler_id_players_id_fk",
       "entityType": "fks",
       "table": "innings"
     },

@@ -146,6 +146,8 @@ export function patchScoringSetupWithMutationResult(params: {
     } as ResolvedScoringSetupResult["match"],
     nextInningsDefaults: params.mutation
       .nextInningsDefaults as ResolvedScoringSetupResult["nextInningsDefaults"],
+    pendingInningsClosure: params.mutation
+      .pendingInningsClosure as ResolvedScoringSetupResult["pendingInningsClosure"],
     phase: params.mutation.phase as ResolvedScoringSetupResult["phase"],
     requiredSelections: params.mutation
       .requiredSelections as ResolvedScoringSetupResult["requiredSelections"],

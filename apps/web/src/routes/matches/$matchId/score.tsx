@@ -25,6 +25,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { InningsSetupPhaseCardProps } from "@/routes/matches/$matchId/-components/innings-setup-phase-card";
 import type { LineupPhaseCardProps } from "@/routes/matches/$matchId/-components/lineup-phase-card";
@@ -107,9 +112,21 @@ interface SessionDelivery {
 
 export type DeliveryChipTone = "default" | "scoring" | "wicket";
 
+interface DeliveryChipDisplay {
+  detailText: string;
+  label: string;
+  showDetailIndicator: boolean;
+}
+
 interface DeliveryOverGroup {
   deliveries: SessionDelivery[];
   overNumber: number;
+}
+
+interface PendingCloseDialogState {
+  deliveryId: number | null;
+  inningsId: number;
+  mode: "auto" | "manual";
 }
 
 type ScoringSessionMutationResult = Awaited<
@@ -471,12 +488,112 @@ export function getDeliveryChipTone(
   return "scoring";
 }
 
-function getDeliveryChipLabel(delivery: SessionDelivery) {
-  if (delivery.isWicket) {
-    return "W";
+const DELIVERY_EXTRA_CONFIG = [
+  {
+    key: "wideRuns",
+    detailLabel: "Wide",
+    shortLabel: "Wd",
+  },
+  {
+    key: "noBallRuns",
+    detailLabel: "No ball",
+    shortLabel: "Nb",
+  },
+  {
+    key: "byeRuns",
+    detailLabel: "Byes",
+    shortLabel: "By",
+  },
+  {
+    key: "legByeRuns",
+    detailLabel: "Leg byes",
+    shortLabel: "Lb",
+  },
+  {
+    key: "penaltyRuns",
+    detailLabel: "Penalty",
+    shortLabel: "Pn",
+  },
+] as const satisfies readonly {
+  detailLabel: string;
+  key: "byeRuns" | "legByeRuns" | "noBallRuns" | "penaltyRuns" | "wideRuns";
+  shortLabel: string;
+}[];
+
+function formatDeliveryRunCount(totalRuns: number) {
+  return `${totalRuns} ${totalRuns === 1 ? "run" : "runs"}`;
+}
+
+function formatWicketSummary(wicketType: null | string) {
+  if (!wicketType) {
+    return "Wicket";
   }
 
-  return String(delivery.totalRuns);
+  if (wicketType === "lbw") {
+    return "LBW";
+  }
+
+  return `${wicketType.charAt(0).toUpperCase()}${wicketType.slice(1)}`;
+}
+
+function getDeliveryExtras(
+  delivery: Pick<
+    SessionDelivery,
+    "byeRuns" | "legByeRuns" | "noBallRuns" | "penaltyRuns" | "wideRuns"
+  >
+) {
+  return DELIVERY_EXTRA_CONFIG.flatMap((extra) => {
+    const runs = delivery[extra.key] ?? 0;
+
+    if (runs <= 0) {
+      return [];
+    }
+
+    return [{ ...extra, runs }];
+  });
+}
+
+export function getDeliveryChipDisplay(
+  delivery: Pick<
+    SessionDelivery,
+    | "byeRuns"
+    | "isWicket"
+    | "legByeRuns"
+    | "noBallRuns"
+    | "penaltyRuns"
+    | "totalRuns"
+    | "wideRuns"
+    | "wicketType"
+  >
+): DeliveryChipDisplay {
+  const extras = getDeliveryExtras(delivery);
+  const hasExtras = extras.length > 0;
+  const wicketLabel = delivery.totalRuns > 0 ? `${delivery.totalRuns}W` : "W";
+  const primaryExtra = extras[0] ?? null;
+
+  let label = String(delivery.totalRuns);
+
+  if (delivery.isWicket) {
+    label = wicketLabel;
+  } else if (primaryExtra) {
+    label = `${delivery.totalRuns}${primaryExtra.shortLabel}`;
+  }
+
+  const detailParts = [formatDeliveryRunCount(delivery.totalRuns)];
+
+  if (delivery.isWicket) {
+    detailParts.push(formatWicketSummary(delivery.wicketType));
+  }
+
+  for (const extra of extras) {
+    detailParts.push(`${extra.detailLabel} ${extra.runs}`);
+  }
+
+  return {
+    detailText: detailParts.join(" • "),
+    label,
+    showDetailIndicator: (delivery.isWicket && hasExtras) || extras.length > 1,
+  };
 }
 
 function getDeliveryChipClasses({
@@ -508,35 +625,10 @@ function getDeliveryChipClasses({
   }
 
   return cn(
-    "flex size-11 items-center justify-center rounded-full border text-center font-semibold text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+    "relative flex size-11 items-center justify-center rounded-full border text-center font-semibold text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
     toneClasses,
     selectedClasses
   );
-}
-
-function renderDeliveryLabel(delivery: SessionDelivery) {
-  const parts: string[] = [];
-
-  if (delivery.isWicket) {
-    parts.push("W");
-  } else {
-    parts.push(String(delivery.totalRuns));
-  }
-
-  if (delivery.wideRuns > 0) {
-    parts.push(`Wd ${delivery.wideRuns}`);
-  }
-  if (delivery.noBallRuns > 0) {
-    parts.push(`Nb ${delivery.noBallRuns}`);
-  }
-  if (delivery.byeRuns > 0) {
-    parts.push(`B ${delivery.byeRuns}`);
-  }
-  if (delivery.legByeRuns > 0) {
-    parts.push(`Lb ${delivery.legByeRuns}`);
-  }
-
-  return parts.join(" • ");
 }
 
 function resolveLineupPlayersByTeam(params: {
@@ -671,18 +763,37 @@ function DeliveryChipButton({
   onSelectDelivery: (deliveryId: number) => void;
 }) {
   const tone = getDeliveryChipTone(delivery);
-
-  return (
+  const chipDisplay = getDeliveryChipDisplay(delivery);
+  const chipButton = (
     <button
-      aria-label={`Edit over ${delivery.overNumber - 1}.${delivery.ballInOver}: ${renderDeliveryLabel(delivery)}`}
+      aria-label={`Edit over ${delivery.overNumber - 1}.${delivery.ballInOver}: ${chipDisplay.detailText}`}
       className={getDeliveryChipClasses({ isSelected, tone })}
       onClick={() => onSelectDelivery(delivery.id)}
-      title={renderDeliveryLabel(delivery)}
+      title={
+        chipDisplay.showDetailIndicator ? undefined : chipDisplay.detailText
+      }
       type="button"
     >
-      {getDeliveryChipLabel(delivery)}
+      <span>{chipDisplay.label}</span>
+      {chipDisplay.showDetailIndicator ? (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-1 -right-1 size-3 rounded-full border-2 border-card bg-amber-300 shadow-sm"
+        />
+      ) : null}
     </button>
   );
+
+  if (chipDisplay.showDetailIndicator) {
+    return (
+      <Tooltip>
+        <TooltipTrigger render={chipButton} />
+        <TooltipContent side="top">{chipDisplay.detailText}</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return chipButton;
 }
 
 export function DeliveryTimelineCard({
@@ -843,9 +954,8 @@ function RouteComponent() {
   const [selectedDeliveryId, setSelectedDeliveryId] = useState<number | null>(
     null
   );
-  const [pendingCloseInningsId, setPendingCloseInningsId] = useState<
-    number | null
-  >(null);
+  const [pendingCloseDialog, setPendingCloseDialog] =
+    useState<null | PendingCloseDialogState>(null);
   const [draft, setDraft] = useState<DeliveryDraft | null>(null);
   const [isDesktopTimeline, setIsDesktopTimeline] = useState(false);
   const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
@@ -903,6 +1013,7 @@ function RouteComponent() {
     session: ScoringSessionMutationResult,
     options?: {
       clearSelectedDelivery?: boolean;
+      selectedDeliveryId?: number | null;
     }
   ) => {
     const refreshTasks = applyScoringSessionMutationResult({
@@ -912,7 +1023,9 @@ function RouteComponent() {
       session,
     });
 
-    if (options?.clearSelectedDelivery) {
+    if (typeof options?.selectedDeliveryId !== "undefined") {
+      setSelectedDeliveryId(options.selectedDeliveryId);
+    } else if (options?.clearSelectedDelivery) {
       setSelectedDeliveryId(null);
     }
 
@@ -1035,8 +1148,17 @@ function RouteComponent() {
     onSuccess: (session) => {
       toast.success("Delivery recorded");
       handleScoringSessionMutationSuccess(session, {
-        clearSelectedDelivery: true,
+        clearSelectedDelivery: session.pendingInningsClosure === null,
+        selectedDeliveryId: session.pendingInningsClosure?.deliveryId,
       });
+
+      if (session.pendingInningsClosure) {
+        setPendingCloseDialog({
+          deliveryId: session.pendingInningsClosure.deliveryId,
+          inningsId: session.pendingInningsClosure.inningsId,
+          mode: "auto",
+        });
+      }
     },
     onError: (error) => {
       toast.error(
@@ -1054,8 +1176,17 @@ function RouteComponent() {
     onSuccess: (session) => {
       toast.success("Delivery updated");
       handleScoringSessionMutationSuccess(session, {
-        clearSelectedDelivery: true,
+        clearSelectedDelivery: session.pendingInningsClosure === null,
+        selectedDeliveryId: session.pendingInningsClosure?.deliveryId,
       });
+
+      if (session.pendingInningsClosure) {
+        setPendingCloseDialog({
+          deliveryId: session.pendingInningsClosure.deliveryId,
+          inningsId: session.pendingInningsClosure.inningsId,
+          mode: "auto",
+        });
+      }
     },
     onError: (error) => {
       toast.error(
@@ -1070,8 +1201,17 @@ function RouteComponent() {
     onSuccess: (session) => {
       toast.success("Delivery deleted");
       handleScoringSessionMutationSuccess(session, {
-        clearSelectedDelivery: true,
+        clearSelectedDelivery: session.pendingInningsClosure === null,
+        selectedDeliveryId: session.pendingInningsClosure?.deliveryId ?? null,
       });
+
+      if (session.pendingInningsClosure) {
+        setPendingCloseDialog({
+          deliveryId: session.pendingInningsClosure.deliveryId,
+          inningsId: session.pendingInningsClosure.inningsId,
+          mode: "auto",
+        });
+      }
     },
     onError: (error) => {
       toast.error(
@@ -1085,6 +1225,7 @@ function RouteComponent() {
       client.closeCurrentScoringInnings({ inningsId }),
     onSuccess: (session) => {
       toast.success("Innings ended");
+      setPendingCloseDialog(null);
       handleScoringSetupSuccess(session, {
         clearSelectedDelivery: true,
       });
@@ -1097,16 +1238,27 @@ function RouteComponent() {
   });
 
   const handleCloseInnings = (inningsId: number) => {
-    setPendingCloseInningsId(inningsId);
+    setPendingCloseDialog({
+      deliveryId: selectedDeliveryId,
+      inningsId,
+      mode: "manual",
+    });
   };
 
   const handleConfirmCloseInnings = () => {
-    if (pendingCloseInningsId === null) {
+    if (!pendingCloseDialog) {
       return;
     }
 
-    closeInningsMutation.mutate(pendingCloseInningsId);
-    setPendingCloseInningsId(null);
+    closeInningsMutation.mutate(pendingCloseDialog.inningsId);
+  };
+
+  const handleDeclineCloseInnings = () => {
+    if (pendingCloseDialog?.mode === "auto") {
+      setSelectedDeliveryId(pendingCloseDialog.deliveryId);
+    }
+
+    setPendingCloseDialog(null);
   };
 
   const team1RosterById = useMemo(
@@ -1228,6 +1380,8 @@ function RouteComponent() {
   }, [setupBowlingPlayers]);
 
   const currentInnings = scoringSetup?.currentInnings ?? null;
+  const pendingInningsClosure = scoringSetup?.pendingInningsClosure ?? null;
+  const hasPendingInningsClosure = pendingInningsClosure !== null;
   const currentDeliveries = (currentInnings?.deliveries ??
     []) as SessionDelivery[];
   const matchFlags: MatchFlags = {
@@ -1242,6 +1396,21 @@ function RouteComponent() {
   const editingDelivery =
     currentDeliveries.find((delivery) => delivery.id === selectedDeliveryId) ??
     null;
+
+  useEffect(() => {
+    if (!pendingInningsClosure) {
+      return;
+    }
+
+    const pendingDeliveryExists = currentDeliveries.some(
+      (delivery) => delivery.id === pendingInningsClosure.deliveryId
+    );
+    if (!pendingDeliveryExists) {
+      return;
+    }
+
+    setSelectedDeliveryId(pendingInningsClosure.deliveryId);
+  }, [currentDeliveries, pendingInningsClosure]);
 
   useEffect(() => {
     if (!(scoringSetup && currentInnings)) {
@@ -1351,6 +1520,11 @@ function RouteComponent() {
     matchStatusLabel = `Innings ${currentInnings.inningsNumber} in progress`;
   }
   const handleRecordDeliveryView = () => {
+    if (pendingInningsClosure) {
+      setSelectedDeliveryId(pendingInningsClosure.deliveryId);
+      return;
+    }
+
     setSelectedDeliveryId(null);
 
     if (!isDesktopTimeline) {
@@ -1371,6 +1545,14 @@ function RouteComponent() {
       toast.error(
         "Can't record a delivery right now. Start or resume an innings."
       );
+      return;
+    }
+
+    if (pendingInningsClosure && !editingDelivery) {
+      toast.error(
+        "Review the last ball or end the innings before recording another delivery."
+      );
+      setSelectedDeliveryId(pendingInningsClosure.deliveryId);
       return;
     }
 
@@ -1782,6 +1964,7 @@ function RouteComponent() {
                   <>
                     <Button
                       className="rounded-xl"
+                      disabled={hasPendingInningsClosure}
                       onClick={handleRecordDeliveryView}
                       size="sm"
                       type="button"
@@ -1812,6 +1995,13 @@ function RouteComponent() {
                 }
                 selectedDeliveryId={selectedDeliveryId}
               />
+
+              {hasPendingInningsClosure ? (
+                <p className="rounded-[1.2rem] border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-800 text-sm">
+                  Review the last ball or confirm the innings end before
+                  recording another delivery.
+                </p>
+              ) : null}
 
               <section className="rounded-[2rem] border border-border/60 bg-muted/5 p-4 shadow-none">
                 <div className="flex items-center gap-2">
@@ -1935,34 +2125,39 @@ function RouteComponent() {
         <Dialog
           onOpenChange={(open) => {
             if (!(open || closeInningsMutation.isPending)) {
-              setPendingCloseInningsId(null);
+              handleDeclineCloseInnings();
             }
           }}
-          open={pendingCloseInningsId !== null}
+          open={pendingCloseDialog !== null}
         >
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>End this innings?</DialogTitle>
               <DialogDescription>
-                This will end the current innings before the next one starts.
-                You can still review the scorecard after this step.
+                {pendingCloseDialog?.mode === "auto"
+                  ? "This delivery has reached an innings-ending condition. Choose Yes to end the innings now, or No to return to the last ball for review."
+                  : "This will end the current innings before the next one starts. You can still review the scorecard after this step."}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button
                 disabled={closeInningsMutation.isPending}
-                onClick={() => setPendingCloseInningsId(null)}
+                onClick={handleDeclineCloseInnings}
                 type="button"
                 variant="outline"
               >
-                Cancel
+                {pendingCloseDialog?.mode === "auto"
+                  ? "No, review last ball"
+                  : "Cancel"}
               </Button>
               <Button
                 disabled={closeInningsMutation.isPending}
                 onClick={handleConfirmCloseInnings}
                 type="button"
               >
-                {closeInningsMutation.isPending ? "Ending..." : "End innings"}
+                {closeInningsMutation.isPending
+                  ? "Ending..."
+                  : "Yes, end innings"}
               </Button>
             </DialogFooter>
           </DialogContent>

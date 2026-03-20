@@ -176,6 +176,20 @@ const DISMISSAL_LABELS: Record<WicketType, string> = {
   others: "Others",
 };
 
+const NO_BALL_ALLOWED_DISMISSALS = new Set<WicketType>(["run out"]);
+
+const WIDE_ALLOWED_DISMISSALS = new Set<WicketType>([
+  "run out",
+  "stumped",
+  "hit wicket",
+  "obstructing the field",
+]);
+
+const BATTER_RUN_ALLOWED_DISMISSALS = new Set<WicketType>([
+  "run out",
+  "obstructing the field",
+]);
+
 export function normalizeDismissalTypeForUI(
   wicketType: "" | WicketType | null | undefined
 ): "" | Exclude<WicketType, "bold"> {
@@ -226,6 +240,38 @@ export function getVisibleDismissals(matchFlags: MatchFlags) {
   });
 }
 
+export function dismissalAllowsBatterRuns(
+  wicketType: "" | WicketType | null | undefined
+) {
+  const normalizedWicketType = normalizeDismissalTypeForUI(wicketType);
+  if (!normalizedWicketType) {
+    return true;
+  }
+
+  return BATTER_RUN_ALLOWED_DISMISSALS.has(normalizedWicketType);
+}
+
+export function getAllowedDismissals(params: {
+  draft: Pick<DeliveryDraft, "noBallRuns" | "wideRuns">;
+  matchFlags: MatchFlags;
+}) {
+  const visibleDismissals = getVisibleDismissals(params.matchFlags);
+
+  if (params.draft.noBallRuns > 0) {
+    return visibleDismissals.filter((dismissalType) =>
+      NO_BALL_ALLOWED_DISMISSALS.has(dismissalType)
+    );
+  }
+
+  if (params.draft.wideRuns > 0) {
+    return visibleDismissals.filter((dismissalType) =>
+      WIDE_ALLOWED_DISMISSALS.has(dismissalType)
+    );
+  }
+
+  return visibleDismissals;
+}
+
 function getDismissalLabel(wicketType: WicketType) {
   return DISMISSAL_LABELS[wicketType] ?? wicketType;
 }
@@ -263,7 +309,10 @@ function ScoreABall({
     "handled the ball",
   ]);
   const visibleExtras = getVisibleExtras(matchFlags);
-  const visibleDismissals = getVisibleDismissals(matchFlags);
+  const visibleDismissals = getAllowedDismissals({
+    draft,
+    matchFlags,
+  });
   const commonDismissals = COMMON_DISMISSAL_TYPES.filter((type) =>
     visibleDismissals.includes(type)
   );
@@ -291,6 +340,7 @@ function ScoreABall({
   const hasBye = draft.byeRuns > 0;
   const hasLegBye = draft.legByeRuns > 0;
   const hasBatRuns = draft.batterRuns > 0;
+  const canScoreBatterRuns = dismissalAllowsBatterRuns(normalizedWicketType);
   const selectedMoreDismissalValue = moreDismissals.some(
     (type) => type === normalizedWicketType
   )
@@ -302,6 +352,33 @@ function ScoreABall({
       setShowExtras(true);
     }
   }, [hasExtras]);
+
+  useEffect(() => {
+    const patch: Partial<DeliveryDraft> = {};
+
+    if (
+      normalizedWicketType &&
+      !visibleDismissals.includes(normalizedWicketType)
+    ) {
+      patch.wicketType = "";
+      patch.dismissedPlayerId = null;
+      patch.assistedById = null;
+    }
+
+    if (draft.batterRuns > 0 && !canScoreBatterRuns) {
+      patch.batterRuns = 0;
+    }
+
+    if (Object.keys(patch).length > 0) {
+      onChange(patch);
+    }
+  }, [
+    canScoreBatterRuns,
+    draft.batterRuns,
+    normalizedWicketType,
+    onChange,
+    visibleDismissals,
+  ]);
 
   let submitLabel = "Record delivery";
   if (isSubmitting) {
@@ -322,6 +399,9 @@ function ScoreABall({
 
     onChange({
       wicketType: nextWicketType,
+      batterRuns: dismissalAllowsBatterRuns(nextWicketType)
+        ? draft.batterRuns
+        : 0,
       dismissedPlayerId: strikerOnlyDismissalTypes.has(nextWicketType)
         ? draft.strikerId
         : null,
@@ -345,7 +425,6 @@ function ScoreABall({
       batterRuns: value > 0 ? 0 : draft.batterRuns,
       byeRuns: value,
       legByeRuns: value > 0 ? 0 : draft.legByeRuns,
-      wideRuns: value > 0 ? 0 : draft.wideRuns,
     });
   };
 
@@ -366,7 +445,6 @@ function ScoreABall({
 
     onChange({
       batterRuns: 0,
-      byeRuns: 0,
       legByeRuns: 0,
       noBallRuns: 0,
       wideRuns: 1,
@@ -486,7 +564,7 @@ function ScoreABall({
                     ? "cursor-not-allowed opacity-60"
                     : null
                 )}
-                disabled={hasWide || hasBye || hasLegBye}
+                disabled={hasWide || hasBye || hasLegBye || !canScoreBatterRuns}
                 key={runs}
                 onClick={() => setBatterRuns(runs)}
                 type="button"
@@ -496,7 +574,7 @@ function ScoreABall({
             ))}
           </div>
           <NumberField
-            disabled={hasWide || hasBye || hasLegBye}
+            disabled={hasWide || hasBye || hasLegBye || !canScoreBatterRuns}
             label="Other bat runs"
             onChange={setBatterRuns}
             value={draft.batterRuns}
@@ -545,7 +623,7 @@ function ScoreABall({
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {visibleExtras.includes("byeRuns") ? (
                   <NumberField
-                    disabled={hasBatRuns || hasLegBye || hasWide}
+                    disabled={hasBatRuns || hasLegBye}
                     label="Bye runs"
                     onChange={setByeRuns}
                     value={draft.byeRuns}

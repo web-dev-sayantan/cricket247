@@ -93,6 +93,7 @@ function createScoringSetup(): ResolvedScoringSetupResult {
       ballsPerOver: 6,
     },
     nextInningsDefaults: null,
+    pendingInningsClosure: null,
     phase: "scoring" as const,
     playersPerSide: 2,
     requiredSelections: {
@@ -201,6 +202,7 @@ describe("patchScoringSetupWithMutationResult", () => {
           winnerId: null,
         },
         nextInningsDefaults: null,
+        pendingInningsClosure: null,
         phase: "scoring",
         requiredSelections: {
           battingTeam: false,
@@ -294,6 +296,7 @@ describe("patchScoringSetupWithMutationResult", () => {
           winnerId: null,
         },
         nextInningsDefaults: null,
+        pendingInningsClosure: null,
         phase: "scoring",
         requiredSelections: previous.requiredSelections,
       },
@@ -302,5 +305,87 @@ describe("patchScoringSetupWithMutationResult", () => {
 
     expect(next?.currentInnings?.deliveries).toHaveLength(0);
     expect(next?.match.team1?.shortName).toBe("KNI");
+  });
+
+  it("preserves pending innings closure details from a mutation response", () => {
+    const previous = createScoringSetup();
+
+    const next = patchScoringSetupWithMutationResult({
+      mutation: {
+        action: "record",
+        affectedInnings: {
+          ballsBowled: 120,
+          battingTeamId: 1,
+          bowlingTeamId: 2,
+          id: 501,
+          inningsNumber: 1,
+          isCompleted: false,
+          targetRuns: null,
+          totalScore: 150,
+          wickets: 7,
+        },
+        availableBatters: [],
+        availableBowlers: [],
+        currentInnings: {
+          ballsBowled: 120,
+          battingTeamId: 1,
+          bowlingTeamId: 2,
+          id: 501,
+          inningsNumber: 1,
+          isCompleted: false,
+          targetRuns: null,
+          totalScore: 150,
+          wickets: 7,
+        },
+        deletedDeliveryId: null,
+        delivery: {
+          assistedById: null,
+          ballInOver: 6,
+          batterRuns: 1,
+          bowlerId: 21,
+          byeRuns: 0,
+          dismissedById: null,
+          dismissedPlayerId: null,
+          id: 9006,
+          inningsId: 501,
+          isLegalDelivery: true,
+          isWicket: false,
+          legByeRuns: 0,
+          noBallRuns: 0,
+          nonStrikerId: 12,
+          overNumber: 20,
+          penaltyRuns: 0,
+          sequenceNo: 120,
+          strikerId: 11,
+          totalRuns: 1,
+          wicketType: null,
+          wideRuns: 0,
+        },
+        entryContext: previous.entryContext,
+        match: {
+          isCompleted: false,
+          isLive: true,
+          isTied: false,
+          margin: null,
+          result: null,
+          winnerId: null,
+        },
+        nextInningsDefaults: null,
+        pendingInningsClosure: {
+          deliveryId: 9006,
+          inningsId: 501,
+          reason: "max_balls",
+        },
+        phase: "scoring",
+        requiredSelections: previous.requiredSelections,
+      },
+      previous,
+    });
+
+    expect(next?.pendingInningsClosure).toEqual({
+      deliveryId: 9006,
+      inningsId: 501,
+      reason: "max_balls",
+    });
   });
 });

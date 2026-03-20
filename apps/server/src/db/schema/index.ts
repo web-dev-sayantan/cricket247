@@ -212,6 +212,7 @@ export const matchFormats = sqliteTable("match_formats", {
   name: text().notNull(),
   description: text(),
   noOfInnings: integer().notNull().default(2),
+  isFollowOnAllowed: booleanFlag().default(false),
   noOfOvers: integer().notNull().default(20),
   ballsPerOver: integer().notNull().default(6),
   maxLegalBallsPerInnings: integer(),

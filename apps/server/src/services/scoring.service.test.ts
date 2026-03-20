@@ -478,6 +478,255 @@ describe("scoring.service replay helpers", () => {
     ).toThrow("Wide runs must be recorded in the wide field only");
   });
 
+  it("allows bye runs to be recorded alongside a wide", async () => {
+    const { scoringSessionInternals } = await scoringServiceModule;
+
+    expect(
+      scoringSessionInternals.validateDeliveryDraft({
+        draft: {
+          inningsId: 1,
+          strikerId: 101,
+          nonStrikerId: 102,
+          bowlerId: 201,
+          batterRuns: 0,
+          byeRuns: 2,
+          wideRuns: 1,
+        },
+        hasBoundaryOut: true,
+        hasBye: true,
+        hasLBW: true,
+        hasLegBye: true,
+        hasNoBalls: true,
+        hasPenaltyRuns: true,
+        hasWides: true,
+        strikerId: 101,
+        nonStrikerId: 102,
+        canDismissNonStriker: true,
+      })
+    ).toMatchObject({
+      batterRuns: 0,
+      byeRuns: 2,
+      isLegalDelivery: false,
+      totalRuns: 3,
+      wideRuns: 1,
+    });
+  });
+
+  it("allows only run out dismissals on no-balls", async () => {
+    const { scoringSessionInternals } = await scoringServiceModule;
+
+    expect(() =>
+      scoringSessionInternals.validateDeliveryDraft({
+        draft: {
+          inningsId: 1,
+          strikerId: 101,
+          nonStrikerId: 102,
+          bowlerId: 201,
+          noBallRuns: 1,
+          dismissedPlayerId: 101,
+          wicketType: "caught",
+          assistedById: 202,
+        },
+        hasBoundaryOut: true,
+        hasBye: true,
+        hasLBW: true,
+        hasLegBye: true,
+        hasNoBalls: true,
+        hasPenaltyRuns: true,
+        hasWides: true,
+        strikerId: 101,
+        nonStrikerId: 102,
+        canDismissNonStriker: true,
+      })
+    ).toThrow("Only run out can be recorded as a dismissal on a no-ball");
+
+    expect(
+      scoringSessionInternals.validateDeliveryDraft({
+        draft: {
+          inningsId: 1,
+          strikerId: 101,
+          nonStrikerId: 102,
+          bowlerId: 201,
+          noBallRuns: 1,
+          dismissedPlayerId: 101,
+          wicketType: "run out",
+          assistedById: 202,
+        },
+        hasBoundaryOut: true,
+        hasBye: true,
+        hasLBW: true,
+        hasLegBye: true,
+        hasNoBalls: true,
+        hasPenaltyRuns: true,
+        hasWides: true,
+        strikerId: 101,
+        nonStrikerId: 102,
+        canDismissNonStriker: true,
+      })
+    ).toMatchObject({
+      isLegalDelivery: false,
+      isWicket: true,
+      wicketType: "run out",
+      noBallRuns: 1,
+    });
+  });
+
+  it("allows only real-world wide-ball dismissals", async () => {
+    const { scoringSessionInternals } = await scoringServiceModule;
+
+    expect(() =>
+      scoringSessionInternals.validateDeliveryDraft({
+        draft: {
+          inningsId: 1,
+          strikerId: 101,
+          nonStrikerId: 102,
+          bowlerId: 201,
+          wideRuns: 1,
+          dismissedPlayerId: 101,
+          wicketType: "caught",
+          assistedById: 202,
+        },
+        hasBoundaryOut: true,
+        hasBye: true,
+        hasLBW: true,
+        hasLegBye: true,
+        hasNoBalls: true,
+        hasPenaltyRuns: true,
+        hasWides: true,
+        strikerId: 101,
+        nonStrikerId: 102,
+        canDismissNonStriker: true,
+      })
+    ).toThrow(
+      "Only run out, stumped, hit wicket, and obstructing the field can be recorded on a wide"
+    );
+
+    for (const wicketType of [
+      "run out",
+      "stumped",
+      "hit wicket",
+      "obstructing the field",
+    ] as const) {
+      expect(
+        scoringSessionInternals.validateDeliveryDraft({
+          draft: {
+            inningsId: 1,
+            strikerId: 101,
+            nonStrikerId: 102,
+            bowlerId: 201,
+            wideRuns: 1,
+            dismissedPlayerId: 101,
+            wicketType,
+            assistedById:
+              wicketType === "run out" || wicketType === "stumped" ? 202 : null,
+          },
+          hasBoundaryOut: true,
+          hasBye: true,
+          hasLBW: true,
+          hasLegBye: true,
+          hasNoBalls: true,
+          hasPenaltyRuns: true,
+          hasWides: true,
+          strikerId: 101,
+          nonStrikerId: 102,
+          canDismissNonStriker: true,
+        })
+      ).toMatchObject({
+        isLegalDelivery: false,
+        isWicket: true,
+        wicketType,
+        wideRuns: 1,
+      });
+    }
+  });
+
+  it("disallows batter runs on dismissals except run out and obstructing the field", async () => {
+    const { scoringSessionInternals } = await scoringServiceModule;
+
+    expect(() =>
+      scoringSessionInternals.validateDeliveryDraft({
+        draft: {
+          inningsId: 1,
+          strikerId: 101,
+          nonStrikerId: 102,
+          bowlerId: 201,
+          batterRuns: 2,
+          dismissedPlayerId: 101,
+          wicketType: "bowled",
+        },
+        hasBoundaryOut: true,
+        hasBye: true,
+        hasLBW: true,
+        hasLegBye: true,
+        hasNoBalls: true,
+        hasPenaltyRuns: true,
+        hasWides: true,
+        strikerId: 101,
+        nonStrikerId: 102,
+        canDismissNonStriker: true,
+      })
+    ).toThrow(
+      "Batter runs must be zero unless the dismissal is run out or obstructing the field"
+    );
+
+    expect(
+      scoringSessionInternals.validateDeliveryDraft({
+        draft: {
+          inningsId: 1,
+          strikerId: 101,
+          nonStrikerId: 102,
+          bowlerId: 201,
+          batterRuns: 2,
+          dismissedPlayerId: 101,
+          wicketType: "run out",
+          assistedById: 202,
+        },
+        hasBoundaryOut: true,
+        hasBye: true,
+        hasLBW: true,
+        hasLegBye: true,
+        hasNoBalls: true,
+        hasPenaltyRuns: true,
+        hasWides: true,
+        strikerId: 101,
+        nonStrikerId: 102,
+        canDismissNonStriker: true,
+      })
+    ).toMatchObject({
+      batterRuns: 2,
+      wicketType: "run out",
+      totalRuns: 2,
+    });
+
+    expect(
+      scoringSessionInternals.validateDeliveryDraft({
+        draft: {
+          inningsId: 1,
+          strikerId: 101,
+          nonStrikerId: 102,
+          bowlerId: 201,
+          batterRuns: 2,
+          dismissedPlayerId: 101,
+          wicketType: "obstructing the field",
+        },
+        hasBoundaryOut: true,
+        hasBye: true,
+        hasLBW: true,
+        hasLegBye: true,
+        hasNoBalls: true,
+        hasPenaltyRuns: true,
+        hasWides: true,
+        strikerId: 101,
+        nonStrikerId: 102,
+        canDismissNonStriker: true,
+      })
+    ).toMatchObject({
+      batterRuns: 2,
+      wicketType: "obstructing the field",
+      totalRuns: 2,
+    });
+  });
+
   it("derives the final innings chase target from aggregate scores", async () => {
     const { scoringSessionInternals } = await scoringServiceModule;
 
@@ -694,6 +943,43 @@ describe("scoring.service replay helpers", () => {
         wickets: 3,
       })
     ).toBe(true);
+  });
+
+  it("returns the specific auto-complete reason for innings-end scenarios", async () => {
+    const { scoringSessionInternals } = await scoringServiceModule;
+
+    expect(
+      scoringSessionInternals.resolveAutoCompleteInningsReason({
+        ballsBowled: 48,
+        matchRulesMaxLegalBallsPerInnings: 120,
+        playersPerSide: 11,
+        targetRuns: null,
+        totalScore: 180,
+        wickets: 10,
+      })
+    ).toBe("all_out");
+
+    expect(
+      scoringSessionInternals.resolveAutoCompleteInningsReason({
+        ballsBowled: 120,
+        matchRulesMaxLegalBallsPerInnings: 120,
+        playersPerSide: 11,
+        targetRuns: null,
+        totalScore: 180,
+        wickets: 4,
+      })
+    ).toBe("max_balls");
+
+    expect(
+      scoringSessionInternals.resolveAutoCompleteInningsReason({
+        ballsBowled: 36,
+        matchRulesMaxLegalBallsPerInnings: 120,
+        playersPerSide: 11,
+        targetRuns: 151,
+        totalScore: 151,
+        wickets: 3,
+      })
+    ).toBe("target_reached");
   });
 
   it("builds compact rewrite mutation results for updated deliveries", async () => {
@@ -1011,6 +1297,26 @@ describe("scoring.service replay helpers", () => {
 
     await expect(deleteScoringDelivery(900)).rejects.toThrow(
       "Completed innings cannot be edited"
+    );
+  });
+
+  it("rejects recording a new delivery while innings-end confirmation is pending", async () => {
+    const { recordScoringDelivery } = await scoringServiceModule;
+
+    state.scoringContextBaseRow = {
+      ...createDefaultScoringContextBaseRow(),
+      status: "awaiting_close_confirmation",
+    };
+
+    await expect(
+      recordScoringDelivery({
+        bowlerId: 201,
+        inningsId: 1,
+        nonStrikerId: 102,
+        strikerId: 101,
+      })
+    ).rejects.toThrow(
+      "Review the last ball or confirm the innings end before recording another delivery"
     );
   });
 

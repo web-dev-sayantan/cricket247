@@ -1,9 +1,11 @@
 import { describe, expect, it, mock } from "bun:test";
-import { fireEvent } from "@testing-library/react";
+import { fireEvent, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { renderWithProviders } from "@/test/render";
 import ScoreABall, {
   type DeliveryDraft,
+  dismissalAllowsBatterRuns,
+  getAllowedDismissals,
   getVisibleDismissals,
   getVisibleExtras,
   type MatchFlags,
@@ -200,7 +202,6 @@ describe("ScoreABall", () => {
 
     expect(onChange.mock.calls[0]?.[0]).toEqual({
       batterRuns: 0,
-      byeRuns: 0,
       legByeRuns: 0,
       noBallRuns: 0,
       wideRuns: 1,
@@ -233,7 +234,68 @@ describe("ScoreABall", () => {
       batterRuns: 0,
       byeRuns: 2,
       legByeRuns: 0,
-      wideRuns: 0,
+    });
+  });
+
+  it("keeps a wide active when bye runs are added", async () => {
+    function StatefulScoreABall() {
+      const [draft, setDraft] = useState(baseDraft);
+
+      return (
+        <ScoreABall
+          battingPlayers={battingPlayers}
+          bowlingPlayers={bowlingPlayers}
+          currentBallLabel="Over 4.2"
+          draft={draft}
+          fieldingOptions={bowlingPlayers}
+          isEditing={false}
+          matchFlags={allMatchFlags}
+          onChange={(patch) =>
+            setDraft((previous) => ({ ...previous, ...patch }))
+          }
+          onReset={() => setDraft(baseDraft)}
+          onSubmit={() => undefined}
+          requiredSelections={{
+            striker: false,
+            nonStriker: false,
+            bowler: false,
+          }}
+        />
+      );
+    }
+
+    const { getByRole, getByText } = renderWithProviders(
+      <StatefulScoreABall />
+    );
+
+    fireEvent.click(getByRole("button", { name: "Extras" }));
+    fireEvent.click(
+      getByRole("button", {
+        name: "Wide Adds 1 run and marks the ball as a wide",
+      })
+    );
+
+    const byeInput =
+      getByText("Bye runs").parentElement?.querySelector("input");
+
+    if (!byeInput) {
+      throw new Error("Bye runs input not found");
+    }
+
+    expect((byeInput as HTMLInputElement).disabled).toBe(false);
+    expect(
+      (getByRole("button", { name: "1" }) as HTMLButtonElement).disabled
+    ).toBe(true);
+
+    fireEvent.change(byeInput, { target: { value: "2" } });
+
+    await waitFor(() => {
+      expect(
+        getByRole("button", {
+          name: "Wide Adds 1 run and marks the ball as a wide",
+        }).getAttribute("aria-pressed")
+      ).toBe("true");
+      expect((byeInput as HTMLInputElement).value).toBe("2");
     });
   });
 
@@ -253,6 +315,29 @@ describe("ScoreABall", () => {
         hasLBW: false,
       })
     ).not.toContain("lbw");
+
+    expect(
+      getAllowedDismissals({
+        draft: {
+          noBallRuns: 1,
+          wideRuns: 0,
+        },
+        matchFlags: allMatchFlags,
+      })
+    ).toEqual(["run out"]);
+
+    expect(
+      getAllowedDismissals({
+        draft: {
+          noBallRuns: 0,
+          wideRuns: 1,
+        },
+        matchFlags: allMatchFlags,
+      })
+    ).toEqual(["run out", "stumped", "hit wicket", "obstructing the field"]);
+
+    expect(dismissalAllowsBatterRuns("bowled")).toBe(false);
+    expect(dismissalAllowsBatterRuns("run out")).toBe(true);
   });
 
   it("shows quick dismissal actions and reveals dependent fields after selection", () => {
@@ -296,5 +381,105 @@ describe("ScoreABall", () => {
 
     expect(getByText("Dismissed batter")).toBeTruthy();
     expect(getByText("Fielder (required)")).toBeTruthy();
+  });
+
+  it("removes invalid dismissals after the scorer marks the ball as a no-ball", () => {
+    function StatefulScoreABall() {
+      const [draft, setDraft] = useState(baseDraft);
+
+      return (
+        <ScoreABall
+          battingPlayers={battingPlayers}
+          bowlingPlayers={bowlingPlayers}
+          currentBallLabel="Over 4.2"
+          draft={draft}
+          fieldingOptions={bowlingPlayers}
+          isEditing={false}
+          matchFlags={allMatchFlags}
+          onChange={(patch) =>
+            setDraft((previous) => ({ ...previous, ...patch }))
+          }
+          onReset={() => setDraft(baseDraft)}
+          onSubmit={() => undefined}
+          requiredSelections={{
+            striker: false,
+            nonStriker: false,
+            bowler: false,
+          }}
+        />
+      );
+    }
+
+    const { getByRole, queryByRole, queryByText } = renderWithProviders(
+      <StatefulScoreABall />
+    );
+
+    fireEvent.click(getByRole("button", { name: "Caught" }));
+    expect(queryByText("Dismissed batter")).toBeTruthy();
+
+    fireEvent.click(getByRole("button", { name: "Extras" }));
+    fireEvent.click(
+      getByRole("button", {
+        name: "No-ball Adds 1 run and marks the ball as a no-ball",
+      })
+    );
+
+    expect(queryByRole("button", { name: "Caught" })).toBeNull();
+    expect(getByRole("button", { name: "Run out" })).toBeTruthy();
+    expect(queryByText("Dismissed batter")).toBeNull();
+  });
+
+  it("clears and disables batter runs for dismissals that cannot score them", async () => {
+    function StatefulScoreABall() {
+      const [draft, setDraft] = useState(baseDraft);
+
+      return (
+        <ScoreABall
+          battingPlayers={battingPlayers}
+          bowlingPlayers={bowlingPlayers}
+          currentBallLabel="Over 4.2"
+          draft={draft}
+          fieldingOptions={bowlingPlayers}
+          isEditing={false}
+          matchFlags={allMatchFlags}
+          onChange={(patch) =>
+            setDraft((previous) => ({ ...previous, ...patch }))
+          }
+          onReset={() => setDraft(baseDraft)}
+          onSubmit={() => undefined}
+          requiredSelections={{
+            striker: false,
+            nonStriker: false,
+            bowler: false,
+          }}
+        />
+      );
+    }
+
+    const { getByRole } = renderWithProviders(<StatefulScoreABall />);
+
+    fireEvent.click(getByRole("button", { name: "2" }));
+    expect(
+      getByRole("button", { name: "2" }).getAttribute("aria-pressed")
+    ).toBe("true");
+
+    fireEvent.click(getByRole("button", { name: "Bowled" }));
+
+    await waitFor(() => {
+      expect(
+        getByRole("button", { name: "0" }).getAttribute("aria-pressed")
+      ).toBe("true");
+      expect(
+        (getByRole("button", { name: "2" }) as HTMLButtonElement).disabled
+      ).toBe(true);
+    });
+
+    fireEvent.click(getByRole("button", { name: "Run out" }));
+
+    await waitFor(() => {
+      expect(
+        (getByRole("button", { name: "2" }) as HTMLButtonElement).disabled
+      ).toBe(false);
+    });
   });
 });

@@ -6,10 +6,12 @@ const DEFAULT_BALLS_PER_OVER = 6;
 
 export interface MatchFormatRules {
   ballsPerOver: number;
+  followOnAllowed: boolean;
   formatLabel: string;
   matchFormatId: number | null;
   maxLegalBallsPerInnings: number | null;
   maxOversPerBowler: number | null;
+  noOfInnings: number | null;
   noOfOvers: number | null;
 }
 
@@ -99,6 +101,8 @@ export async function resolveMatchFormatForCreation(
     matchFormatId: format.id,
     formatLabel: format.name,
     ballsPerOver,
+    followOnAllowed: Boolean(format.isFollowOnAllowed),
+    noOfInnings: toPositiveIntOrNull(format.noOfInnings),
     noOfOvers: toPositiveIntOrNull(format.noOfOvers),
     maxOversPerBowler: toPositiveIntOrNull(format.maxOversPerBowler),
     maxLegalBallsPerInnings: deriveMaxLegalBallsPerInnings({
@@ -165,11 +169,16 @@ export async function getMatchFormatRulesByMatchId(
       maxLegalBallsPerInnings: format?.maxLegalBallsPerInnings,
       noOfOvers: format?.noOfOvers ?? match.oversPerSide,
     });
+  const matchNoOfInnings = toPositiveIntOrNull(match.inningsPerSide)
+    ? (toPositiveIntOrNull(match.inningsPerSide) ?? 1) * 2
+    : null;
 
   return {
     matchFormatId: resolvedFormatId,
     formatLabel: format?.name ?? match.format,
     ballsPerOver,
+    followOnAllowed: Boolean(format?.isFollowOnAllowed),
+    noOfInnings: toPositiveIntOrNull(format?.noOfInnings) ?? matchNoOfInnings,
     noOfOvers:
       toPositiveIntOrNull(format?.noOfOvers) ??
       toPositiveIntOrNull(match.oversPerSide),

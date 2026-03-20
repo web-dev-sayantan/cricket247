@@ -915,6 +915,9 @@
                   "isDrawAllowed": {
                     "type": "boolean"
                   },
+                  "isFollowOnAllowed": {
+                    "type": "boolean"
+                  },
                   "isSuperOverAllowed": {
                     "type": "boolean"
                   },
@@ -1731,6 +1734,9 @@
                             ]
                           },
                           "isDrawAllowed": {
+                            "type": "boolean"
+                          },
+                          "isFollowOnAllowed": {
                             "type": "boolean"
                           },
                           "isSuperOverAllowed": {
@@ -6297,6 +6303,9 @@
                             ]
                           },
                           "isDrawAllowed": {
+                            "type": "boolean"
+                          },
+                          "isFollowOnAllowed": {
                             "type": "boolean"
                           },
                           "isSuperOverAllowed": {

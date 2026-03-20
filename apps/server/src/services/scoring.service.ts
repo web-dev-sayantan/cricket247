@@ -1182,6 +1182,16 @@ export interface ScoringMutationMatchState {
 }
 
 export type ScoringMutationAction = "delete" | "record" | "update";
+export type PendingInningsClosureReason =
+  | "all_out"
+  | "max_balls"
+  | "target_reached";
+
+export interface PendingInningsClosure {
+  deliveryId: number;
+  inningsId: number;
+  reason: PendingInningsClosureReason;
+}
 
 export interface ScoringMutationResult {
   action: ScoringMutationAction;
@@ -1198,6 +1208,7 @@ export interface ScoringMutationResult {
     bowlingTeamId: number;
     inningsNumber: number;
   } | null;
+  pendingInningsClosure: PendingInningsClosure | null;
   phase: ScoringPhase;
   requiredSelections: ScoringRequiredSelections;
 }
@@ -1216,6 +1227,22 @@ const ASSIST_REQUIRED_WICKETS = new Set<string>([
   "caught",
   "run out",
   "stumped",
+]);
+const INNINGS_STATUS_AWAITING_CLOSE_CONFIRMATION =
+  "awaiting_close_confirmation";
+
+const NO_BALL_ALLOWED_WICKETS = new Set<string>(["run out"]);
+
+const WIDE_ALLOWED_WICKETS = new Set<string>([
+  "run out",
+  "stumped",
+  "hit wicket",
+  "obstructing the field",
+]);
+
+const BATTER_RUN_WICKETS = new Set<string>([
+  "run out",
+  "obstructing the field",
 ]);
 
 function buildSavedTeamLineup(
@@ -1372,7 +1399,7 @@ function validateDeliveryDraft(params: {
     throw new Error("A delivery cannot be both a wide and a no-ball");
   }
 
-  if (wideRuns > 0 && (batterRuns > 0 || byeRuns > 0 || legByeRuns > 0)) {
+  if (wideRuns > 0 && (batterRuns > 0 || legByeRuns > 0)) {
     throw new Error("Wide runs must be recorded in the wide field only");
   }
 
@@ -1418,6 +1445,24 @@ function validateDeliveryDraft(params: {
 
     if (wicketType === "boundary out" && !params.hasBoundaryOut) {
       throw new Error("Boundary out is not enabled for this match");
+    }
+
+    if (noBallRuns > 0 && !NO_BALL_ALLOWED_WICKETS.has(wicketType)) {
+      throw new Error(
+        "Only run out can be recorded as a dismissal on a no-ball"
+      );
+    }
+
+    if (wideRuns > 0 && !WIDE_ALLOWED_WICKETS.has(wicketType)) {
+      throw new Error(
+        "Only run out, stumped, hit wicket, and obstructing the field can be recorded on a wide"
+      );
+    }
+
+    if (batterRuns > 0 && !BATTER_RUN_WICKETS.has(wicketType)) {
+      throw new Error(
+        "Batter runs must be zero unless the dismissal is run out or obstructing the field"
+      );
     }
 
     if (
@@ -1614,6 +1659,35 @@ function deriveTargetRunsForInnings(params: {
   return Math.max(1, bowlingAggregate - battingAggregate + 1);
 }
 
+function resolveAutoCompleteInningsReason(params: {
+  ballsBowled: number;
+  matchRulesMaxLegalBallsPerInnings: null | number;
+  playersPerSide: number;
+  targetRuns: null | number;
+  totalScore: number;
+  wickets: number;
+}): null | PendingInningsClosureReason {
+  if (params.wickets >= params.playersPerSide - 1) {
+    return "all_out";
+  }
+
+  if (
+    typeof params.matchRulesMaxLegalBallsPerInnings === "number" &&
+    params.ballsBowled >= params.matchRulesMaxLegalBallsPerInnings
+  ) {
+    return "max_balls";
+  }
+
+  if (
+    typeof params.targetRuns === "number" &&
+    params.totalScore >= params.targetRuns
+  ) {
+    return "target_reached";
+  }
+
+  return null;
+}
+
 function shouldAutoCompleteInnings(params: {
   ballsBowled: number;
   matchRulesMaxLegalBallsPerInnings: null | number;
@@ -1622,25 +1696,34 @@ function shouldAutoCompleteInnings(params: {
   totalScore: number;
   wickets: number;
 }) {
-  if (params.wickets >= params.playersPerSide - 1) {
-    return true;
+  return resolveAutoCompleteInningsReason(params) !== null;
+}
+
+function resolveLiveInningsStatus(params: {
+  ballsBowled: number;
+  hasPendingClosure: boolean;
+}) {
+  if (params.hasPendingClosure) {
+    return INNINGS_STATUS_AWAITING_CLOSE_CONFIRMATION;
   }
 
-  if (
-    typeof params.matchRulesMaxLegalBallsPerInnings === "number" &&
-    params.ballsBowled >= params.matchRulesMaxLegalBallsPerInnings
-  ) {
-    return true;
+  return params.ballsBowled > 0 ? "in_progress" : "not_started";
+}
+
+function toPendingInningsClosure(params: {
+  deliveryId: number;
+  inningsId: number;
+  reason: null | PendingInningsClosureReason;
+}): PendingInningsClosure | null {
+  if (!params.reason) {
+    return null;
   }
 
-  if (
-    typeof params.targetRuns === "number" &&
-    params.totalScore >= params.targetRuns
-  ) {
-    return true;
-  }
-
-  return false;
+  return {
+    deliveryId: params.deliveryId,
+    inningsId: params.inningsId,
+    reason: params.reason,
+  };
 }
 
 async function resequenceDeliveriesForInnings(inningsId: number) {
@@ -2461,6 +2544,24 @@ async function assembleMatchScoringSession(matchId: number) {
         timeline: currentInnings.deliveries,
       })
     : null;
+  const pendingInningsClosure =
+    currentInnings &&
+    !currentInnings.isCompleted &&
+    currentInnings.status === INNINGS_STATUS_AWAITING_CLOSE_CONFIRMATION
+      ? toPendingInningsClosure({
+          deliveryId: currentInnings.deliveries.at(-1)?.id ?? 0,
+          inningsId: currentInnings.id,
+          reason: resolveAutoCompleteInningsReason({
+            ballsBowled: currentInnings.ballsBowled,
+            matchRulesMaxLegalBallsPerInnings:
+              matchRules.maxLegalBallsPerInnings,
+            playersPerSide: match.playersPerSide,
+            targetRuns: currentInnings.targetRuns,
+            totalScore: currentInnings.totalScore,
+            wickets: currentInnings.wickets,
+          }),
+        })
+      : null;
 
   return {
     match,
@@ -2498,6 +2599,10 @@ async function assembleMatchScoringSession(matchId: number) {
       inningsEntryContext?.availableBatters ?? activeBattingPlayers,
     availableBowlers:
       inningsEntryContext?.availableBowlers ?? activeBowlingPlayers,
+    pendingInningsClosure:
+      pendingInningsClosure?.deliveryId && pendingInningsClosure.reason
+        ? pendingInningsClosure
+        : null,
     teamLineupPlayers: {
       team1: team1LineupPlayers,
       team2: team2LineupPlayers,
@@ -2953,6 +3058,7 @@ function buildRewriteScoringMutationResult(params: {
   context: ScoringDeliveryContext;
   deletedDeliveryId?: number;
   delivery?: ScoringDeliveryRecord | null;
+  pendingInningsClosure?: PendingInningsClosure | null;
 }): ScoringMutationResult {
   return {
     action: params.action,
@@ -2972,6 +3078,7 @@ function buildRewriteScoringMutationResult(params: {
     entryContext: params.context.entryContext,
     match: toScoringMutationMatchState(params.context.match),
     nextInningsDefaults: null,
+    pendingInningsClosure: params.pendingInningsClosure ?? null,
     phase: "scoring",
     requiredSelections: params.context.requiredSelections,
   };
@@ -3094,6 +3201,7 @@ function applyDeliveryToStats(params: {
 function buildOpenInningsMutationResult(params: {
   context: ScoringDeliveryContext;
   delivery: ScoringDeliveryRecord;
+  pendingInningsClosure?: PendingInningsClosure | null;
   updatedInnings: ScoringMutationInningsSummary;
 }): ScoringMutationResult {
   const dismissedSet = new Set(params.context.dismissedSet);
@@ -3137,111 +3245,9 @@ function buildOpenInningsMutationResult(params: {
       winnerId: params.context.match.winnerId,
     }),
     nextInningsDefaults: null,
+    pendingInningsClosure: params.pendingInningsClosure ?? null,
     phase: "scoring",
     requiredSelections: nextState.requiredSelections,
-  };
-}
-
-async function buildClosedInningsMutationResult(params: {
-  context: ScoringDeliveryContext;
-  delivery: ScoringDeliveryRecord;
-  matchState: ScoringMutationMatchState;
-  updatedInnings: ScoringMutationInningsSummary;
-}): Promise<ScoringMutationResult> {
-  const inningsRows = await db.query.innings.findMany({
-    where: {
-      matchId: params.context.match.id,
-    },
-    columns: {
-      id: true,
-      inningsNumber: true,
-      battingTeamId: true,
-      bowlingTeamId: true,
-      totalScore: true,
-      wickets: true,
-      ballsBowled: true,
-      targetRuns: true,
-      isCompleted: true,
-    },
-    orderBy: {
-      inningsNumber: "asc",
-    },
-  });
-  const nextInningsDefaults = params.matchState.isCompleted
-    ? null
-    : resolveNextInningsTeams({
-        inningsRows: inningsRows.map((row) => ({
-          battingTeamId: row.battingTeamId,
-          bowlingTeamId: row.bowlingTeamId,
-          inningsNumber: row.inningsNumber,
-        })),
-        team1Id: params.context.match.team1Id,
-        team2Id: params.context.match.team2Id,
-      });
-  const activeBattingPlayers = nextInningsDefaults
-    ? getActiveLineupPlayers({
-        fallbackTeamId: nextInningsDefaults.battingTeamId,
-        team1Id: params.context.match.team1Id,
-        team1LineupPlayers: mapLineupPlayers(
-          params.context.lineupRows,
-          params.context.match.team1Id
-        ),
-        team2Id: params.context.match.team2Id,
-        team2LineupPlayers: mapLineupPlayers(
-          params.context.lineupRows,
-          params.context.match.team2Id
-        ),
-      })
-    : [];
-  const activeBowlingPlayers = nextInningsDefaults
-    ? getActiveLineupPlayers({
-        fallbackTeamId: nextInningsDefaults.bowlingTeamId,
-        team1Id: params.context.match.team1Id,
-        team1LineupPlayers: mapLineupPlayers(
-          params.context.lineupRows,
-          params.context.match.team1Id
-        ),
-        team2Id: params.context.match.team2Id,
-        team2LineupPlayers: mapLineupPlayers(
-          params.context.lineupRows,
-          params.context.match.team2Id
-        ),
-      })
-    : [];
-
-  return {
-    action: "record",
-    affectedInnings: {
-      ...params.updatedInnings,
-      isCompleted: true,
-    },
-    availableBatters: activeBattingPlayers,
-    availableBowlers: activeBowlingPlayers,
-    currentInnings: null,
-    deletedDeliveryId: null,
-    delivery: params.delivery,
-    entryContext: {
-      inningsId: null,
-      inningsNumber: nextInningsDefaults?.inningsNumber ?? null,
-      battingTeamId: nextInningsDefaults?.battingTeamId ?? null,
-      bowlingTeamId: nextInningsDefaults?.bowlingTeamId ?? null,
-      strikerId: null,
-      nonStrikerId: null,
-      bowlerId: null,
-      overNumber: 1,
-      ballInOver: 1,
-      dismissedPlayerId: null,
-    },
-    match: params.matchState,
-    nextInningsDefaults,
-    phase: params.matchState.isCompleted ? "completed" : "inningsSetup",
-    requiredSelections: {
-      battingTeam: true,
-      bowlingTeam: true,
-      striker: true,
-      nonStriker: true,
-      bowler: true,
-    },
   };
 }
 
@@ -3349,6 +3355,13 @@ export async function recordScoringDelivery(
   const context = await getScoringDeliveryContext(input.inningsId);
   if (context.inningsRow.isCompleted) {
     throw new Error("Innings already completed");
+  }
+  if (
+    context.inningsRow.status === INNINGS_STATUS_AWAITING_CLOSE_CONFIRMATION
+  ) {
+    throw new Error(
+      "Review the last ball or confirm the innings end before recording another delivery"
+    );
   }
   const contextMs = performance.now() - contextStartedAt;
 
@@ -3569,9 +3582,10 @@ export async function recordScoringDelivery(
   if (!insertedDelivery) {
     throw new Error("Delivery insert did not complete");
   }
+  const recordedDelivery = insertedDelivery as ScoringDeliveryRecord;
 
   const mutationWriteMs = performance.now() - mutationWriteStartedAt;
-  const shouldCloseInnings = shouldAutoCompleteInnings({
+  const pendingClosureReason = resolveAutoCompleteInningsReason({
     ballsBowled: updatedInnings.ballsBowled,
     matchRulesMaxLegalBallsPerInnings:
       context.matchRules.maxLegalBallsPerInnings,
@@ -3580,31 +3594,37 @@ export async function recordScoringDelivery(
     totalScore: updatedInnings.totalScore,
     wickets: updatedInnings.wickets,
   });
+  const pendingInningsClosure = toPendingInningsClosure({
+    deliveryId: recordedDelivery.id,
+    inningsId: input.inningsId,
+    reason: pendingClosureReason,
+  });
 
   const responseStartedAt = performance.now();
   let autoCloseMs = 0;
-  const result = shouldCloseInnings
-    ? await (async () => {
-        const closeStartedAt = performance.now();
-        await updateInningsAction({
-          id: input.inningsId,
-          status: "completed",
-          isCompleted: true,
-        });
-        const matchState = await refreshMatchCompletion(context.match.id);
-        autoCloseMs = performance.now() - closeStartedAt;
-        return buildClosedInningsMutationResult({
-          context,
-          delivery: insertedDelivery,
-          matchState,
-          updatedInnings,
-        });
-      })()
-    : buildOpenInningsMutationResult({
+  const result = await (async () => {
+    if (pendingInningsClosure) {
+      const closeStartedAt = performance.now();
+      await updateInningsAction({
+        id: input.inningsId,
+        status: INNINGS_STATUS_AWAITING_CLOSE_CONFIRMATION,
+        isCompleted: false,
+      });
+      autoCloseMs = performance.now() - closeStartedAt;
+      return buildOpenInningsMutationResult({
         context,
-        delivery: insertedDelivery,
+        delivery: recordedDelivery,
+        pendingInningsClosure,
         updatedInnings,
       });
+    }
+
+    return buildOpenInningsMutationResult({
+      context,
+      delivery: recordedDelivery,
+      updatedInnings,
+    });
+  })();
   const responseAssemblyMs = performance.now() - responseStartedAt;
 
   if (process.env.NODE_ENV !== "test") {
@@ -3701,10 +3721,37 @@ export async function updateScoringDelivery(
     getScoringDeliveryContext(input.inningsId),
     getScoringMutationDeliveryById(input.deliveryId),
   ]);
+  const pendingClosureReason = updatedDelivery
+    ? resolveAutoCompleteInningsReason({
+        ballsBowled: postRewriteContext.inningsRow.ballsBowled,
+        matchRulesMaxLegalBallsPerInnings:
+          postRewriteContext.matchRules.maxLegalBallsPerInnings,
+        playersPerSide: postRewriteContext.match.playersPerSide,
+        targetRuns: postRewriteContext.inningsRow.targetRuns,
+        totalScore: postRewriteContext.inningsRow.totalScore,
+        wickets: postRewriteContext.inningsRow.wickets,
+      })
+    : null;
+  const pendingInningsClosure = updatedDelivery
+    ? toPendingInningsClosure({
+        deliveryId: updatedDelivery.id,
+        inningsId: input.inningsId,
+        reason: pendingClosureReason,
+      })
+    : null;
+  await updateInningsAction({
+    id: input.inningsId,
+    isCompleted: false,
+    status: resolveLiveInningsStatus({
+      ballsBowled: postRewriteContext.inningsRow.ballsBowled,
+      hasPendingClosure: pendingInningsClosure !== null,
+    }),
+  });
   const result = buildRewriteScoringMutationResult({
     action: "update",
     context: postRewriteContext,
     delivery: updatedDelivery,
+    pendingInningsClosure,
   });
   const responseAssemblyMs = performance.now() - responseStartedAt;
 
@@ -3752,10 +3799,48 @@ export async function deleteScoringDelivery(
   const postRewriteContext = await getScoringDeliveryContext(
     existingDelivery.inningsId
   );
+  const latestDelivery = await db.query.deliveries.findFirst({
+    where: {
+      inningsId: existingDelivery.inningsId,
+    },
+    orderBy: {
+      sequenceNo: "desc",
+    },
+    columns: {
+      id: true,
+    },
+  });
+  const pendingClosureReason = latestDelivery
+    ? resolveAutoCompleteInningsReason({
+        ballsBowled: postRewriteContext.inningsRow.ballsBowled,
+        matchRulesMaxLegalBallsPerInnings:
+          postRewriteContext.matchRules.maxLegalBallsPerInnings,
+        playersPerSide: postRewriteContext.match.playersPerSide,
+        targetRuns: postRewriteContext.inningsRow.targetRuns,
+        totalScore: postRewriteContext.inningsRow.totalScore,
+        wickets: postRewriteContext.inningsRow.wickets,
+      })
+    : null;
+  const pendingInningsClosure = latestDelivery
+    ? toPendingInningsClosure({
+        deliveryId: latestDelivery.id,
+        inningsId: existingDelivery.inningsId,
+        reason: pendingClosureReason,
+      })
+    : null;
+  await updateInningsAction({
+    id: existingDelivery.inningsId,
+    isCompleted: false,
+    status: resolveLiveInningsStatus({
+      ballsBowled: postRewriteContext.inningsRow.ballsBowled,
+      hasPendingClosure: pendingInningsClosure !== null,
+    }),
+  });
   const result = buildRewriteScoringMutationResult({
     action: "delete",
     context: postRewriteContext,
     deletedDeliveryId: deliveryId,
+    pendingInningsClosure,
   });
   const responseAssemblyMs = performance.now() - responseStartedAt;
 
@@ -3796,6 +3881,7 @@ export const scoringSessionInternals = {
   getMovementRuns,
   getNextBallPosition,
   isLegalDeliveryFromRuns,
+  resolveAutoCompleteInningsReason,
   shouldAutoCompleteInnings,
   validateDeliveryDraft,
 };

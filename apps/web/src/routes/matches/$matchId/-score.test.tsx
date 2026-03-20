@@ -3,6 +3,7 @@ import { fireEvent } from "@testing-library/react";
 import { renderWithProviders } from "@/test/render";
 import {
   DeliveryTimelineCard,
+  getDeliveryChipDisplay,
   getDeliveryChipTone,
   groupDeliveriesByOver,
   resolveScoringBattingOptions,
@@ -98,6 +99,77 @@ describe("score route helpers", () => {
     expect(getDeliveryChipTone(sampleDeliveries[2])).toBe("wicket");
   });
 
+  it("formats compact chip labels for regular balls, wickets, and extras", () => {
+    expect(getDeliveryChipDisplay(sampleDeliveries[1])).toEqual({
+      detailText: "4 runs",
+      label: "4",
+      showDetailIndicator: false,
+    });
+
+    expect(
+      getDeliveryChipDisplay({
+        ...sampleDeliveries[2],
+        totalRuns: 1,
+        wicketType: "run out",
+      })
+    ).toEqual({
+      detailText: "1 run • Run out",
+      label: "1W",
+      showDetailIndicator: false,
+    });
+
+    expect(
+      getDeliveryChipDisplay({
+        ...sampleDeliveries[1],
+        wideRuns: 2,
+        totalRuns: 2,
+      })
+    ).toEqual({
+      detailText: "2 runs • Wide 2",
+      label: "2Wd",
+      showDetailIndicator: false,
+    });
+
+    expect(
+      getDeliveryChipDisplay({
+        ...sampleDeliveries[1],
+        byeRuns: 4,
+        totalRuns: 4,
+      })
+    ).toEqual({
+      detailText: "4 runs • Byes 4",
+      label: "4By",
+      showDetailIndicator: false,
+    });
+
+    expect(
+      getDeliveryChipDisplay({
+        ...sampleDeliveries[1],
+        penaltyRuns: 5,
+        totalRuns: 5,
+      })
+    ).toEqual({
+      detailText: "5 runs • Penalty 5",
+      label: "5Pn",
+      showDetailIndicator: false,
+    });
+  });
+
+  it("keeps wicket badges on extra deliveries and marks them as expandable", () => {
+    expect(
+      getDeliveryChipDisplay({
+        ...sampleDeliveries[2],
+        totalRuns: 1,
+        wideRuns: 1,
+        wicketType: "run out",
+      })
+    ).toEqual({
+      detailText: "1 run • Run out • Wide 1",
+      label: "1W",
+      showDetailIndicator: true,
+    });
+  });
+
   it("filters live batting options to available batters plus the current pair", () => {
     const options = resolveScoringBattingOptions({
       availableBatters: [battingLineup[3] as ScoringPlayerOptionLike],
@@ -187,10 +259,37 @@ describe("score route helpers", () => {
     );
 
     expect(getByText("Over 1")).toBeTruthy();
-    fireEvent.click(getByRole("button", { name: "Edit over 0.1: 0" }));
+    fireEvent.click(getByRole("button", { name: "Edit over 0.1: 0 runs" }));
     fireEvent.click(getByRole("button", { name: "Hide timeline" }));
 
     expect(onSelectDelivery).toHaveBeenCalledWith(1);
     expect(onToggleExpanded).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows a tooltip for wicket chips that also include extras", async () => {
+    const wicketOnWide: SessionDeliveryLike = {
+      ...sampleDeliveries[2],
+      id: 30,
+      totalRuns: 1,
+      wideRuns: 1,
+      wicketType: "run out",
+    };
+
+    const { findByText, getByRole } = renderWithProviders(
+      <DeliveryTimelineCard
+        deliveries={[wicketOnWide]}
+        isDesktop={false}
+        isExpanded={true}
+        onSelectDelivery={mock(() => undefined)}
+        onToggleExpanded={mock(() => undefined)}
+        selectedDeliveryId={null}
+      />
+    );
+
+    fireEvent.mouseEnter(
+      getByRole("button", { name: "Edit over 1.1: 1 run • Run out • Wide 1" })
+    );
+
+    expect(await findByText("1 run • Run out • Wide 1")).toBeTruthy();
   });
 });

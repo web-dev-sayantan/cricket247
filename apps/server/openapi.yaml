@@ -619,6 +619,8 @@ paths:
                     - type: "null"
                 isDrawAllowed:
                   type: boolean
+                isFollowOnAllowed:
+                  type: boolean
                 isSuperOverAllowed:
                   type: boolean
                 maxLegalBallsPerInnings:
@@ -1112,6 +1114,8 @@ paths:
                               type: integer
                             - type: "null"
                         isDrawAllowed:
+                          type: boolean
+                        isFollowOnAllowed:
                           type: boolean
                         isSuperOverAllowed:
                           type: boolean
@@ -3964,6 +3968,8 @@ paths:
                               type: integer
                             - type: "null"
                         isDrawAllowed:
+                          type: boolean
+                        isFollowOnAllowed:
                           type: boolean
                         isSuperOverAllowed:
                           type: boolean
