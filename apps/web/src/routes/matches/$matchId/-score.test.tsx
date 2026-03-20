@@ -113,6 +113,21 @@ describe("score route helpers", () => {
     expect(options.map((player) => player.id)).toEqual([2, 3, 4]);
   });
 
+  it("keeps both active batters available when the innings is down to the last pair", () => {
+    const options = resolveScoringBattingOptions({
+      availableBatters: [],
+      battingLineup,
+      currentDeliveries: sampleDeliveries,
+      draft: {
+        strikerId: 2,
+        nonStrikerId: 1,
+      },
+      editingDelivery: null,
+    });
+
+    expect(options.map((player) => player.id)).toEqual([1, 2]);
+  });
+
   it("uses only dismissals before the edited ball when resolving batting options", () => {
     const inningsTimeline: SessionDeliveryLike[] = [
       {

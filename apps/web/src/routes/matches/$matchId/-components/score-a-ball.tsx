@@ -83,6 +83,56 @@ interface ScoreABallProps {
   };
 }
 
+export function resolveBattingPairSelection(params: {
+  currentNonStrikerId: null | number;
+  currentStrikerId: null | number;
+  nextPlayerId: null | number;
+  role: "nonStriker" | "striker";
+}) {
+  const { currentNonStrikerId, currentStrikerId, nextPlayerId, role } = params;
+
+  if (role === "striker") {
+    if (nextPlayerId === null) {
+      return {
+        strikerId: null,
+        nonStrikerId: currentNonStrikerId,
+      };
+    }
+
+    if (nextPlayerId === currentNonStrikerId) {
+      return {
+        strikerId: currentNonStrikerId,
+        nonStrikerId: currentStrikerId,
+      };
+    }
+
+    return {
+      strikerId: nextPlayerId,
+      nonStrikerId:
+        currentNonStrikerId === nextPlayerId ? null : currentNonStrikerId,
+    };
+  }
+
+  if (nextPlayerId === null) {
+    return {
+      strikerId: currentStrikerId,
+      nonStrikerId: null,
+    };
+  }
+
+  if (nextPlayerId === currentStrikerId) {
+    return {
+      strikerId: currentNonStrikerId,
+      nonStrikerId: currentStrikerId,
+    };
+  }
+
+  return {
+    strikerId: currentStrikerId === nextPlayerId ? null : currentStrikerId,
+    nonStrikerId: nextPlayerId,
+  };
+}
+
 const ALL_DISMISSAL_TYPES = [
   "bowled",
   "caught",
@@ -368,13 +418,14 @@ function ScoreABall({
                 const nextStrikerId =
                   value && value.length > 0 ? Number.parseInt(value, 10) : null;
 
-                onChange({
-                  strikerId: nextStrikerId,
-                  nonStrikerId:
-                    draft.nonStrikerId === nextStrikerId
-                      ? null
-                      : draft.nonStrikerId,
-                });
+                onChange(
+                  resolveBattingPairSelection({
+                    currentNonStrikerId: draft.nonStrikerId,
+                    currentStrikerId: draft.strikerId,
+                    nextPlayerId: nextStrikerId,
+                    role: "striker",
+                  })
+                );
               }}
               options={battingPlayers}
               value={draft.strikerId ? String(draft.strikerId) : ""}
@@ -385,14 +436,19 @@ function ScoreABall({
                   ? "Non-striker (required)"
                   : "Non-striker"
               }
-              onValueChange={(value) =>
-                onChange({
-                  nonStrikerId:
-                    value && value.length > 0
-                      ? Number.parseInt(value, 10)
-                      : null,
-                })
-              }
+              onValueChange={(value) => {
+                const nextNonStrikerId =
+                  value && value.length > 0 ? Number.parseInt(value, 10) : null;
+
+                onChange(
+                  resolveBattingPairSelection({
+                    currentNonStrikerId: draft.nonStrikerId,
+                    currentStrikerId: draft.strikerId,
+                    nextPlayerId: nextNonStrikerId,
+                    role: "nonStriker",
+                  })
+                );
+              }}
               options={battingPlayers.filter(
                 (player) => player.id !== draft.strikerId
               )}

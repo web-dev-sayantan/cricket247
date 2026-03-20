@@ -32,6 +32,7 @@ import { PreMatchSetupSkeleton } from "@/routes/matches/$matchId/-components/pre
 import ScoreABall, {
   type DeliveryDraft,
   type MatchFlags,
+  resolveBattingPairSelection,
   type ScoringPlayerOption,
 } from "@/routes/matches/$matchId/-components/score-a-ball";
 import type { TossPhaseCardProps } from "@/routes/matches/$matchId/-components/toss-phase-card";
@@ -1446,7 +1447,17 @@ function RouteComponent() {
           setIsTossConfirmed(true);
         },
         onEditToss: () => setIsTossConfirmed(false),
-        onNonStrikerChange: setNonStrikerId,
+        onNonStrikerChange: (playerId) => {
+          const nextPair = resolveBattingPairSelection({
+            currentNonStrikerId: nonStrikerId,
+            currentStrikerId: strikerId,
+            nextPlayerId: playerId,
+            role: "nonStriker",
+          });
+
+          setStrikerId(nextPair.strikerId);
+          setNonStrikerId(nextPair.nonStrikerId);
+        },
         onOpeningBowlerChange: setOpeningBowlerId,
         onSaveLineups: () => {
           saveLineupMutation.mutate();
@@ -1477,7 +1488,17 @@ function RouteComponent() {
             tossDecision,
           });
         },
-        onStrikerChange: setStrikerId,
+        onStrikerChange: (playerId) => {
+          const nextPair = resolveBattingPairSelection({
+            currentNonStrikerId: nonStrikerId,
+            currentStrikerId: strikerId,
+            nextPlayerId: playerId,
+            role: "striker",
+          });
+
+          setStrikerId(nextPair.strikerId);
+          setNonStrikerId(nextPair.nonStrikerId);
+        },
         onTossDecisionChange: (decision) => {
           setTossDecision(decision);
           setIsTossConfirmed(false);

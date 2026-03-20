@@ -7,6 +7,7 @@ import ScoreABall, {
   getVisibleDismissals,
   getVisibleExtras,
   type MatchFlags,
+  resolveBattingPairSelection,
   type ScoringPlayerOption,
 } from "./score-a-ball";
 
@@ -91,6 +92,32 @@ function renderScoreABall(
 }
 
 describe("ScoreABall", () => {
+  it("swaps the batting pair when the scorer picks the other active batter", () => {
+    expect(
+      resolveBattingPairSelection({
+        currentNonStrikerId: 2,
+        currentStrikerId: 1,
+        nextPlayerId: 2,
+        role: "striker",
+      })
+    ).toEqual({
+      strikerId: 2,
+      nonStrikerId: 1,
+    });
+
+    expect(
+      resolveBattingPairSelection({
+        currentNonStrikerId: 2,
+        currentStrikerId: 1,
+        nextPlayerId: 1,
+        role: "nonStriker",
+      })
+    ).toEqual({
+      strikerId: 2,
+      nonStrikerId: 1,
+    });
+  });
+
   it("forwards reset and submit actions", () => {
     const { getByRole, onChange, onReset, onSubmit } = renderScoreABall();
 
