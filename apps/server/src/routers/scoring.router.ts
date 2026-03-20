@@ -18,10 +18,7 @@ import {
   requireScoreAccessByEmail,
 } from "@/routers/helpers/scoring-access";
 import { getBallsOfSameOver } from "@/services/ball.service";
-import {
-  getMatchById as getMatchByIdService,
-  getMatchScorecard,
-} from "@/services/match.service";
+import { getMatchScorecard } from "@/services/match.service";
 import type { getSavedMatchLineup } from "@/services/scoring.service";
 import {
   closeCurrentScoringInnings as closeCurrentScoringInningsAction,
@@ -185,11 +182,6 @@ export const scoringRouter = {
   getMatchScoringSetup: publicProcedure
     .input(MatchScoringSetupInputSchema)
     .handler(async ({ context, input }) => {
-      const match = await getMatchByIdService(input.matchId);
-      if (!match) {
-        return null;
-      }
-
       const session = await getMatchScoringSession(input.matchId);
       if (!session) {
         return null;
@@ -198,9 +190,9 @@ export const scoringRouter = {
       return withCurrentUserScoringRights(
         context.session?.user.email,
         {
-          tournamentId: match.tournamentId,
-          team1Id: match.team1Id,
-          team2Id: match.team2Id,
+          tournamentId: session.match.tournamentId,
+          team1Id: session.match.team1Id,
+          team2Id: session.match.team2Id,
         },
         session
       );
@@ -424,21 +416,25 @@ export const scoringRouter = {
         throw new ORPCError("NOT_FOUND");
       }
 
+      const authStartedAt = performance.now();
       await requireScoreAccessByEmail({
         email: context.session.user.email,
         match,
       });
+      const authMs = performance.now() - authStartedAt;
 
       try {
-        const session = await recordScoringDeliveryAction(input);
-        if (!session) {
-          throw new ORPCError("NOT_FOUND");
+        const mutationStartedAt = performance.now();
+        const result = await recordScoringDeliveryAction(input);
+
+        if (process.env.NODE_ENV !== "test") {
+          console.info("[scoring.router] recordScoringDelivery", {
+            authMs,
+            serviceMs: performance.now() - mutationStartedAt,
+          });
         }
 
-        return {
-          ...session,
-          canCurrentUserScore: true,
-        };
+        return result;
       } catch (_error) {
         throw new ORPCError("BAD_REQUEST");
       }
@@ -451,21 +447,25 @@ export const scoringRouter = {
         throw new ORPCError("NOT_FOUND");
       }
 
+      const authStartedAt = performance.now();
       await requireScoreAccessByEmail({
         email: context.session.user.email,
         match,
       });
+      const authMs = performance.now() - authStartedAt;
 
       try {
-        const session = await updateScoringDeliveryAction(input);
-        if (!session) {
-          throw new ORPCError("NOT_FOUND");
+        const mutationStartedAt = performance.now();
+        const result = await updateScoringDeliveryAction(input);
+
+        if (process.env.NODE_ENV !== "test") {
+          console.info("[scoring.router] updateScoringDelivery", {
+            authMs,
+            serviceMs: performance.now() - mutationStartedAt,
+          });
         }
 
-        return {
-          ...session,
-          canCurrentUserScore: true,
-        };
+        return result;
       } catch (_error) {
         throw new ORPCError("BAD_REQUEST");
       }
@@ -478,21 +478,25 @@ export const scoringRouter = {
         throw new ORPCError("NOT_FOUND");
       }
 
+      const authStartedAt = performance.now();
       await requireScoreAccessByEmail({
         email: context.session.user.email,
         match,
       });
+      const authMs = performance.now() - authStartedAt;
 
       try {
-        const session = await deleteScoringDeliveryAction(input.deliveryId);
-        if (!session) {
-          throw new ORPCError("NOT_FOUND");
+        const mutationStartedAt = performance.now();
+        const result = await deleteScoringDeliveryAction(input.deliveryId);
+
+        if (process.env.NODE_ENV !== "test") {
+          console.info("[scoring.router] deleteScoringDelivery", {
+            authMs,
+            serviceMs: performance.now() - mutationStartedAt,
+          });
         }
 
-        return {
-          ...session,
-          canCurrentUserScore: true,
-        };
+        return result;
       } catch (_error) {
         throw new ORPCError("BAD_REQUEST");
       }

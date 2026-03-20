@@ -114,6 +114,9 @@ interface DeliveryOverGroup {
 type ScoringSessionMutationResult = Awaited<
   ReturnType<typeof client.recordScoringDelivery>
 >;
+type ScoringSetupResult = Awaited<
+  ReturnType<typeof client.startScoringInnings>
+>;
 
 type ScoringPhase = PreMatchPhase | "completed" | "scoring";
 
@@ -699,10 +702,6 @@ export function DeliveryTimelineCard({
   selectedDeliveryId: number | null;
 }) {
   const groupedDeliveries = groupDeliveriesByOver(deliveries);
-  const summaryLabel =
-    deliveries.length === 0
-      ? "No deliveries recorded yet."
-      : `${deliveries.length} deliveries across ${groupedDeliveries.length} overs.`;
   let timelineContent: ReactNode;
 
   if (!isExpanded) {
@@ -723,20 +722,30 @@ export function DeliveryTimelineCard({
   } else {
     timelineContent = (
       <div className="mt-4 space-y-3">
-        {groupedDeliveries.map((overGroup) => (
-          <div
-            className="rounded-[1.4rem] border border-border/60 bg-muted/10 px-4 py-3"
-            key={overGroup.overNumber}
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="font-medium text-sm">
-                  Over {overGroup.overNumber}
-                </p>
-                <p className="text-muted-foreground text-xs">
-                  {overGroup.deliveries.length} ball
-                  {overGroup.deliveries.length === 1 ? "" : "s"}
-                </p>
+        {groupedDeliveries.map((overGroup) => {
+          const bowlerName = overGroup.deliveries.find((d) => d.bowler)?.bowler
+            ?.name;
+          const overRuns = overGroup.deliveries.reduce(
+            (sum, d) => sum + d.totalRuns,
+            0
+          );
+          return (
+            <div
+              className="rounded-[1.4rem] border border-border/60 bg-muted/10 px-4 py-3"
+              key={overGroup.overNumber}
+            >
+              <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-medium text-sm">
+                    Over {overGroup.overNumber}
+                  </p>
+                  {bowlerName && (
+                    <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 font-medium text-muted-foreground text-xs ring-1 ring-border/50 ring-inset">
+                      {bowlerName}
+                    </span>
+                  )}
+                </div>
+                <span className="text-sm tabular-nums">{overRuns} runs</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {overGroup.deliveries.map((delivery) => (
@@ -749,8 +758,8 @@ export function DeliveryTimelineCard({
                 ))}
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   }
@@ -909,6 +918,27 @@ function RouteComponent() {
     queueBackgroundRefresh(refreshTasks);
   };
 
+  const handleScoringSetupSuccess = (
+    session: ScoringSetupResult,
+    options?: {
+      clearSelectedDelivery?: boolean;
+    }
+  ) => {
+    queryClient.setQueryData(scoringQueryOptions.queryKey, session);
+
+    if (options?.clearSelectedDelivery) {
+      setSelectedDeliveryId(null);
+    }
+
+    queueBackgroundRefresh(
+      backgroundRefreshQueries.map((query) =>
+        queryClient.invalidateQueries({
+          queryKey: query.queryKey,
+        })
+      )
+    );
+  };
+
   useEffect(() => {
     if (typeof window === "undefined") {
       return;
@@ -988,7 +1018,7 @@ function RouteComponent() {
       }),
     onSuccess: (session) => {
       toast.success("Innings started");
-      handleScoringSessionMutationSuccess(session);
+      handleScoringSetupSuccess(session);
     },
     onError: (error) => {
       toast.error(
@@ -1054,7 +1084,7 @@ function RouteComponent() {
       client.closeCurrentScoringInnings({ inningsId }),
     onSuccess: (session) => {
       toast.success("Innings ended");
-      handleScoringSessionMutationSuccess(session, {
+      handleScoringSetupSuccess(session, {
         clearSelectedDelivery: true,
       });
     },

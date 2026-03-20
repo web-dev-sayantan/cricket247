@@ -91,9 +91,15 @@ mock.module("sonner", () => ({
 
 const saveMatchLineup = mock(async () => undefined);
 const startScoringInnings = mock(async () => createScoringSetup("scoring"));
-const recordScoringDelivery = mock(async () => createScoringSetup("scoring"));
-const updateScoringDelivery = mock(async () => createScoringSetup("scoring"));
-const deleteScoringDelivery = mock(async () => createScoringSetup("scoring"));
+const recordScoringDelivery = mock(async () =>
+  createScoringMutationResult("record")
+);
+const updateScoringDelivery = mock(async () =>
+  createScoringMutationResult("update")
+);
+const deleteScoringDelivery = mock(async () =>
+  createScoringMutationResult("delete")
+);
 const closeCurrentScoringInnings = mock(async () =>
   createScoringSetup("scoring")
 );
@@ -310,6 +316,92 @@ function createScoringSetup(phase: "inningsSetup" | "lineup" | "scoring") {
         name: player.name,
         teamId: player.teamId,
       })),
+    },
+  };
+}
+
+function createScoringMutationResult(action: "delete" | "record" | "update") {
+  return {
+    action,
+    affectedInnings: {
+      ballsBowled: action === "delete" ? 0 : 1,
+      battingTeamId: 1,
+      bowlingTeamId: 2,
+      id: 501,
+      inningsNumber: 1,
+      isCompleted: false,
+      targetRuns: null,
+      totalScore: action === "delete" ? 0 : 1,
+      wickets: 0,
+    },
+    availableBatters: [],
+    availableBowlers: [{ battingOrder: 1, id: 21, name: "B One", teamId: 2 }],
+    currentInnings: {
+      ballsBowled: action === "delete" ? 0 : 1,
+      battingTeamId: 1,
+      bowlingTeamId: 2,
+      id: 501,
+      inningsNumber: 1,
+      isCompleted: false,
+      targetRuns: null,
+      totalScore: action === "delete" ? 0 : 1,
+      wickets: 0,
+    },
+    deletedDeliveryId: action === "delete" ? 9001 : null,
+    delivery:
+      action === "delete"
+        ? null
+        : {
+            assistedById: null,
+            ballInOver: 1,
+            batterRuns: 1,
+            bowlerId: 21,
+            byeRuns: 0,
+            dismissedById: null,
+            dismissedPlayerId: null,
+            id: 9001,
+            inningsId: 501,
+            isLegalDelivery: true,
+            isWicket: false,
+            legByeRuns: 0,
+            noBallRuns: 0,
+            nonStrikerId: 12,
+            overNumber: 1,
+            penaltyRuns: 0,
+            sequenceNo: 1,
+            strikerId: 11,
+            totalRuns: 1,
+            wicketType: null,
+            wideRuns: 0,
+          },
+    entryContext: {
+      ballInOver: action === "delete" ? 1 : 2,
+      battingTeamId: 1,
+      bowlerId: 21,
+      bowlingTeamId: 2,
+      dismissedPlayerId: null as null | number,
+      inningsId: 501,
+      inningsNumber: 1,
+      nonStrikerId: action === "delete" ? 12 : 11,
+      overNumber: 1,
+      strikerId: action === "delete" ? 11 : 12,
+    },
+    match: {
+      isCompleted: false,
+      isLive: true,
+      isTied: false,
+      margin: null,
+      result: null,
+      winnerId: null,
+    },
+    nextInningsDefaults: null,
+    phase: "scoring" as const,
+    requiredSelections: {
+      battingTeam: false,
+      bowler: false,
+      bowlingTeam: false,
+      nonStriker: false,
+      striker: false,
     },
   };
 }

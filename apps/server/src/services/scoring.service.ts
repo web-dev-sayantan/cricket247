@@ -224,69 +224,7 @@ async function syncInningsAndStats(inningsId: number) {
       battingOrderByPlayer.set(row.playerId, row.battingOrder);
     }
 
-    interface MutableStats {
-      assistedById: number | null;
-      ballsBowled: number;
-      ballsFaced: number;
-      battingOrder: number | null;
-      catches: number;
-      dismissalType: string | null;
-      dismissedById: number | null;
-      dotBalls: number;
-      fours: number;
-      inningsId: number;
-      isDismissed: boolean;
-      maidens: number;
-      matchId: number;
-      noBalls: number;
-      playerId: number;
-      runOuts: number;
-      runsConceded: number;
-      runsScored: number;
-      sixes: number;
-      stumpings: number;
-      teamId: number;
-      wicketsTaken: number;
-      wides: number;
-    }
-
     const statsByPlayer = new Map<number, MutableStats>();
-
-    const ensureStats = (playerId: number, teamId: number): MutableStats => {
-      const existing = statsByPlayer.get(playerId);
-      if (existing) {
-        return existing;
-      }
-
-      const next: MutableStats = {
-        inningsId,
-        matchId: inningsRow.matchId,
-        playerId,
-        teamId,
-        battingOrder: battingOrderByPlayer.get(playerId) ?? null,
-        runsScored: 0,
-        ballsFaced: 0,
-        fours: 0,
-        sixes: 0,
-        isDismissed: false,
-        dismissalType: null,
-        dismissedById: null,
-        assistedById: null,
-        ballsBowled: 0,
-        maidens: 0,
-        runsConceded: 0,
-        wicketsTaken: 0,
-        wides: 0,
-        noBalls: 0,
-        dotBalls: 0,
-        catches: 0,
-        runOuts: 0,
-        stumpings: 0,
-      };
-
-      statsByPlayer.set(playerId, next);
-      return next;
-    };
 
     const overBowlerTracker = new Map<
       string,
@@ -294,14 +232,22 @@ async function syncInningsAndStats(inningsId: number) {
     >();
 
     for (const delivery of deliveryRows) {
-      const strikerStats = ensureStats(
-        delivery.strikerId,
-        inningsRow.battingTeamId
-      );
-      const bowlerStats = ensureStats(
-        delivery.bowlerId,
-        inningsRow.bowlingTeamId
-      );
+      const strikerStats = ensureMutableStats({
+        battingOrderByPlayer,
+        inningsId,
+        matchId: inningsRow.matchId,
+        playerId: delivery.strikerId,
+        statsByPlayer,
+        teamId: inningsRow.battingTeamId,
+      });
+      const bowlerStats = ensureMutableStats({
+        battingOrderByPlayer,
+        inningsId,
+        matchId: inningsRow.matchId,
+        playerId: delivery.bowlerId,
+        statsByPlayer,
+        teamId: inningsRow.bowlingTeamId,
+      });
 
       const countsAsBallFaced =
         delivery.isLegalDelivery ||
@@ -322,10 +268,14 @@ async function syncInningsAndStats(inningsId: number) {
       }
 
       if (delivery.isWicket && delivery.dismissedPlayerId) {
-        const dismissedStats = ensureStats(
-          delivery.dismissedPlayerId,
-          inningsRow.battingTeamId
-        );
+        const dismissedStats = ensureMutableStats({
+          battingOrderByPlayer,
+          inningsId,
+          matchId: inningsRow.matchId,
+          playerId: delivery.dismissedPlayerId,
+          statsByPlayer,
+          teamId: inningsRow.battingTeamId,
+        });
         dismissedStats.isDismissed = true;
         dismissedStats.dismissalType = delivery.wicketType ?? null;
         dismissedStats.dismissedById = delivery.dismissedById ?? null;
@@ -358,10 +308,14 @@ async function syncInningsAndStats(inningsId: number) {
       }
 
       if (delivery.assistedById && delivery.isWicket) {
-        const assistingStats = ensureStats(
-          delivery.assistedById,
-          inningsRow.bowlingTeamId
-        );
+        const assistingStats = ensureMutableStats({
+          battingOrderByPlayer,
+          inningsId,
+          matchId: inningsRow.matchId,
+          playerId: delivery.assistedById,
+          statsByPlayer,
+          teamId: inningsRow.bowlingTeamId,
+        });
 
         if (delivery.wicketType === "caught") {
           assistingStats.catches += 1;
@@ -1154,6 +1108,100 @@ export interface UpdateScoringDeliveryInput extends DeliveryDraftInput {
   deliveryId: number;
 }
 
+interface MutableStats {
+  assistedById: number | null;
+  ballsBowled: number;
+  ballsFaced: number;
+  battingOrder: number | null;
+  catches: number;
+  dismissalType: string | null;
+  dismissedById: number | null;
+  dotBalls: number;
+  fours: number;
+  inningsId: number;
+  isDismissed: boolean;
+  maidens: number;
+  matchId: number;
+  noBalls: number;
+  playerId: number;
+  runOuts: number;
+  runsConceded: number;
+  runsScored: number;
+  sixes: number;
+  stumpings: number;
+  teamId: number;
+  wicketsTaken: number;
+  wides: number;
+}
+
+type ScoringDeliveryRecord = Pick<
+  typeof deliveries.$inferSelect,
+  | "assistedById"
+  | "ballInOver"
+  | "batterRuns"
+  | "bowlerId"
+  | "byeRuns"
+  | "dismissedPlayerId"
+  | "id"
+  | "inningsId"
+  | "isLegalDelivery"
+  | "isWicket"
+  | "legByeRuns"
+  | "noBallRuns"
+  | "nonStrikerId"
+  | "overNumber"
+  | "penaltyRuns"
+  | "sequenceNo"
+  | "strikerId"
+  | "totalRuns"
+  | "wicketType"
+  | "wideRuns"
+> & {
+  dismissedById: number | null;
+};
+
+export interface ScoringMutationInningsSummary {
+  ballsBowled: number;
+  battingTeamId: number;
+  bowlingTeamId: number;
+  id: number;
+  inningsNumber: number;
+  isCompleted: boolean | null;
+  targetRuns: number | null;
+  totalScore: number;
+  wickets: number;
+}
+
+export interface ScoringMutationMatchState {
+  isCompleted: boolean | null;
+  isLive: boolean | null;
+  isTied: boolean | null;
+  margin: string | null;
+  result: string | null;
+  winnerId: number | null;
+}
+
+export type ScoringMutationAction = "delete" | "record" | "update";
+
+export interface ScoringMutationResult {
+  action: ScoringMutationAction;
+  affectedInnings: ScoringMutationInningsSummary;
+  availableBatters: ScoringSessionPlayerOption[];
+  availableBowlers: ScoringSessionPlayerOption[];
+  currentInnings: ScoringMutationInningsSummary | null;
+  deletedDeliveryId: number | null;
+  delivery: ScoringDeliveryRecord | null;
+  entryContext: ScoringEntryContext;
+  match: ScoringMutationMatchState;
+  nextInningsDefaults: {
+    battingTeamId: number;
+    bowlingTeamId: number;
+    inningsNumber: number;
+  } | null;
+  phase: ScoringPhase;
+  requiredSelections: ScoringRequiredSelections;
+}
+
 const NON_BOWLER_WICKETS = new Set<string>([
   "handled the ball",
   "obstructing the field",
@@ -1182,6 +1230,64 @@ function buildSavedTeamLineup(
     viceCaptainPlayerId: teamRows.find((row) => row.isViceCaptain)?.playerId,
     wicketKeeperPlayerId: teamRows.find((row) => row.isWicketKeeper)?.playerId,
   };
+}
+
+function createEmptyMutableStats(params: {
+  battingOrder: number | null;
+  inningsId: number;
+  matchId: number;
+  playerId: number;
+  teamId: number;
+}): MutableStats {
+  return {
+    inningsId: params.inningsId,
+    matchId: params.matchId,
+    playerId: params.playerId,
+    teamId: params.teamId,
+    battingOrder: params.battingOrder,
+    runsScored: 0,
+    ballsFaced: 0,
+    fours: 0,
+    sixes: 0,
+    isDismissed: false,
+    dismissalType: null,
+    dismissedById: null,
+    assistedById: null,
+    ballsBowled: 0,
+    maidens: 0,
+    runsConceded: 0,
+    wicketsTaken: 0,
+    wides: 0,
+    noBalls: 0,
+    dotBalls: 0,
+    catches: 0,
+    runOuts: 0,
+    stumpings: 0,
+  };
+}
+
+function ensureMutableStats(params: {
+  battingOrderByPlayer: Map<number, number | null>;
+  inningsId: number;
+  matchId: number;
+  playerId: number;
+  statsByPlayer: Map<number, MutableStats>;
+  teamId: number;
+}) {
+  const existing = params.statsByPlayer.get(params.playerId);
+  if (existing) {
+    return existing;
+  }
+
+  const next = createEmptyMutableStats({
+    inningsId: params.inningsId,
+    matchId: params.matchId,
+    playerId: params.playerId,
+    teamId: params.teamId,
+    battingOrder: params.battingOrderByPlayer.get(params.playerId) ?? null,
+  });
+  params.statsByPlayer.set(params.playerId, next);
+  return next;
 }
 
 function normalizeRuns(value: number | null | undefined) {
@@ -1606,6 +1712,180 @@ function mapLineupPlayers(
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Entry context derivation combines innings setup, strike rotation, and next-ball requirements.
+function buildEntryContextFromState(params: {
+  battingPlayers: ScoringSessionPlayerOption[];
+  bowlerBallCounts: Map<number, number>;
+  bowlingPlayers: ScoringSessionPlayerOption[];
+  dismissedSet: Set<number>;
+  inningsRow: {
+    battingTeamId: number;
+    bowlingTeamId: number;
+    id: number;
+    inningsNumber: number;
+    openingBowlerId: null | number;
+    openingNonStrikerId: null | number;
+    openingStrikerId: null | number;
+    targetRuns: null | number;
+  };
+  matchRules: {
+    ballsPerOver: number;
+    maxOversPerBowler: null | number;
+  };
+  lastDelivery: {
+    ballInOver: number;
+    batterRuns: number;
+    bowlerId: number;
+    byeRuns: number;
+    dismissedPlayerId: null | number;
+    isLegalDelivery: boolean;
+    isWicket: boolean;
+    legByeRuns: number;
+    noBallRuns: number;
+    nonStrikerId: number;
+    overNumber: number;
+    strikerId: number;
+    totalRuns: number;
+    wideRuns: number;
+  } | null;
+}) {
+  const battingIds = new Set(params.battingPlayers.map((player) => player.id));
+  const bowlingIds = new Set(params.bowlingPlayers.map((player) => player.id));
+
+  if (!params.lastDelivery) {
+    const bowlerId =
+      params.inningsRow.openingBowlerId &&
+      bowlingIds.has(params.inningsRow.openingBowlerId)
+        ? params.inningsRow.openingBowlerId
+        : null;
+    const strikerId =
+      params.inningsRow.openingStrikerId &&
+      battingIds.has(params.inningsRow.openingStrikerId)
+        ? params.inningsRow.openingStrikerId
+        : null;
+    const nonStrikerId =
+      params.inningsRow.openingNonStrikerId &&
+      battingIds.has(params.inningsRow.openingNonStrikerId)
+        ? params.inningsRow.openingNonStrikerId
+        : null;
+
+    return {
+      availableBatters: params.battingPlayers.filter(
+        (player) =>
+          !params.dismissedSet.has(player.id) &&
+          player.id !== strikerId &&
+          player.id !== nonStrikerId
+      ),
+      availableBowlers: params.bowlingPlayers,
+      entryContext: {
+        inningsId: params.inningsRow.id,
+        inningsNumber: params.inningsRow.inningsNumber,
+        battingTeamId: params.inningsRow.battingTeamId,
+        bowlingTeamId: params.inningsRow.bowlingTeamId,
+        strikerId,
+        nonStrikerId,
+        bowlerId,
+        overNumber: 1,
+        ballInOver: 1,
+        dismissedPlayerId: null,
+      } satisfies ScoringEntryContext,
+      requiredSelections: {
+        battingTeam: false,
+        bowlingTeam: false,
+        striker: strikerId === null,
+        nonStriker: nonStrikerId === null,
+        bowler: bowlerId === null,
+      } satisfies ScoringRequiredSelections,
+    };
+  }
+
+  const last = params.lastDelivery;
+
+  const movementRuns = getMovementRuns(last);
+  const rotateStrike = movementRuns % 2 === 1;
+  let strikerId = rotateStrike ? last.nonStrikerId : last.strikerId;
+  let nonStrikerId = rotateStrike ? last.strikerId : last.nonStrikerId;
+  let bowlerId = last.bowlerId;
+
+  const overComplete =
+    last.isLegalDelivery && last.ballInOver >= params.matchRules.ballsPerOver;
+
+  if (overComplete) {
+    const swappedStrikerId = nonStrikerId;
+    nonStrikerId = strikerId;
+    strikerId = swappedStrikerId;
+    bowlerId = 0;
+  }
+
+  let dismissedPlayerId: null | number = null;
+  if (last.isWicket && typeof last.dismissedPlayerId === "number") {
+    dismissedPlayerId = last.dismissedPlayerId;
+    if (dismissedPlayerId === strikerId) {
+      strikerId = 0;
+    }
+    if (dismissedPlayerId === nonStrikerId) {
+      nonStrikerId = 0;
+    }
+  }
+
+  const nextMeta = getNextBallPosition({
+    currentOverNumber: last.overNumber,
+    ballInOver: last.ballInOver,
+    isLegalDelivery: Boolean(last.isLegalDelivery),
+    rulesBallsPerOver: params.matchRules.ballsPerOver,
+  });
+
+  const maxBowlerBalls =
+    typeof params.matchRules.maxOversPerBowler === "number"
+      ? params.matchRules.maxOversPerBowler * params.matchRules.ballsPerOver
+      : null;
+
+  return {
+    availableBatters: params.battingPlayers.filter(
+      (player) =>
+        !params.dismissedSet.has(player.id) &&
+        player.id !== strikerId &&
+        player.id !== nonStrikerId
+    ),
+    availableBowlers: params.bowlingPlayers.filter((player) => {
+      if (!overComplete) {
+        return player.id === last.bowlerId;
+      }
+
+      if (player.id === last.bowlerId) {
+        return false;
+      }
+
+      if (
+        typeof maxBowlerBalls === "number" &&
+        (params.bowlerBallCounts.get(player.id) ?? 0) >= maxBowlerBalls
+      ) {
+        return false;
+      }
+
+      return true;
+    }),
+    entryContext: {
+      inningsId: params.inningsRow.id,
+      inningsNumber: params.inningsRow.inningsNumber,
+      battingTeamId: params.inningsRow.battingTeamId,
+      bowlingTeamId: params.inningsRow.bowlingTeamId,
+      strikerId: strikerId === 0 ? null : strikerId,
+      nonStrikerId: nonStrikerId === 0 ? null : nonStrikerId,
+      bowlerId: bowlerId === 0 ? null : bowlerId,
+      overNumber: nextMeta.overNumber,
+      ballInOver: nextMeta.ballInOver,
+      dismissedPlayerId,
+    } satisfies ScoringEntryContext,
+    requiredSelections: {
+      battingTeam: false,
+      bowlingTeam: false,
+      striker: strikerId === 0,
+      nonStriker: nonStrikerId === 0,
+      bowler: overComplete,
+    } satisfies ScoringRequiredSelections,
+  };
+}
+
 function getEntryContext(params: {
   battingPlayers: ScoringSessionPlayerOption[];
   bowlingPlayers: ScoringSessionPlayerOption[];
@@ -1643,147 +1923,15 @@ function getEntryContext(params: {
     wideRuns: number;
   }>;
 }) {
-  const dismissedSet = getDismissedPlayerIds(params.timeline);
-  const battingIds = new Set(params.battingPlayers.map((player) => player.id));
-  const bowlingIds = new Set(params.bowlingPlayers.map((player) => player.id));
-
-  if (params.timeline.length === 0) {
-    const bowlerId =
-      params.inningsRow.openingBowlerId &&
-      bowlingIds.has(params.inningsRow.openingBowlerId)
-        ? params.inningsRow.openingBowlerId
-        : null;
-    const strikerId =
-      params.inningsRow.openingStrikerId &&
-      battingIds.has(params.inningsRow.openingStrikerId)
-        ? params.inningsRow.openingStrikerId
-        : null;
-    const nonStrikerId =
-      params.inningsRow.openingNonStrikerId &&
-      battingIds.has(params.inningsRow.openingNonStrikerId)
-        ? params.inningsRow.openingNonStrikerId
-        : null;
-
-    return {
-      availableBatters: params.battingPlayers.filter(
-        (player) =>
-          !dismissedSet.has(player.id) &&
-          player.id !== strikerId &&
-          player.id !== nonStrikerId
-      ),
-      availableBowlers: params.bowlingPlayers,
-      entryContext: {
-        inningsId: params.inningsRow.id,
-        inningsNumber: params.inningsRow.inningsNumber,
-        battingTeamId: params.inningsRow.battingTeamId,
-        bowlingTeamId: params.inningsRow.bowlingTeamId,
-        strikerId,
-        nonStrikerId,
-        bowlerId,
-        overNumber: 1,
-        ballInOver: 1,
-        dismissedPlayerId: null,
-      } satisfies ScoringEntryContext,
-      requiredSelections: {
-        battingTeam: false,
-        bowlingTeam: false,
-        striker: strikerId === null,
-        nonStriker: nonStrikerId === null,
-        bowler: bowlerId === null,
-      } satisfies ScoringRequiredSelections,
-    };
-  }
-
-  const last = params.timeline.at(-1);
-  if (!last) {
-    throw new Error("Timeline is missing last delivery");
-  }
-
-  const movementRuns = getMovementRuns(last);
-  const rotateStrike = movementRuns % 2 === 1;
-  let strikerId = rotateStrike ? last.nonStrikerId : last.strikerId;
-  let nonStrikerId = rotateStrike ? last.strikerId : last.nonStrikerId;
-  let bowlerId = last.bowlerId;
-
-  const overComplete =
-    last.isLegalDelivery && last.ballInOver >= params.matchRules.ballsPerOver;
-
-  if (overComplete) {
-    const swappedStrikerId = nonStrikerId;
-    nonStrikerId = strikerId;
-    strikerId = swappedStrikerId;
-    bowlerId = 0;
-  }
-
-  let dismissedPlayerId: null | number = null;
-  if (last.isWicket && typeof last.dismissedPlayerId === "number") {
-    dismissedPlayerId = last.dismissedPlayerId;
-    if (dismissedPlayerId === strikerId) {
-      strikerId = 0;
-    }
-    if (dismissedPlayerId === nonStrikerId) {
-      nonStrikerId = 0;
-    }
-  }
-
-  const nextMeta = getNextBallPosition({
-    currentOverNumber: last.overNumber,
-    ballInOver: last.ballInOver,
-    isLegalDelivery: Boolean(last.isLegalDelivery),
-    rulesBallsPerOver: params.matchRules.ballsPerOver,
+  return buildEntryContextFromState({
+    battingPlayers: params.battingPlayers,
+    bowlerBallCounts: getBowlerLegalBallCounts(params.timeline),
+    bowlingPlayers: params.bowlingPlayers,
+    dismissedSet: getDismissedPlayerIds(params.timeline),
+    inningsRow: params.inningsRow,
+    lastDelivery: params.timeline.at(-1) ?? null,
+    matchRules: params.matchRules,
   });
-
-  const bowlerBallCounts = getBowlerLegalBallCounts(params.timeline);
-  const maxBowlerBalls =
-    typeof params.matchRules.maxOversPerBowler === "number"
-      ? params.matchRules.maxOversPerBowler * params.matchRules.ballsPerOver
-      : null;
-
-  return {
-    availableBatters: params.battingPlayers.filter(
-      (player) =>
-        !dismissedSet.has(player.id) &&
-        player.id !== strikerId &&
-        player.id !== nonStrikerId
-    ),
-    availableBowlers: params.bowlingPlayers.filter((player) => {
-      if (!overComplete) {
-        return player.id === last.bowlerId;
-      }
-
-      if (player.id === last.bowlerId) {
-        return false;
-      }
-
-      if (
-        typeof maxBowlerBalls === "number" &&
-        (bowlerBallCounts.get(player.id) ?? 0) >= maxBowlerBalls
-      ) {
-        return false;
-      }
-
-      return true;
-    }),
-    entryContext: {
-      inningsId: params.inningsRow.id,
-      inningsNumber: params.inningsRow.inningsNumber,
-      battingTeamId: params.inningsRow.battingTeamId,
-      bowlingTeamId: params.inningsRow.bowlingTeamId,
-      strikerId: strikerId === 0 ? null : strikerId,
-      nonStrikerId: nonStrikerId === 0 ? null : nonStrikerId,
-      bowlerId: bowlerId === 0 ? null : bowlerId,
-      overNumber: nextMeta.overNumber,
-      ballInOver: nextMeta.ballInOver,
-      dismissedPlayerId,
-    } satisfies ScoringEntryContext,
-    requiredSelections: {
-      battingTeam: false,
-      bowlingTeam: false,
-      striker: strikerId === 0,
-      nonStriker: nonStrikerId === 0,
-      bowler: overComplete,
-    } satisfies ScoringRequiredSelections,
-  };
 }
 
 function getMatchCompletionSnapshot(params: {
@@ -1914,6 +2062,169 @@ async function refreshMatchCompletion(matchId: number) {
       winnerId: nextState.winnerId,
     })
     .where(eq(matches.id, matchId));
+
+  return {
+    ...nextState,
+    isLive: activeInningsExists || !nextState.isCompleted,
+  } satisfies ScoringMutationMatchState;
+}
+
+function getMatchRulesFromSnapshot(match: {
+  ballsPerOverSnapshot: number;
+  format: string;
+  maxLegalBallsPerInningsSnapshot: number | null;
+  maxOverPerBowler: number;
+  maxOversPerBowlerSnapshot: number | null;
+  oversPerSide: number;
+}) {
+  const ballsPerOver =
+    typeof match.ballsPerOverSnapshot === "number" &&
+    match.ballsPerOverSnapshot > 0
+      ? match.ballsPerOverSnapshot
+      : 6;
+  const maxLegalBallsPerInnings =
+    typeof match.maxLegalBallsPerInningsSnapshot === "number" &&
+    match.maxLegalBallsPerInningsSnapshot > 0
+      ? match.maxLegalBallsPerInningsSnapshot
+      : match.oversPerSide * ballsPerOver;
+
+  return {
+    ballsPerOver,
+    formatLabel: match.format,
+    matchFormatId: null,
+    maxLegalBallsPerInnings,
+    maxOversPerBowler:
+      typeof match.maxOversPerBowlerSnapshot === "number" &&
+      match.maxOversPerBowlerSnapshot > 0
+        ? match.maxOversPerBowlerSnapshot
+        : match.maxOverPerBowler,
+    noOfOvers: match.oversPerSide,
+  };
+}
+
+function getScoringSessionMatch(matchId: number) {
+  return db.query.matches.findFirst({
+    where: {
+      id: matchId,
+    },
+    columns: {
+      id: true,
+      tournamentId: true,
+      tossWinnerId: true,
+      tossDecision: true,
+      team1Id: true,
+      team2Id: true,
+      inningsPerSide: true,
+      oversPerSide: true,
+      maxOverPerBowler: true,
+      ballsPerOverSnapshot: true,
+      maxLegalBallsPerInningsSnapshot: true,
+      maxOversPerBowlerSnapshot: true,
+      playersPerSide: true,
+      result: true,
+      winnerId: true,
+      isLive: true,
+      isCompleted: true,
+      isTied: true,
+      margin: true,
+      hasLBW: true,
+      hasBye: true,
+      hasLegBye: true,
+      hasBoundaryOut: true,
+      hasWides: true,
+      hasNoBalls: true,
+      hasPenaltyRuns: true,
+      format: true,
+    },
+    with: {
+      team1: {
+        columns: {
+          id: true,
+          name: true,
+          shortName: true,
+        },
+      },
+      team2: {
+        columns: {
+          id: true,
+          name: true,
+          shortName: true,
+        },
+      },
+    },
+  });
+}
+
+function summarizeInningsForMutation(inningsRow: {
+  ballsBowled: number;
+  battingTeamId: number;
+  bowlingTeamId: number;
+  id: number;
+  inningsNumber: number;
+  isCompleted: boolean | null;
+  targetRuns: number | null;
+  totalScore: number;
+  wickets: number;
+}): ScoringMutationInningsSummary {
+  return {
+    ballsBowled: inningsRow.ballsBowled,
+    battingTeamId: inningsRow.battingTeamId,
+    bowlingTeamId: inningsRow.bowlingTeamId,
+    id: inningsRow.id,
+    inningsNumber: inningsRow.inningsNumber,
+    isCompleted: inningsRow.isCompleted,
+    targetRuns: inningsRow.targetRuns,
+    totalScore: inningsRow.totalScore,
+    wickets: inningsRow.wickets,
+  };
+}
+
+function toScoringDeliveryRecord(delivery: {
+  assistedById?: number | null;
+  ballInOver: number;
+  batterRuns: number;
+  bowlerId: number;
+  byeRuns: number;
+  dismissedById?: number | null;
+  dismissedPlayerId: number | null;
+  id: number;
+  inningsId: number;
+  isLegalDelivery?: boolean;
+  isWicket: boolean;
+  legByeRuns: number;
+  noBallRuns: number;
+  nonStrikerId: number;
+  overNumber: number;
+  penaltyRuns?: number | null;
+  sequenceNo: number;
+  strikerId: number;
+  totalRuns: number;
+  wicketType: string | null;
+  wideRuns: number;
+}): ScoringDeliveryRecord {
+  return {
+    assistedById: delivery.assistedById ?? null,
+    ballInOver: delivery.ballInOver,
+    batterRuns: delivery.batterRuns,
+    bowlerId: delivery.bowlerId,
+    byeRuns: delivery.byeRuns,
+    dismissedById: delivery.dismissedById ?? null,
+    dismissedPlayerId: delivery.dismissedPlayerId,
+    id: delivery.id,
+    inningsId: delivery.inningsId,
+    isLegalDelivery: Boolean(delivery.isLegalDelivery),
+    isWicket: delivery.isWicket,
+    legByeRuns: delivery.legByeRuns,
+    noBallRuns: delivery.noBallRuns,
+    nonStrikerId: delivery.nonStrikerId,
+    overNumber: delivery.overNumber,
+    penaltyRuns: delivery.penaltyRuns ?? 0,
+    sequenceNo: delivery.sequenceNo,
+    strikerId: delivery.strikerId,
+    totalRuns: delivery.totalRuns,
+    wicketType: delivery.wicketType,
+    wideRuns: delivery.wideRuns,
+  };
 }
 
 function getActiveLineupPlayers(params: {
@@ -1936,7 +2247,7 @@ function getActiveLineupPlayers(params: {
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Session assembly intentionally returns the full scorer contract in one query path.
 async function assembleMatchScoringSession(matchId: number) {
-  const match = await getMatchById(matchId);
+  const match = await getScoringSessionMatch(matchId);
   if (!match) {
     return null;
   }
@@ -2089,7 +2400,7 @@ async function assembleMatchScoringSession(matchId: number) {
     inningsWithDeliveries.find((inning) => inning.id === currentInningsId) ??
     null;
 
-  const matchRules = await getMatchFormatRulesByMatchId(match.id);
+  const matchRules = getMatchRulesFromSnapshot(match);
   const nextInningsDefaults = resolveNextInningsTeams({
     inningsRows: inningsRows.map((row) => ({
       battingTeamId: row.battingTeamId,
@@ -2205,19 +2516,25 @@ async function assertLineupMembership(params: {
     bowlingTeamId: number;
     matchId: number;
   };
+  lineupRows?: Array<{
+    playerId: number;
+    teamId: number;
+  }>;
   nextBowlerId: number;
   nextNonStrikerId: number;
   nextStrikerId: number;
 }) {
-  const lineupRows = await db.query.matchLineup.findMany({
-    where: {
-      matchId: params.inningsRow.matchId,
-    },
-    columns: {
-      playerId: true,
-      teamId: true,
-    },
-  });
+  const lineupRows =
+    params.lineupRows ??
+    (await db.query.matchLineup.findMany({
+      where: {
+        matchId: params.inningsRow.matchId,
+      },
+      columns: {
+        playerId: true,
+        teamId: true,
+      },
+    }));
 
   const battingPlayerSet = new Set(
     lineupRows
@@ -2272,6 +2589,660 @@ async function getInningsRowForMutation(inningsId: number) {
   }
 
   return inningsRow;
+}
+
+interface ScoringDeliveryContext {
+  availableBatters: ScoringSessionPlayerOption[];
+  availableBowlers: ScoringSessionPlayerOption[];
+  battingOrderByPlayer: Map<number, number | null>;
+  battingPlayers: ScoringSessionPlayerOption[];
+  bowlerBallCounts: Map<number, number>;
+  bowlingPlayers: ScoringSessionPlayerOption[];
+  deliveryCount: number;
+  dismissedSet: Set<number>;
+  entryContext: ScoringEntryContext;
+  inningsRow: {
+    ballsBowled: number;
+    battingTeamId: number;
+    bowlingTeamId: number;
+    byes: number;
+    id: number;
+    inningsNumber: number;
+    isCompleted: boolean | null;
+    legByes: number;
+    matchId: number;
+    noBalls: number;
+    openingBowlerId: number | null;
+    openingNonStrikerId: number | null;
+    openingStrikerId: number | null;
+    others: number;
+    penaltyRuns: number;
+    status: string;
+    targetRuns: number | null;
+    totalScore: number;
+    wides: number;
+    wickets: number;
+  };
+  lastDelivery: {
+    ballInOver: number;
+    batterRuns: number;
+    bowlerId: number;
+    byeRuns: number;
+    dismissedPlayerId: number | null;
+    isLegalDelivery: boolean;
+    isWicket: boolean;
+    legByeRuns: number;
+    noBallRuns: number;
+    nonStrikerId: number;
+    overNumber: number;
+    sequenceNo: number;
+    strikerId: number;
+    totalRuns: number;
+    wideRuns: number;
+  } | null;
+  lineupRows: Awaited<ReturnType<typeof getSavedMatchLineup>>;
+  match: {
+    ballsPerOverSnapshot: number;
+    format: string;
+    hasBoundaryOut: boolean | null;
+    hasBye: boolean;
+    hasLBW: boolean | null;
+    hasLegBye: boolean | null;
+    hasNoBalls: boolean;
+    hasPenaltyRuns: boolean | null;
+    hasWides: boolean;
+    id: number;
+    inningsPerSide: number;
+    isCompleted: boolean | null;
+    isLive: boolean | null;
+    isTied: boolean | null;
+    margin: string | null;
+    maxLegalBallsPerInningsSnapshot: number | null;
+    maxOverPerBowler: number;
+    maxOversPerBowlerSnapshot: number | null;
+    oversPerSide: number;
+    playersPerSide: number;
+    result: string | null;
+    team1Id: number;
+    team2Id: number;
+    tossDecision: string | null;
+    tossWinnerId: number | null;
+    winnerId: number | null;
+  };
+  matchRules: ReturnType<typeof getMatchRulesFromSnapshot>;
+  requiredSelections: ScoringRequiredSelections;
+  statsByPlayer: Map<number, MutableStats>;
+}
+
+async function getScoringDeliveryContext(
+  inningsId: number
+): Promise<ScoringDeliveryContext> {
+  const baseRow = (
+    await db
+      .select({
+        inningsId: innings.id,
+        matchId: innings.matchId,
+        inningsNumber: innings.inningsNumber,
+        battingTeamId: innings.battingTeamId,
+        bowlingTeamId: innings.bowlingTeamId,
+        totalScore: innings.totalScore,
+        wickets: innings.wickets,
+        ballsBowled: innings.ballsBowled,
+        wides: innings.wides,
+        noBalls: innings.noBalls,
+        byes: innings.byes,
+        legByes: innings.legByes,
+        penaltyRuns: innings.penaltyRuns,
+        others: innings.others,
+        targetRuns: innings.targetRuns,
+        status: innings.status,
+        inningsCompleted: innings.isCompleted,
+        openingStrikerId: innings.openingStrikerId,
+        openingNonStrikerId: innings.openingNonStrikerId,
+        openingBowlerId: innings.openingBowlerId,
+        matchPlayersPerSide: matches.playersPerSide,
+        matchInningsPerSide: matches.inningsPerSide,
+        team1Id: matches.team1Id,
+        team2Id: matches.team2Id,
+        tossWinnerId: matches.tossWinnerId,
+        tossDecision: matches.tossDecision,
+        matchCompleted: matches.isCompleted,
+        matchLive: matches.isLive,
+        matchTied: matches.isTied,
+        matchMargin: matches.margin,
+        matchResult: matches.result,
+        winnerId: matches.winnerId,
+        hasLBW: matches.hasLBW,
+        hasBye: matches.hasBye,
+        hasLegBye: matches.hasLegBye,
+        hasBoundaryOut: matches.hasBoundaryOut,
+        hasWides: matches.hasWides,
+        hasNoBalls: matches.hasNoBalls,
+        hasPenaltyRuns: matches.hasPenaltyRuns,
+        ballsPerOverSnapshot: matches.ballsPerOverSnapshot,
+        maxLegalBallsPerInningsSnapshot:
+          matches.maxLegalBallsPerInningsSnapshot,
+        maxOversPerBowlerSnapshot: matches.maxOversPerBowlerSnapshot,
+        oversPerSide: matches.oversPerSide,
+        maxOverPerBowler: matches.maxOverPerBowler,
+        format: matches.format,
+      })
+      .from(innings)
+      .innerJoin(matches, eq(matches.id, innings.matchId))
+      .where(eq(innings.id, inningsId))
+      .limit(1)
+  ).at(0);
+
+  if (
+    !baseRow ||
+    typeof baseRow.team1Id !== "number" ||
+    typeof baseRow.team2Id !== "number"
+  ) {
+    throw new Error("Innings not found");
+  }
+
+  const [lineupRows, lastDelivery, statsRows] = await Promise.all([
+    getSavedMatchLineup(baseRow.matchId),
+    db.query.deliveries.findFirst({
+      where: {
+        inningsId,
+      },
+      orderBy: {
+        sequenceNo: "desc",
+      },
+      columns: {
+        ballInOver: true,
+        batterRuns: true,
+        bowlerId: true,
+        byeRuns: true,
+        dismissedPlayerId: true,
+        isLegalDelivery: true,
+        isWicket: true,
+        legByeRuns: true,
+        noBallRuns: true,
+        nonStrikerId: true,
+        overNumber: true,
+        sequenceNo: true,
+        strikerId: true,
+        totalRuns: true,
+        wideRuns: true,
+      },
+    }),
+    db.query.playerInningsStats.findMany({
+      where: {
+        inningsId,
+      },
+      columns: {
+        inningsId: true,
+        matchId: true,
+        playerId: true,
+        teamId: true,
+        battingOrder: true,
+        runsScored: true,
+        ballsFaced: true,
+        fours: true,
+        sixes: true,
+        isDismissed: true,
+        dismissalType: true,
+        dismissedById: true,
+        assistedById: true,
+        ballsBowled: true,
+        maidens: true,
+        runsConceded: true,
+        wicketsTaken: true,
+        wides: true,
+        noBalls: true,
+        dotBalls: true,
+        catches: true,
+        runOuts: true,
+        stumpings: true,
+      },
+    }),
+  ]);
+
+  const match = {
+    ballsPerOverSnapshot: baseRow.ballsPerOverSnapshot,
+    format: baseRow.format,
+    hasBoundaryOut: baseRow.hasBoundaryOut,
+    hasBye: baseRow.hasBye,
+    hasLBW: baseRow.hasLBW,
+    hasLegBye: baseRow.hasLegBye,
+    hasNoBalls: baseRow.hasNoBalls,
+    hasPenaltyRuns: baseRow.hasPenaltyRuns,
+    hasWides: baseRow.hasWides,
+    id: baseRow.matchId,
+    inningsPerSide: baseRow.matchInningsPerSide,
+    isCompleted: baseRow.matchCompleted,
+    isLive: baseRow.matchLive,
+    isTied: baseRow.matchTied,
+    margin: baseRow.matchMargin,
+    maxLegalBallsPerInningsSnapshot: baseRow.maxLegalBallsPerInningsSnapshot,
+    maxOverPerBowler: baseRow.maxOverPerBowler,
+    maxOversPerBowlerSnapshot: baseRow.maxOversPerBowlerSnapshot,
+    oversPerSide: baseRow.oversPerSide,
+    playersPerSide: baseRow.matchPlayersPerSide,
+    result: baseRow.matchResult,
+    team1Id: baseRow.team1Id,
+    team2Id: baseRow.team2Id,
+    tossDecision: baseRow.tossDecision,
+    tossWinnerId: baseRow.tossWinnerId,
+    winnerId: baseRow.winnerId,
+  };
+  const matchRules = getMatchRulesFromSnapshot(match);
+  const battingPlayers = mapLineupPlayers(lineupRows, baseRow.battingTeamId);
+  const bowlingPlayers = mapLineupPlayers(lineupRows, baseRow.bowlingTeamId);
+  const battingOrderByPlayer = new Map<number, number | null>(
+    lineupRows.map((row) => [row.playerId, row.battingOrder ?? null])
+  );
+  const statsByPlayer = new Map<number, MutableStats>(
+    statsRows.map((row) => [row.playerId, row])
+  );
+  const dismissedSet = new Set(
+    statsRows.filter((row) => row.isDismissed).map((row) => row.playerId)
+  );
+  const bowlerBallCounts = new Map(
+    statsRows
+      .filter((row) => row.teamId === baseRow.bowlingTeamId)
+      .map((row) => [row.playerId, row.ballsBowled])
+  );
+  const inningsRow = {
+    ballsBowled: baseRow.ballsBowled,
+    battingTeamId: baseRow.battingTeamId,
+    bowlingTeamId: baseRow.bowlingTeamId,
+    byes: baseRow.byes,
+    id: baseRow.inningsId,
+    inningsNumber: baseRow.inningsNumber,
+    isCompleted: baseRow.inningsCompleted,
+    legByes: baseRow.legByes,
+    matchId: baseRow.matchId,
+    noBalls: baseRow.noBalls,
+    openingBowlerId: baseRow.openingBowlerId,
+    openingNonStrikerId: baseRow.openingNonStrikerId,
+    openingStrikerId: baseRow.openingStrikerId,
+    others: baseRow.others,
+    penaltyRuns: baseRow.penaltyRuns,
+    status: baseRow.status,
+    targetRuns: baseRow.targetRuns,
+    totalScore: baseRow.totalScore,
+    wides: baseRow.wides,
+    wickets: baseRow.wickets,
+  };
+  const nextState = buildEntryContextFromState({
+    battingPlayers,
+    bowlerBallCounts,
+    bowlingPlayers,
+    dismissedSet,
+    inningsRow,
+    lastDelivery: lastDelivery ?? null,
+    matchRules,
+  });
+
+  return {
+    availableBatters: nextState.availableBatters,
+    availableBowlers: nextState.availableBowlers,
+    battingOrderByPlayer,
+    battingPlayers,
+    bowlerBallCounts,
+    bowlingPlayers,
+    deliveryCount: lastDelivery?.sequenceNo ?? 0,
+    dismissedSet,
+    entryContext: nextState.entryContext,
+    inningsRow,
+    lastDelivery: lastDelivery ?? null,
+    lineupRows,
+    match,
+    matchRules,
+    requiredSelections: nextState.requiredSelections,
+    statsByPlayer,
+  };
+}
+
+function toScoringMutationMatchState(match: {
+  isCompleted: boolean | null;
+  isLive: boolean | null;
+  isTied: boolean | null;
+  margin: string | null;
+  result: string | null;
+  winnerId: number | null;
+}): ScoringMutationMatchState {
+  return {
+    isCompleted: match.isCompleted,
+    isLive: match.isLive,
+    isTied: match.isTied,
+    margin: match.margin,
+    result: match.result,
+    winnerId: match.winnerId,
+  };
+}
+
+async function getScoringMutationDeliveryById(deliveryId: number) {
+  const delivery = await db.query.deliveries.findFirst({
+    where: {
+      id: deliveryId,
+    },
+    columns: {
+      assistedById: true,
+      ballInOver: true,
+      batterRuns: true,
+      bowlerId: true,
+      byeRuns: true,
+      dismissedById: true,
+      dismissedPlayerId: true,
+      id: true,
+      inningsId: true,
+      isLegalDelivery: true,
+      isWicket: true,
+      legByeRuns: true,
+      noBallRuns: true,
+      nonStrikerId: true,
+      overNumber: true,
+      penaltyRuns: true,
+      sequenceNo: true,
+      strikerId: true,
+      totalRuns: true,
+      wicketType: true,
+      wideRuns: true,
+    },
+  });
+
+  return delivery ? toScoringDeliveryRecord(delivery) : null;
+}
+
+function buildRewriteScoringMutationResult(params: {
+  action: "delete" | "update";
+  context: ScoringDeliveryContext;
+  deletedDeliveryId?: number;
+  delivery?: ScoringDeliveryRecord | null;
+}): ScoringMutationResult {
+  return {
+    action: params.action,
+    affectedInnings: summarizeInningsForMutation(params.context.inningsRow),
+    availableBatters: params.context.availableBatters,
+    availableBowlers: params.context.availableBowlers,
+    currentInnings: summarizeInningsForMutation(params.context.inningsRow),
+    deletedDeliveryId:
+      params.action === "delete" ? (params.deletedDeliveryId ?? null) : null,
+    delivery:
+      params.action === "delete"
+        ? null
+        : (params.delivery ??
+          (() => {
+            throw new Error("Updated delivery missing after rewrite");
+          })()),
+    entryContext: params.context.entryContext,
+    match: toScoringMutationMatchState(params.context.match),
+    nextInningsDefaults: null,
+    phase: "scoring",
+    requiredSelections: params.context.requiredSelections,
+  };
+}
+
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Incremental stat updates keep the hot scoring path off the full replay flow.
+function applyDeliveryToStats(params: {
+  battingOrderByPlayer: Map<number, number | null>;
+  ballsPerOver: number;
+  delivery: ScoringDeliveryRecord;
+  inningsRow: Pick<
+    ScoringDeliveryContext["inningsRow"],
+    "battingTeamId" | "bowlingTeamId" | "id" | "matchId"
+  >;
+  overRunsBeforeDelivery: number;
+  statsByPlayer: Map<number, MutableStats>;
+}) {
+  const strikerStats = ensureMutableStats({
+    battingOrderByPlayer: params.battingOrderByPlayer,
+    inningsId: params.inningsRow.id,
+    matchId: params.inningsRow.matchId,
+    playerId: params.delivery.strikerId,
+    statsByPlayer: params.statsByPlayer,
+    teamId: params.inningsRow.battingTeamId,
+  });
+  const bowlerStats = ensureMutableStats({
+    battingOrderByPlayer: params.battingOrderByPlayer,
+    inningsId: params.inningsRow.id,
+    matchId: params.inningsRow.matchId,
+    playerId: params.delivery.bowlerId,
+    statsByPlayer: params.statsByPlayer,
+    teamId: params.inningsRow.bowlingTeamId,
+  });
+  const countsAsBallFaced =
+    params.delivery.isLegalDelivery ||
+    (params.delivery.noBallRuns > 0 &&
+      params.delivery.batterRuns > 0 &&
+      params.delivery.wideRuns === 0);
+
+  if (countsAsBallFaced) {
+    strikerStats.ballsFaced += 1;
+  }
+
+  strikerStats.runsScored += params.delivery.batterRuns;
+  if (params.delivery.batterRuns === 4) {
+    strikerStats.fours += 1;
+  }
+  if (params.delivery.batterRuns === 6) {
+    strikerStats.sixes += 1;
+  }
+
+  if (params.delivery.isWicket && params.delivery.dismissedPlayerId) {
+    const dismissedStats = ensureMutableStats({
+      battingOrderByPlayer: params.battingOrderByPlayer,
+      inningsId: params.inningsRow.id,
+      matchId: params.inningsRow.matchId,
+      playerId: params.delivery.dismissedPlayerId,
+      statsByPlayer: params.statsByPlayer,
+      teamId: params.inningsRow.battingTeamId,
+    });
+    dismissedStats.isDismissed = true;
+    dismissedStats.dismissalType = params.delivery.wicketType ?? null;
+    dismissedStats.dismissedById = params.delivery.dismissedById;
+    dismissedStats.assistedById = params.delivery.assistedById;
+  }
+
+  if (params.delivery.isLegalDelivery) {
+    bowlerStats.ballsBowled += 1;
+  }
+
+  const concededByBowler =
+    params.delivery.batterRuns +
+    params.delivery.wideRuns +
+    params.delivery.noBallRuns +
+    params.delivery.penaltyRuns;
+
+  bowlerStats.runsConceded += concededByBowler;
+  bowlerStats.wides += params.delivery.wideRuns;
+  bowlerStats.noBalls += params.delivery.noBallRuns;
+  if (params.delivery.isLegalDelivery && params.delivery.totalRuns === 0) {
+    bowlerStats.dotBalls += 1;
+  }
+
+  if (
+    params.delivery.isWicket &&
+    params.delivery.dismissedById === params.delivery.bowlerId &&
+    params.delivery.wicketType !== "run out"
+  ) {
+    bowlerStats.wicketsTaken += 1;
+  }
+
+  if (
+    params.delivery.isLegalDelivery &&
+    params.delivery.ballInOver === params.ballsPerOver &&
+    params.overRunsBeforeDelivery + concededByBowler === 0
+  ) {
+    bowlerStats.maidens += 1;
+  }
+
+  if (params.delivery.assistedById && params.delivery.isWicket) {
+    const assistingStats = ensureMutableStats({
+      battingOrderByPlayer: params.battingOrderByPlayer,
+      inningsId: params.inningsRow.id,
+      matchId: params.inningsRow.matchId,
+      playerId: params.delivery.assistedById,
+      statsByPlayer: params.statsByPlayer,
+      teamId: params.inningsRow.bowlingTeamId,
+    });
+
+    if (params.delivery.wicketType === "caught") {
+      assistingStats.catches += 1;
+    } else if (params.delivery.wicketType === "stumped") {
+      assistingStats.stumpings += 1;
+    } else if (params.delivery.wicketType === "run out") {
+      assistingStats.runOuts += 1;
+    }
+  }
+}
+
+function buildOpenInningsMutationResult(params: {
+  context: ScoringDeliveryContext;
+  delivery: ScoringDeliveryRecord;
+  updatedInnings: ScoringMutationInningsSummary;
+}): ScoringMutationResult {
+  const dismissedSet = new Set(params.context.dismissedSet);
+  if (params.delivery.isWicket && params.delivery.dismissedPlayerId) {
+    dismissedSet.add(params.delivery.dismissedPlayerId);
+  }
+
+  const bowlerBallCounts = new Map(params.context.bowlerBallCounts);
+  if (params.delivery.isLegalDelivery) {
+    bowlerBallCounts.set(
+      params.delivery.bowlerId,
+      (bowlerBallCounts.get(params.delivery.bowlerId) ?? 0) + 1
+    );
+  }
+
+  const nextState = buildEntryContextFromState({
+    battingPlayers: params.context.battingPlayers,
+    bowlerBallCounts,
+    bowlingPlayers: params.context.bowlingPlayers,
+    dismissedSet,
+    inningsRow: params.context.inningsRow,
+    lastDelivery: params.delivery,
+    matchRules: params.context.matchRules,
+  });
+
+  return {
+    action: "record",
+    affectedInnings: params.updatedInnings,
+    availableBatters: nextState.availableBatters,
+    availableBowlers: nextState.availableBowlers,
+    currentInnings: params.updatedInnings,
+    deletedDeliveryId: null,
+    delivery: params.delivery,
+    entryContext: nextState.entryContext,
+    match: toScoringMutationMatchState({
+      isCompleted: params.context.match.isCompleted,
+      isLive: true,
+      isTied: params.context.match.isTied,
+      margin: params.context.match.margin,
+      result: params.context.match.result,
+      winnerId: params.context.match.winnerId,
+    }),
+    nextInningsDefaults: null,
+    phase: "scoring",
+    requiredSelections: nextState.requiredSelections,
+  };
+}
+
+async function buildClosedInningsMutationResult(params: {
+  context: ScoringDeliveryContext;
+  delivery: ScoringDeliveryRecord;
+  matchState: ScoringMutationMatchState;
+  updatedInnings: ScoringMutationInningsSummary;
+}): Promise<ScoringMutationResult> {
+  const inningsRows = await db.query.innings.findMany({
+    where: {
+      matchId: params.context.match.id,
+    },
+    columns: {
+      id: true,
+      inningsNumber: true,
+      battingTeamId: true,
+      bowlingTeamId: true,
+      totalScore: true,
+      wickets: true,
+      ballsBowled: true,
+      targetRuns: true,
+      isCompleted: true,
+    },
+    orderBy: {
+      inningsNumber: "asc",
+    },
+  });
+  const nextInningsDefaults = params.matchState.isCompleted
+    ? null
+    : resolveNextInningsTeams({
+        inningsRows: inningsRows.map((row) => ({
+          battingTeamId: row.battingTeamId,
+          bowlingTeamId: row.bowlingTeamId,
+          inningsNumber: row.inningsNumber,
+        })),
+        team1Id: params.context.match.team1Id,
+        team2Id: params.context.match.team2Id,
+      });
+  const activeBattingPlayers = nextInningsDefaults
+    ? getActiveLineupPlayers({
+        fallbackTeamId: nextInningsDefaults.battingTeamId,
+        team1Id: params.context.match.team1Id,
+        team1LineupPlayers: mapLineupPlayers(
+          params.context.lineupRows,
+          params.context.match.team1Id
+        ),
+        team2Id: params.context.match.team2Id,
+        team2LineupPlayers: mapLineupPlayers(
+          params.context.lineupRows,
+          params.context.match.team2Id
+        ),
+      })
+    : [];
+  const activeBowlingPlayers = nextInningsDefaults
+    ? getActiveLineupPlayers({
+        fallbackTeamId: nextInningsDefaults.bowlingTeamId,
+        team1Id: params.context.match.team1Id,
+        team1LineupPlayers: mapLineupPlayers(
+          params.context.lineupRows,
+          params.context.match.team1Id
+        ),
+        team2Id: params.context.match.team2Id,
+        team2LineupPlayers: mapLineupPlayers(
+          params.context.lineupRows,
+          params.context.match.team2Id
+        ),
+      })
+    : [];
+
+  return {
+    action: "record",
+    affectedInnings: {
+      ...params.updatedInnings,
+      isCompleted: true,
+    },
+    availableBatters: activeBattingPlayers,
+    availableBowlers: activeBowlingPlayers,
+    currentInnings: null,
+    deletedDeliveryId: null,
+    delivery: params.delivery,
+    entryContext: {
+      inningsId: null,
+      inningsNumber: nextInningsDefaults?.inningsNumber ?? null,
+      battingTeamId: nextInningsDefaults?.battingTeamId ?? null,
+      bowlingTeamId: nextInningsDefaults?.bowlingTeamId ?? null,
+      strikerId: null,
+      nonStrikerId: null,
+      bowlerId: null,
+      overNumber: 1,
+      ballInOver: 1,
+      dismissedPlayerId: null,
+    },
+    match: params.matchState,
+    nextInningsDefaults,
+    phase: params.matchState.isCompleted ? "completed" : "inningsSetup",
+    requiredSelections: {
+      battingTeam: true,
+      bowlingTeam: true,
+      striker: true,
+      nonStriker: true,
+      bowler: true,
+    },
+  };
 }
 
 export async function startScoringInnings(input: StartScoringInningsInput) {
@@ -2370,19 +3341,20 @@ export async function startScoringInnings(input: StartScoringInningsInput) {
   return Number(inningsId);
 }
 
-export async function recordScoringDelivery(input: DeliveryDraftInput) {
-  const inningsRow = await getInningsRowForMutation(input.inningsId);
-  if (inningsRow.isCompleted) {
+export async function recordScoringDelivery(
+  input: DeliveryDraftInput
+): Promise<ScoringMutationResult> {
+  const mutationStartedAt = performance.now();
+  const contextStartedAt = performance.now();
+  const context = await getScoringDeliveryContext(input.inningsId);
+  if (context.inningsRow.isCompleted) {
     throw new Error("Innings already completed");
   }
-
-  const session = await getMatchScoringSession(inningsRow.matchId);
-  if (!session?.currentInnings) {
-    throw new Error("Scoring session not available");
-  }
+  const contextMs = performance.now() - contextStartedAt;
 
   await assertLineupMembership({
-    inningsRow,
+    inningsRow: context.inningsRow,
+    lineupRows: context.lineupRows,
     nextStrikerId: input.strikerId,
     nextNonStrikerId: input.nonStrikerId,
     nextBowlerId: input.bowlerId,
@@ -2390,115 +3362,288 @@ export async function recordScoringDelivery(input: DeliveryDraftInput) {
 
   const normalized = validateDeliveryDraft({
     draft: input,
-    hasBoundaryOut: Boolean(session.match.hasBoundaryOut),
-    hasBye: Boolean(session.match.hasBye),
-    hasLBW: Boolean(session.match.hasLBW),
-    hasLegBye: Boolean(session.match.hasLegBye),
-    hasNoBalls: Boolean(session.match.hasNoBalls),
-    hasPenaltyRuns: Boolean(session.match.hasPenaltyRuns),
-    hasWides: Boolean(session.match.hasWides),
+    hasBoundaryOut: Boolean(context.match.hasBoundaryOut),
+    hasBye: Boolean(context.match.hasBye),
+    hasLBW: Boolean(context.match.hasLBW),
+    hasLegBye: Boolean(context.match.hasLegBye),
+    hasNoBalls: Boolean(context.match.hasNoBalls),
+    hasPenaltyRuns: Boolean(context.match.hasPenaltyRuns),
+    hasWides: Boolean(context.match.hasWides),
     strikerId: input.strikerId,
     nonStrikerId: input.nonStrikerId,
     canDismissNonStriker: true,
   });
 
   const deliveryPosition = buildAppendDeliveryPosition({
-    currentEntry: session.entryContext,
-    deliveryCount: session.currentInnings.deliveries.length,
+    currentEntry: context.entryContext,
+    deliveryCount: context.deliveryCount,
   });
-
-  await db.insert(deliveries).values({
-    inningsId: input.inningsId,
-    sequenceNo: deliveryPosition.sequenceNo,
-    overNumber: deliveryPosition.overNumber,
-    ballInOver: deliveryPosition.ballInOver,
-    isLegalDelivery: normalized.isLegalDelivery,
-    strikerId: input.strikerId,
-    nonStrikerId: input.nonStrikerId,
-    bowlerId: input.bowlerId,
-    batterRuns: normalized.batterRuns,
-    wideRuns: normalized.wideRuns,
-    noBallRuns: normalized.noBallRuns,
-    byeRuns: normalized.byeRuns,
-    legByeRuns: normalized.legByeRuns,
-    penaltyRuns: normalized.penaltyRuns,
-    totalRuns: normalized.totalRuns,
-    isWicket: normalized.isWicket,
-    wicketType: normalized.wicketType,
-    dismissedPlayerId: normalized.dismissedPlayerId,
-    dismissedById:
-      normalized.isWicket &&
-      normalized.wicketType &&
-      !NON_BOWLER_WICKETS.has(normalized.wicketType)
-        ? input.bowlerId
-        : null,
-    assistedById: normalized.assistedById,
-  });
-
-  await syncReplayState(input.inningsId, "append");
-
-  const updatedInnings = await db.query.innings.findFirst({
-    where: {
-      id: input.inningsId,
-    },
-    columns: {
-      id: true,
-      matchId: true,
-      ballsBowled: true,
-      targetRuns: true,
-      totalScore: true,
-      wickets: true,
-    },
-  });
-
-  if (!updatedInnings) {
-    throw new Error("Innings not found after save");
-  }
+  const dismissedById =
+    normalized.isWicket &&
+    normalized.wicketType &&
+    !NON_BOWLER_WICKETS.has(normalized.wicketType)
+      ? input.bowlerId
+      : null;
+  let overRunsBeforeDelivery = 0;
 
   if (
-    shouldAutoCompleteInnings({
-      ballsBowled: updatedInnings.ballsBowled,
-      matchRulesMaxLegalBallsPerInnings:
-        session.matchRules.maxLegalBallsPerInnings,
-      playersPerSide: session.playersPerSide,
-      targetRuns: updatedInnings.targetRuns,
-      totalScore: updatedInnings.totalScore,
-      wickets: updatedInnings.wickets,
-    })
+    normalized.isLegalDelivery &&
+    deliveryPosition.ballInOver === context.matchRules.ballsPerOver
   ) {
-    await closeCurrentScoringInnings(updatedInnings.id);
+    const currentOverDeliveries = await db.query.deliveries.findMany({
+      where: {
+        inningsId: input.inningsId,
+        overNumber: deliveryPosition.overNumber,
+      },
+      columns: {
+        batterRuns: true,
+        wideRuns: true,
+        noBallRuns: true,
+        penaltyRuns: true,
+      },
+    });
+    overRunsBeforeDelivery = currentOverDeliveries.reduce(
+      (sum, delivery) =>
+        sum +
+        delivery.batterRuns +
+        delivery.wideRuns +
+        delivery.noBallRuns +
+        delivery.penaltyRuns,
+      0
+    );
   }
 
-  return await getMatchScoringSession(inningsRow.matchId);
+  const mutationWriteStartedAt = performance.now();
+  const touchedPlayerIds = new Set<number>([input.strikerId, input.bowlerId]);
+  if (typeof normalized.dismissedPlayerId === "number") {
+    touchedPlayerIds.add(normalized.dismissedPlayerId);
+  }
+  if (typeof normalized.assistedById === "number") {
+    touchedPlayerIds.add(normalized.assistedById);
+  }
+
+  let insertedDelivery: ScoringDeliveryRecord | null = null;
+  const updatedInnings: ScoringMutationInningsSummary = {
+    ballsBowled:
+      context.inningsRow.ballsBowled + (normalized.isLegalDelivery ? 1 : 0),
+    battingTeamId: context.inningsRow.battingTeamId,
+    bowlingTeamId: context.inningsRow.bowlingTeamId,
+    id: context.inningsRow.id,
+    inningsNumber: context.inningsRow.inningsNumber,
+    isCompleted: false,
+    targetRuns: context.inningsRow.targetRuns,
+    totalScore: context.inningsRow.totalScore + normalized.totalRuns,
+    wickets: context.inningsRow.wickets + (normalized.isWicket ? 1 : 0),
+  };
+
+  await db.transaction(async (tx) => {
+    const [deliveryRow] = await tx
+      .insert(deliveries)
+      .values({
+        inningsId: input.inningsId,
+        sequenceNo: deliveryPosition.sequenceNo,
+        overNumber: deliveryPosition.overNumber,
+        ballInOver: deliveryPosition.ballInOver,
+        isLegalDelivery: normalized.isLegalDelivery,
+        strikerId: input.strikerId,
+        nonStrikerId: input.nonStrikerId,
+        bowlerId: input.bowlerId,
+        batterRuns: normalized.batterRuns,
+        wideRuns: normalized.wideRuns,
+        noBallRuns: normalized.noBallRuns,
+        byeRuns: normalized.byeRuns,
+        legByeRuns: normalized.legByeRuns,
+        penaltyRuns: normalized.penaltyRuns,
+        totalRuns: normalized.totalRuns,
+        isWicket: normalized.isWicket,
+        wicketType: normalized.wicketType,
+        dismissedPlayerId: normalized.dismissedPlayerId,
+        dismissedById,
+        assistedById: normalized.assistedById,
+      })
+      .returning({
+        id: deliveries.id,
+      });
+
+    if (!deliveryRow) {
+      throw new Error("Failed to insert delivery");
+    }
+
+    insertedDelivery = toScoringDeliveryRecord({
+      assistedById: normalized.assistedById,
+      ballInOver: deliveryPosition.ballInOver,
+      batterRuns: normalized.batterRuns,
+      bowlerId: input.bowlerId,
+      byeRuns: normalized.byeRuns,
+      dismissedById,
+      dismissedPlayerId: normalized.dismissedPlayerId,
+      id: deliveryRow.id,
+      inningsId: input.inningsId,
+      isLegalDelivery: normalized.isLegalDelivery,
+      isWicket: normalized.isWicket,
+      legByeRuns: normalized.legByeRuns,
+      noBallRuns: normalized.noBallRuns,
+      nonStrikerId: input.nonStrikerId,
+      overNumber: deliveryPosition.overNumber,
+      penaltyRuns: normalized.penaltyRuns,
+      sequenceNo: deliveryPosition.sequenceNo,
+      strikerId: input.strikerId,
+      totalRuns: normalized.totalRuns,
+      wicketType: normalized.wicketType,
+      wideRuns: normalized.wideRuns,
+    });
+
+    await tx
+      .update(innings)
+      .set({
+        totalScore: updatedInnings.totalScore,
+        wickets: updatedInnings.wickets,
+        ballsBowled: updatedInnings.ballsBowled,
+        wides: context.inningsRow.wides + normalized.wideRuns,
+        noBalls: context.inningsRow.noBalls + normalized.noBallRuns,
+        byes: context.inningsRow.byes + normalized.byeRuns,
+        legByes: context.inningsRow.legByes + normalized.legByeRuns,
+        penaltyRuns: context.inningsRow.penaltyRuns + normalized.penaltyRuns,
+        others: context.inningsRow.others,
+        status: "in_progress",
+      })
+      .where(eq(innings.id, input.inningsId));
+
+    if (!insertedDelivery) {
+      throw new Error("Inserted delivery is unavailable");
+    }
+
+    applyDeliveryToStats({
+      battingOrderByPlayer: context.battingOrderByPlayer,
+      ballsPerOver: context.matchRules.ballsPerOver,
+      delivery: insertedDelivery,
+      inningsRow: context.inningsRow,
+      overRunsBeforeDelivery,
+      statsByPlayer: context.statsByPlayer,
+    });
+
+    const statsValues = [...touchedPlayerIds]
+      .map((playerId) => context.statsByPlayer.get(playerId))
+      .filter((row): row is MutableStats => Boolean(row));
+
+    if (statsValues.length > 0) {
+      await Promise.all(
+        statsValues.map((statsRow) =>
+          tx
+            .insert(playerInningsStats)
+            .values(statsRow)
+            .onConflictDoUpdate({
+              target: [
+                playerInningsStats.inningsId,
+                playerInningsStats.playerId,
+              ],
+              set: {
+                matchId: statsRow.matchId,
+                teamId: statsRow.teamId,
+                battingOrder: statsRow.battingOrder,
+                runsScored: statsRow.runsScored,
+                ballsFaced: statsRow.ballsFaced,
+                fours: statsRow.fours,
+                sixes: statsRow.sixes,
+                isDismissed: statsRow.isDismissed,
+                dismissalType: statsRow.dismissalType,
+                dismissedById: statsRow.dismissedById,
+                assistedById: statsRow.assistedById,
+                ballsBowled: statsRow.ballsBowled,
+                maidens: statsRow.maidens,
+                runsConceded: statsRow.runsConceded,
+                wicketsTaken: statsRow.wicketsTaken,
+                wides: statsRow.wides,
+                noBalls: statsRow.noBalls,
+                dotBalls: statsRow.dotBalls,
+                catches: statsRow.catches,
+                runOuts: statsRow.runOuts,
+                stumpings: statsRow.stumpings,
+              },
+            })
+        )
+      );
+    }
+  });
+
+  if (!insertedDelivery) {
+    throw new Error("Delivery insert did not complete");
+  }
+
+  const mutationWriteMs = performance.now() - mutationWriteStartedAt;
+  const shouldCloseInnings = shouldAutoCompleteInnings({
+    ballsBowled: updatedInnings.ballsBowled,
+    matchRulesMaxLegalBallsPerInnings:
+      context.matchRules.maxLegalBallsPerInnings,
+    playersPerSide: context.match.playersPerSide,
+    targetRuns: updatedInnings.targetRuns,
+    totalScore: updatedInnings.totalScore,
+    wickets: updatedInnings.wickets,
+  });
+
+  const responseStartedAt = performance.now();
+  let autoCloseMs = 0;
+  const result = shouldCloseInnings
+    ? await (async () => {
+        const closeStartedAt = performance.now();
+        await updateInningsAction({
+          id: input.inningsId,
+          status: "completed",
+          isCompleted: true,
+        });
+        const matchState = await refreshMatchCompletion(context.match.id);
+        autoCloseMs = performance.now() - closeStartedAt;
+        return buildClosedInningsMutationResult({
+          context,
+          delivery: insertedDelivery,
+          matchState,
+          updatedInnings,
+        });
+      })()
+    : buildOpenInningsMutationResult({
+        context,
+        delivery: insertedDelivery,
+        updatedInnings,
+      });
+  const responseAssemblyMs = performance.now() - responseStartedAt;
+
+  if (process.env.NODE_ENV !== "test") {
+    console.info("[scoring] recordScoringDelivery", {
+      autoCloseMs,
+      contextMs,
+      deliveryCount: context.deliveryCount,
+      mutationWriteMs,
+      payloadBytes: JSON.stringify(result).length,
+      responseAssemblyMs,
+      totalMs: performance.now() - mutationStartedAt,
+    });
+  }
+
+  return result;
 }
 
-export async function updateScoringDelivery(input: UpdateScoringDeliveryInput) {
-  const existingDelivery = await db.query.deliveries.findFirst({
-    where: {
-      id: input.deliveryId,
-    },
-    columns: {
-      id: true,
-      inningsId: true,
-    },
-  });
+export async function updateScoringDelivery(
+  input: UpdateScoringDeliveryInput
+): Promise<ScoringMutationResult> {
+  const mutationStartedAt = performance.now();
+  const contextStartedAt = performance.now();
+  const [context, existingDelivery] = await Promise.all([
+    getScoringDeliveryContext(input.inningsId),
+    getScoringMutationDeliveryById(input.deliveryId),
+  ]);
+  const contextMs = performance.now() - contextStartedAt;
 
   if (!existingDelivery || existingDelivery.inningsId !== input.inningsId) {
     throw new Error("Delivery not found");
   }
 
-  const inningsRow = await getInningsRowForMutation(input.inningsId);
-  if (inningsRow.isCompleted) {
+  if (context.inningsRow.isCompleted) {
     throw new Error("Completed innings cannot be edited");
   }
 
-  const session = await getMatchScoringSession(inningsRow.matchId);
-  if (!session) {
-    throw new Error("Scoring session not available");
-  }
-
   await assertLineupMembership({
-    inningsRow,
+    inningsRow: context.inningsRow,
+    lineupRows: context.lineupRows,
     nextStrikerId: input.strikerId,
     nextNonStrikerId: input.nonStrikerId,
     nextBowlerId: input.bowlerId,
@@ -2506,18 +3651,19 @@ export async function updateScoringDelivery(input: UpdateScoringDeliveryInput) {
 
   const normalized = validateDeliveryDraft({
     draft: input,
-    hasBoundaryOut: Boolean(session.match.hasBoundaryOut),
-    hasBye: Boolean(session.match.hasBye),
-    hasLBW: Boolean(session.match.hasLBW),
-    hasLegBye: Boolean(session.match.hasLegBye),
-    hasNoBalls: Boolean(session.match.hasNoBalls),
-    hasPenaltyRuns: Boolean(session.match.hasPenaltyRuns),
-    hasWides: Boolean(session.match.hasWides),
+    hasBoundaryOut: Boolean(context.match.hasBoundaryOut),
+    hasBye: Boolean(context.match.hasBye),
+    hasLBW: Boolean(context.match.hasLBW),
+    hasLegBye: Boolean(context.match.hasLegBye),
+    hasNoBalls: Boolean(context.match.hasNoBalls),
+    hasPenaltyRuns: Boolean(context.match.hasPenaltyRuns),
+    hasWides: Boolean(context.match.hasWides),
     strikerId: input.strikerId,
     nonStrikerId: input.nonStrikerId,
     canDismissNonStriker: true,
   });
 
+  const mutationWriteStartedAt = performance.now();
   await db
     .update(deliveries)
     .set({
@@ -2544,34 +3690,87 @@ export async function updateScoringDelivery(input: UpdateScoringDeliveryInput) {
       assistedById: normalized.assistedById,
     })
     .where(eq(deliveries.id, input.deliveryId));
+  const mutationWriteMs = performance.now() - mutationWriteStartedAt;
 
+  const rewriteStartedAt = performance.now();
   await syncReplayState(input.inningsId, "rewrite");
-  return await getMatchScoringSession(inningsRow.matchId);
+  const rewriteMs = performance.now() - rewriteStartedAt;
+
+  const responseStartedAt = performance.now();
+  const [postRewriteContext, updatedDelivery] = await Promise.all([
+    getScoringDeliveryContext(input.inningsId),
+    getScoringMutationDeliveryById(input.deliveryId),
+  ]);
+  const result = buildRewriteScoringMutationResult({
+    action: "update",
+    context: postRewriteContext,
+    delivery: updatedDelivery,
+  });
+  const responseAssemblyMs = performance.now() - responseStartedAt;
+
+  if (process.env.NODE_ENV !== "test") {
+    console.info("[scoring] updateScoringDelivery", {
+      contextMs,
+      mutationWriteMs,
+      payloadBytes: JSON.stringify(result).length,
+      responseAssemblyMs,
+      rewriteMs,
+      totalMs: performance.now() - mutationStartedAt,
+    });
+  }
+
+  return result;
 }
 
-export async function deleteScoringDelivery(deliveryId: number) {
-  const existingDelivery = await db.query.deliveries.findFirst({
-    where: {
-      id: deliveryId,
-    },
-    columns: {
-      id: true,
-      inningsId: true,
-    },
-  });
+export async function deleteScoringDelivery(
+  deliveryId: number
+): Promise<ScoringMutationResult> {
+  const mutationStartedAt = performance.now();
+  const contextStartedAt = performance.now();
+  const existingDelivery = await getScoringMutationDeliveryById(deliveryId);
 
   if (!existingDelivery) {
     throw new Error("Delivery not found");
   }
 
-  const inningsRow = await getInningsRowForMutation(existingDelivery.inningsId);
-  if (inningsRow.isCompleted) {
+  const context = await getScoringDeliveryContext(existingDelivery.inningsId);
+  const contextMs = performance.now() - contextStartedAt;
+
+  if (context.inningsRow.isCompleted) {
     throw new Error("Completed innings cannot be edited");
   }
 
+  const mutationWriteStartedAt = performance.now();
   await db.delete(deliveries).where(eq(deliveries.id, deliveryId));
+  const mutationWriteMs = performance.now() - mutationWriteStartedAt;
+
+  const rewriteStartedAt = performance.now();
   await syncReplayState(existingDelivery.inningsId, "rewrite");
-  return await getMatchScoringSession(inningsRow.matchId);
+  const rewriteMs = performance.now() - rewriteStartedAt;
+
+  const responseStartedAt = performance.now();
+  const postRewriteContext = await getScoringDeliveryContext(
+    existingDelivery.inningsId
+  );
+  const result = buildRewriteScoringMutationResult({
+    action: "delete",
+    context: postRewriteContext,
+    deletedDeliveryId: deliveryId,
+  });
+  const responseAssemblyMs = performance.now() - responseStartedAt;
+
+  if (process.env.NODE_ENV !== "test") {
+    console.info("[scoring] deleteScoringDelivery", {
+      contextMs,
+      mutationWriteMs,
+      payloadBytes: JSON.stringify(result).length,
+      responseAssemblyMs,
+      rewriteMs,
+      totalMs: performance.now() - mutationStartedAt,
+    });
+  }
+
+  return result;
 }
 
 export async function closeCurrentScoringInnings(inningsId: number) {
@@ -2586,10 +3785,14 @@ export async function closeCurrentScoringInnings(inningsId: number) {
 }
 
 export const scoringSessionInternals = {
+  applyDeliveryToStats,
   buildAppendDeliveryPosition,
+  buildEntryContextFromState,
+  buildRewriteScoringMutationResult,
   deriveTargetRunsForInnings,
   getEntryContext,
   getMatchCompletionSnapshot,
+  getMatchRulesFromSnapshot,
   getMovementRuns,
   getNextBallPosition,
   isLegalDeliveryFromRuns,

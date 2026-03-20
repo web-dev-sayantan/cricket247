@@ -309,7 +309,7 @@ function RouteComponent() {
               Batting
             </h3>
             <div className="border-border/40 border-b bg-muted/30 px-4 py-3 md:px-8">
-              <div className="grid grid-cols-[1fr_auto] items-center gap-4 font-medium text-muted-foreground text-xs tracking-widest md:grid-cols-[1fr_2rem_2rem_3rem_3rem]">
+              <div className="grid grid-cols-[1fr_auto] items-center gap-4 font-medium text-muted-foreground text-xs tracking-widest md:grid-cols-[1fr_4rem_2rem_2rem_3rem]">
                 <div>Batter</div>
                 <div className="whitespace-nowrap text-right">R (B)</div>
                 <div className="hidden text-right md:block">4s</div>
@@ -323,7 +323,7 @@ function RouteComponent() {
 
                 return (
                   <div
-                    className="group grid grid-cols-[1fr_auto] items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/10 md:grid-cols-[1fr_2rem_2rem_3rem_3rem] md:px-8"
+                    className="group grid grid-cols-[1fr_auto] items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/10 md:grid-cols-[1fr_4rem_2rem_2rem_3rem] md:px-8"
                     key={row.player.id}
                   >
                     <div className="min-w-0">

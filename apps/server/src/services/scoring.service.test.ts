@@ -14,14 +14,192 @@ interface MatchLineupRow {
   teamId: number;
 }
 
+interface DeliveryRow {
+  assistedById: number | null;
+  ballInOver: number;
+  batterRuns: number;
+  bowlerId: number;
+  byeRuns: number;
+  dismissedById: number | null;
+  dismissedPlayerId: number | null;
+  id: number;
+  inningsId: number;
+  isLegalDelivery: boolean;
+  isWicket: boolean;
+  legByeRuns: number;
+  noBallRuns: number;
+  nonStrikerId: number;
+  overNumber: number;
+  penaltyRuns: number;
+  sequenceNo: number;
+  strikerId: number;
+  totalRuns: number;
+  wicketType: string | null;
+  wideRuns: number;
+}
+
+interface PlayerInningsStatsRow {
+  assistedById: number | null;
+  ballsBowled: number;
+  ballsFaced: number;
+  battingOrder: number | null;
+  catches: number;
+  dismissalType: string | null;
+  dismissedById: number | null;
+  dotBalls: number;
+  fours: number;
+  inningsId: number;
+  isDismissed: boolean;
+  maidens: number;
+  matchId: number;
+  noBalls: number;
+  playerId: number;
+  runOuts: number;
+  runsConceded: number;
+  runsScored: number;
+  sixes: number;
+  stumpings: number;
+  teamId: number;
+  wicketsTaken: number;
+  wides: number;
+}
+
+interface ScoringContextBaseRow {
+  ballsBowled: number;
+  ballsPerOverSnapshot: number | null;
+  battingTeamId: number;
+  bowlingTeamId: number;
+  byes: number;
+  format: string;
+  hasBoundaryOut: boolean | null;
+  hasBye: boolean;
+  hasLBW: boolean | null;
+  hasLegBye: boolean | null;
+  hasNoBalls: boolean;
+  hasPenaltyRuns: boolean | null;
+  hasWides: boolean;
+  inningsCompleted: boolean | null;
+  inningsId: number;
+  inningsNumber: number;
+  legByes: number;
+  matchCompleted: boolean | null;
+  matchId: number;
+  matchInningsPerSide: number;
+  matchLive: boolean | null;
+  matchMargin: string | null;
+  matchPlayersPerSide: number;
+  matchResult: string | null;
+  matchTied: boolean | null;
+  maxLegalBallsPerInningsSnapshot: number | null;
+  maxOverPerBowler: number;
+  maxOversPerBowlerSnapshot: number | null;
+  noBalls: number;
+  openingBowlerId: number | null;
+  openingNonStrikerId: number | null;
+  openingStrikerId: number | null;
+  others: number;
+  oversPerSide: number;
+  penaltyRuns: number;
+  status: string;
+  targetRuns: number | null;
+  team1Id: number;
+  team2Id: number;
+  tossDecision: string | null;
+  tossWinnerId: number | null;
+  totalScore: number;
+  wickets: number;
+  wides: number;
+  winnerId: number | null;
+}
+
+function createDefaultScoringContextBaseRow(): ScoringContextBaseRow {
+  return {
+    ballsBowled: 1,
+    ballsPerOverSnapshot: 6,
+    battingTeamId: 10,
+    bowlingTeamId: 20,
+    byes: 0,
+    format: "limited_overs",
+    hasBoundaryOut: true,
+    hasBye: true,
+    hasLBW: true,
+    hasLegBye: true,
+    hasNoBalls: true,
+    hasPenaltyRuns: true,
+    hasWides: true,
+    inningsCompleted: false,
+    inningsId: 1,
+    inningsNumber: 1,
+    legByes: 0,
+    matchCompleted: false,
+    matchId: 1,
+    matchInningsPerSide: 1,
+    matchLive: true,
+    matchMargin: null,
+    matchPlayersPerSide: 2,
+    matchResult: null,
+    matchTied: false,
+    maxLegalBallsPerInningsSnapshot: 12,
+    maxOverPerBowler: 1,
+    maxOversPerBowlerSnapshot: 1,
+    noBalls: 0,
+    openingBowlerId: 201,
+    openingNonStrikerId: 102,
+    openingStrikerId: 101,
+    others: 0,
+    oversPerSide: 2,
+    penaltyRuns: 0,
+    status: "in_progress",
+    targetRuns: null,
+    team1Id: 10,
+    team2Id: 20,
+    tossDecision: "bat",
+    tossWinnerId: 10,
+    totalScore: 1,
+    wides: 0,
+    wickets: 0,
+    winnerId: null,
+  };
+}
+
+function createDefaultDeliveryRow(): DeliveryRow {
+  return {
+    assistedById: null,
+    ballInOver: 1,
+    batterRuns: 1,
+    bowlerId: 201,
+    byeRuns: 0,
+    dismissedById: null,
+    dismissedPlayerId: null,
+    id: 900,
+    inningsId: 1,
+    isLegalDelivery: true,
+    isWicket: false,
+    legByeRuns: 0,
+    noBallRuns: 0,
+    nonStrikerId: 102,
+    overNumber: 1,
+    penaltyRuns: 0,
+    sequenceNo: 1,
+    strikerId: 101,
+    totalRuns: 1,
+    wicketType: null,
+    wideRuns: 0,
+  };
+}
+
 const state: {
+  deliveries: DeliveryRow[];
   existingInnings: null | { id: number };
   failInningsInsert: boolean;
   isLiveUpdateCount: number;
   lineupRows: MatchLineupRow[];
   match: MatchRow | null;
+  playerInningsStatsRows: PlayerInningsStatsRow[];
+  scoringContextBaseRow: null | ScoringContextBaseRow;
   tossUpdateCount: number;
 } = {
+  deliveries: [createDefaultDeliveryRow()],
   match: {
     id: 1,
     playersPerSide: 2,
@@ -57,10 +235,15 @@ const state: {
   ],
   failInningsInsert: false,
   isLiveUpdateCount: 0,
+  playerInningsStatsRows: [],
+  scoringContextBaseRow: createDefaultScoringContextBaseRow(),
   tossUpdateCount: 0,
 };
 
 const dbMock = {
+  delete: (_target: unknown) => ({
+    where: (_clause: unknown) => Promise.resolve(),
+  }),
   query: {
     matches: {
       findFirst: () => Promise.resolve(state.match),
@@ -68,10 +251,46 @@ const dbMock = {
     innings: {
       findFirst: () => Promise.resolve(state.existingInnings),
     },
+    deliveries: {
+      findFirst: (args: {
+        where: { id?: number; inningsId?: number };
+        orderBy?: { sequenceNo: "asc" | "desc" };
+      }) => {
+        if (typeof args.where.id === "number") {
+          return Promise.resolve(
+            state.deliveries.find(
+              (delivery) => delivery.id === args.where.id
+            ) ?? null
+          );
+        }
+
+        const filtered = state.deliveries
+          .filter((delivery) => delivery.inningsId === args.where.inningsId)
+          .sort((left, right) => right.sequenceNo - left.sequenceNo);
+
+        return Promise.resolve(filtered[0] ?? null);
+      },
+      findMany: () => Promise.resolve([...state.deliveries]),
+    },
     matchLineup: {
       findMany: () => Promise.resolve(state.lineupRows),
     },
+    playerInningsStats: {
+      findMany: () => Promise.resolve(state.playerInningsStatsRows),
+    },
   },
+  select: (_fields: unknown) => ({
+    from: (_table: unknown) => ({
+      innerJoin: (_joinedTable: unknown, _on: unknown) => ({
+        where: (_clause: unknown) => ({
+          limit: (_count: number) =>
+            Promise.resolve(
+              state.scoringContextBaseRow ? [state.scoringContextBaseRow] : []
+            ),
+        }),
+      }),
+    }),
+  }),
   transaction: (
     callback: (tx: {
       insert: (_target: unknown) => {
@@ -131,6 +350,11 @@ const dbMock = {
 
     return callback(tx);
   },
+  update: (_target: unknown) => ({
+    set: (_values: unknown) => ({
+      where: (_clause: unknown) => Promise.resolve(),
+    }),
+  }),
 };
 
 mock.module("@/db", () => ({
@@ -147,9 +371,12 @@ describe("scoring.service initializeMatchScoring", () => {
       team1Id: 10,
       team2Id: 20,
     };
+    state.deliveries = [createDefaultDeliveryRow()];
     state.existingInnings = null;
     state.failInningsInsert = false;
     state.isLiveUpdateCount = 0;
+    state.playerInningsStatsRows = [];
+    state.scoringContextBaseRow = createDefaultScoringContextBaseRow();
     state.tossUpdateCount = 0;
   });
 
@@ -467,5 +694,478 @@ describe("scoring.service replay helpers", () => {
         wickets: 3,
       })
     ).toBe(true);
+  });
+
+  it("builds compact rewrite mutation results for updated deliveries", async () => {
+    const { scoringSessionInternals } = await scoringServiceModule;
+    const context = {
+      availableBatters: [{ battingOrder: 3, id: 103, name: "A3", teamId: 10 }],
+      availableBowlers: [{ battingOrder: 2, id: 202, name: "B2", teamId: 20 }],
+      battingOrderByPlayer: new Map<number, number | null>([
+        [101, 1],
+        [102, 2],
+        [103, 3],
+      ]),
+      battingPlayers: [
+        { battingOrder: 1, id: 101, name: "A1", teamId: 10 },
+        { battingOrder: 2, id: 102, name: "A2", teamId: 10 },
+        { battingOrder: 3, id: 103, name: "A3", teamId: 10 },
+      ],
+      bowlerBallCounts: new Map<number, number>([[201, 1]]),
+      bowlingPlayers: [
+        { battingOrder: 1, id: 201, name: "B1", teamId: 20 },
+        { battingOrder: 2, id: 202, name: "B2", teamId: 20 },
+      ],
+      deliveryCount: 1,
+      dismissedSet: new Set<number>(),
+      entryContext: {
+        ballInOver: 2,
+        battingTeamId: 10,
+        bowlerId: 201,
+        bowlingTeamId: 20,
+        dismissedPlayerId: null,
+        inningsId: 1,
+        inningsNumber: 1,
+        nonStrikerId: 101,
+        overNumber: 1,
+        strikerId: 102,
+      },
+      inningsRow: {
+        ballsBowled: 1,
+        battingTeamId: 10,
+        bowlingTeamId: 20,
+        byes: 0,
+        id: 1,
+        inningsNumber: 1,
+        isCompleted: false,
+        legByes: 0,
+        matchId: 99,
+        noBalls: 0,
+        openingBowlerId: 201,
+        openingNonStrikerId: 102,
+        openingStrikerId: 101,
+        others: 0,
+        penaltyRuns: 0,
+        status: "in_progress",
+        targetRuns: null,
+        totalScore: 3,
+        wides: 0,
+        wickets: 0,
+      },
+      lastDelivery: null,
+      lineupRows: state.lineupRows,
+      match: {
+        ballsPerOverSnapshot: 6,
+        format: "limited_overs",
+        hasBoundaryOut: true,
+        hasBye: true,
+        hasLBW: true,
+        hasLegBye: true,
+        hasNoBalls: true,
+        hasPenaltyRuns: true,
+        hasWides: true,
+        id: 99,
+        inningsPerSide: 1,
+        isCompleted: false,
+        isLive: true,
+        isTied: false,
+        margin: null,
+        maxLegalBallsPerInningsSnapshot: 12,
+        maxOverPerBowler: 1,
+        maxOversPerBowlerSnapshot: 1,
+        oversPerSide: 2,
+        playersPerSide: 2,
+        result: null,
+        team1Id: 10,
+        team2Id: 20,
+        tossDecision: "bat",
+        tossWinnerId: 10,
+        winnerId: null,
+      },
+      matchRules: {
+        ballsPerOver: 6,
+        maxLegalBallsPerInnings: 12,
+        maxOversPerBowler: 1,
+      },
+      requiredSelections: {
+        battingTeam: false,
+        bowlingTeam: false,
+        bowler: false,
+        nonStriker: false,
+        striker: false,
+      },
+      statsByPlayer: new Map(),
+    } as Parameters<
+      typeof scoringSessionInternals.buildRewriteScoringMutationResult
+    >[0]["context"];
+
+    const result = scoringSessionInternals.buildRewriteScoringMutationResult({
+      action: "update",
+      context,
+      delivery: {
+        assistedById: null,
+        ballInOver: 1,
+        batterRuns: 3,
+        bowlerId: 201,
+        byeRuns: 0,
+        dismissedById: null,
+        dismissedPlayerId: null,
+        id: 900,
+        inningsId: 1,
+        isLegalDelivery: true,
+        isWicket: false,
+        legByeRuns: 0,
+        noBallRuns: 0,
+        nonStrikerId: 102,
+        overNumber: 1,
+        penaltyRuns: 0,
+        sequenceNo: 1,
+        strikerId: 101,
+        totalRuns: 3,
+        wicketType: null,
+        wideRuns: 0,
+      },
+    });
+
+    expect(result).toMatchObject({
+      action: "update",
+      affectedInnings: {
+        ballsBowled: 1,
+        id: 1,
+        totalScore: 3,
+        wickets: 0,
+      },
+      currentInnings: {
+        id: 1,
+        totalScore: 3,
+      },
+      delivery: {
+        batterRuns: 3,
+        id: 900,
+        totalRuns: 3,
+      },
+      entryContext: {
+        ballInOver: 2,
+        overNumber: 1,
+        strikerId: 102,
+      },
+      nextInningsDefaults: null,
+      phase: "scoring",
+      requiredSelections: {
+        bowler: false,
+        striker: false,
+      },
+    });
+  });
+
+  it("builds compact rewrite mutation results for deleted deliveries", async () => {
+    const { scoringSessionInternals } = await scoringServiceModule;
+    const context = {
+      availableBatters: [
+        { battingOrder: 1, id: 101, name: "A1", teamId: 10 },
+        { battingOrder: 2, id: 102, name: "A2", teamId: 10 },
+      ],
+      availableBowlers: [
+        { battingOrder: 1, id: 201, name: "B1", teamId: 20 },
+        { battingOrder: 2, id: 202, name: "B2", teamId: 20 },
+      ],
+      battingOrderByPlayer: new Map<number, number | null>([
+        [101, 1],
+        [102, 2],
+      ]),
+      battingPlayers: [
+        { battingOrder: 1, id: 101, name: "A1", teamId: 10 },
+        { battingOrder: 2, id: 102, name: "A2", teamId: 10 },
+      ],
+      bowlerBallCounts: new Map<number, number>(),
+      bowlingPlayers: [
+        { battingOrder: 1, id: 201, name: "B1", teamId: 20 },
+        { battingOrder: 2, id: 202, name: "B2", teamId: 20 },
+      ],
+      deliveryCount: 0,
+      dismissedSet: new Set<number>(),
+      entryContext: {
+        ballInOver: 1,
+        battingTeamId: 10,
+        bowlerId: 201,
+        bowlingTeamId: 20,
+        dismissedPlayerId: null,
+        inningsId: 1,
+        inningsNumber: 1,
+        nonStrikerId: 102,
+        overNumber: 1,
+        strikerId: 101,
+      },
+      inningsRow: {
+        ballsBowled: 0,
+        battingTeamId: 10,
+        bowlingTeamId: 20,
+        byes: 0,
+        id: 1,
+        inningsNumber: 1,
+        isCompleted: false,
+        legByes: 0,
+        matchId: 99,
+        noBalls: 0,
+        openingBowlerId: 201,
+        openingNonStrikerId: 102,
+        openingStrikerId: 101,
+        others: 0,
+        penaltyRuns: 0,
+        status: "not_started",
+        targetRuns: null,
+        totalScore: 0,
+        wides: 0,
+        wickets: 0,
+      },
+      lastDelivery: null,
+      lineupRows: state.lineupRows,
+      match: {
+        ballsPerOverSnapshot: 6,
+        format: "limited_overs",
+        hasBoundaryOut: true,
+        hasBye: true,
+        hasLBW: true,
+        hasLegBye: true,
+        hasNoBalls: true,
+        hasPenaltyRuns: true,
+        hasWides: true,
+        id: 99,
+        inningsPerSide: 1,
+        isCompleted: false,
+        isLive: true,
+        isTied: false,
+        margin: null,
+        maxLegalBallsPerInningsSnapshot: 12,
+        maxOverPerBowler: 1,
+        maxOversPerBowlerSnapshot: 1,
+        oversPerSide: 2,
+        playersPerSide: 2,
+        result: null,
+        team1Id: 10,
+        team2Id: 20,
+        tossDecision: "bat",
+        tossWinnerId: 10,
+        winnerId: null,
+      },
+      matchRules: {
+        ballsPerOver: 6,
+        maxLegalBallsPerInnings: 12,
+        maxOversPerBowler: 1,
+      },
+      requiredSelections: {
+        battingTeam: false,
+        bowlingTeam: false,
+        bowler: false,
+        nonStriker: false,
+        striker: false,
+      },
+      statsByPlayer: new Map(),
+    } as Parameters<
+      typeof scoringSessionInternals.buildRewriteScoringMutationResult
+    >[0]["context"];
+
+    const result = scoringSessionInternals.buildRewriteScoringMutationResult({
+      action: "delete",
+      context,
+      deletedDeliveryId: 900,
+    });
+
+    expect(result).toMatchObject({
+      action: "delete",
+      currentInnings: {
+        ballsBowled: 0,
+        id: 1,
+        totalScore: 0,
+      },
+      deletedDeliveryId: 900,
+      delivery: null,
+      entryContext: {
+        ballInOver: 1,
+        bowlerId: 201,
+        nonStrikerId: 102,
+        overNumber: 1,
+        strikerId: 101,
+      },
+    });
+  });
+
+  it("rejects update and delete when the innings is already completed", async () => {
+    const { deleteScoringDelivery, updateScoringDelivery } =
+      await scoringServiceModule;
+
+    state.scoringContextBaseRow = {
+      ...createDefaultScoringContextBaseRow(),
+      inningsCompleted: true,
+    };
+
+    await expect(
+      updateScoringDelivery({
+        bowlerId: 201,
+        deliveryId: 900,
+        inningsId: 1,
+        nonStrikerId: 102,
+        strikerId: 101,
+      })
+    ).rejects.toThrow("Completed innings cannot be edited");
+
+    await expect(deleteScoringDelivery(900)).rejects.toThrow(
+      "Completed innings cannot be edited"
+    );
+  });
+
+  it("applies incremental delivery stats updates for wickets, assists, and maiden overs", async () => {
+    const { scoringSessionInternals } = await scoringServiceModule;
+    const statsByPlayer = new Map<
+      number,
+      {
+        assistedById: number | null;
+        ballsBowled: number;
+        ballsFaced: number;
+        battingOrder: number | null;
+        catches: number;
+        dismissalType: string | null;
+        dismissedById: number | null;
+        dotBalls: number;
+        fours: number;
+        inningsId: number;
+        isDismissed: boolean;
+        maidens: number;
+        matchId: number;
+        noBalls: number;
+        playerId: number;
+        runOuts: number;
+        runsConceded: number;
+        runsScored: number;
+        sixes: number;
+        stumpings: number;
+        teamId: number;
+        wicketsTaken: number;
+        wides: number;
+      }
+    >();
+
+    scoringSessionInternals.applyDeliveryToStats({
+      battingOrderByPlayer: new Map([
+        [101, 1],
+        [102, 2],
+      ]),
+      ballsPerOver: 6,
+      delivery: {
+        assistedById: 202,
+        ballInOver: 6,
+        batterRuns: 0,
+        bowlerId: 201,
+        byeRuns: 0,
+        dismissedById: 201,
+        dismissedPlayerId: 101,
+        id: 91,
+        inningsId: 1,
+        isLegalDelivery: true,
+        isWicket: true,
+        legByeRuns: 0,
+        noBallRuns: 0,
+        nonStrikerId: 102,
+        overNumber: 1,
+        penaltyRuns: 0,
+        sequenceNo: 6,
+        strikerId: 101,
+        totalRuns: 0,
+        wicketType: "caught",
+        wideRuns: 0,
+      },
+      inningsRow: {
+        battingTeamId: 10,
+        bowlingTeamId: 20,
+        id: 1,
+        matchId: 55,
+      },
+      overRunsBeforeDelivery: 0,
+      statsByPlayer,
+    });
+
+    expect(statsByPlayer.get(101)).toMatchObject({
+      ballsFaced: 1,
+      dismissalType: "caught",
+      isDismissed: true,
+      runsScored: 0,
+    });
+    expect(statsByPlayer.get(201)).toMatchObject({
+      ballsBowled: 1,
+      dotBalls: 1,
+      maidens: 1,
+      wicketsTaken: 1,
+    });
+    expect(statsByPlayer.get(202)).toMatchObject({
+      catches: 1,
+    });
+  });
+
+  it("derives entry context from compact scorer state without scanning a timeline", async () => {
+    const { scoringSessionInternals } = await scoringServiceModule;
+
+    expect(
+      scoringSessionInternals.buildEntryContextFromState({
+        battingPlayers: [
+          { battingOrder: 1, id: 101, name: "A1", teamId: 10 },
+          { battingOrder: 2, id: 102, name: "A2", teamId: 10 },
+          { battingOrder: 3, id: 103, name: "A3", teamId: 10 },
+        ],
+        bowlerBallCounts: new Map<number, number>([
+          [201, 6],
+          [202, 0],
+        ]),
+        bowlingPlayers: [
+          { battingOrder: 1, id: 201, name: "B1", teamId: 20 },
+          { battingOrder: 2, id: 202, name: "B2", teamId: 20 },
+        ],
+        dismissedSet: new Set<number>([101]),
+        inningsRow: {
+          battingTeamId: 10,
+          bowlingTeamId: 20,
+          id: 1,
+          inningsNumber: 1,
+          openingBowlerId: 201,
+          openingNonStrikerId: 102,
+          openingStrikerId: 101,
+          targetRuns: null,
+        },
+        lastDelivery: {
+          ballInOver: 6,
+          batterRuns: 1,
+          bowlerId: 201,
+          byeRuns: 0,
+          dismissedPlayerId: 101,
+          isLegalDelivery: true,
+          isWicket: true,
+          legByeRuns: 0,
+          noBallRuns: 0,
+          nonStrikerId: 102,
+          overNumber: 1,
+          strikerId: 101,
+          totalRuns: 1,
+          wideRuns: 0,
+        },
+        matchRules: {
+          ballsPerOver: 6,
+          maxOversPerBowler: 1,
+        },
+      })
+    ).toMatchObject({
+      availableBatters: [{ id: 103 }],
+      availableBowlers: [{ id: 202 }],
+      entryContext: {
+        ballInOver: 1,
+        bowlerId: null,
+        dismissedPlayerId: 101,
+        nonStrikerId: 102,
+        overNumber: 2,
+        strikerId: null,
+      },
+      requiredSelections: {
+        bowler: true,
+        striker: true,
+      },
+    });
   });
 });
