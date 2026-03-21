@@ -59,6 +59,7 @@ describe("tournament wizard helpers", () => {
     values.name = "City League";
     values.advanced.timeZone = "Asia/Kolkata";
     values.advanced.championTeamId = 11;
+    values.advanced.playerOfTheTournamentId = 12;
     values.organization.mode = "create";
     values.organization.create.name = "City Org";
     values.organization.create.slug = "city-org";
@@ -83,6 +84,7 @@ describe("tournament wizard helpers", () => {
     expect(createPayload.teams.createTeams[0]?.shortName).toBe("IT");
     expect(createPayload.timeZone).toBe("Asia/Kolkata");
     expect(createPayload.championTeamId).toBe(11);
+    expect(createPayload.playerOfTheTournamentId).toBe(12);
     expect(createPayload.structure.groupCount).toBeUndefined();
     expect(updatePayload.tournamentId).toBe(44);
   });
@@ -98,6 +100,7 @@ describe("tournament wizard helpers", () => {
         genderAllowed: "open",
         name: "Summer Cup",
         organizationId: 5,
+        playerOfTheTournamentId: 4,
         season: "2026",
         startDate: new Date("2026-06-01T00:00:00.000Z"),
         timeZone: "Asia/Kolkata",
@@ -145,6 +148,7 @@ describe("tournament wizard helpers", () => {
     expect(inference.groupCount).toBe(2);
     expect(values.structure.template).toBe("grouped_league_with_playoffs");
     expect(values.advanced.timeZone).toBe("Asia/Kolkata");
+    expect(values.advanced.playerOfTheTournamentId).toBe(4);
     expect(values.defaultMatchFormat.existingId).toBe(88);
   });
 });

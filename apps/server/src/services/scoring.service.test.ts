@@ -524,6 +524,75 @@ describe("scoring.service replay helpers", () => {
     });
   });
 
+  it("locks the second innings to the opposite teams from innings one", async () => {
+    const { scoringSessionInternals } = await scoringServiceModule;
+
+    expect(
+      scoringSessionInternals.resolveNextInningsSetup({
+        followOnApplied: false,
+        inningsPerSide: 2,
+        inningsRows: [
+          {
+            battingTeamId: 10,
+            bowlingTeamId: 20,
+            inningsNumber: 1,
+            isCompleted: true,
+            totalScore: 286,
+          },
+        ],
+        team1Id: 10,
+        team2Id: 20,
+        tossDecision: "bat",
+        tossWinnerId: 10,
+      })
+    ).toEqual({
+      battingTeamId: 20,
+      bowlingTeamId: 10,
+      followOn: null,
+      inningsNumber: 2,
+    });
+  });
+
+  it("offers a follow-on choice for innings three when innings one leads by 200 or more", async () => {
+    const { scoringSessionInternals } = await scoringServiceModule;
+
+    expect(
+      scoringSessionInternals.resolveNextInningsSetup({
+        followOnApplied: false,
+        inningsPerSide: 2,
+        inningsRows: [
+          {
+            battingTeamId: 10,
+            bowlingTeamId: 20,
+            inningsNumber: 1,
+            isCompleted: true,
+            totalScore: 355,
+          },
+          {
+            battingTeamId: 20,
+            bowlingTeamId: 10,
+            inningsNumber: 2,
+            isCompleted: true,
+            totalScore: 149,
+          },
+        ],
+        team1Id: 10,
+        team2Id: 20,
+        tossDecision: "bat",
+        tossWinnerId: 10,
+      })
+    ).toEqual({
+      battingTeamId: 10,
+      bowlingTeamId: 20,
+      followOn: {
+        battingTeamId: 20,
+        bowlingTeamId: 10,
+        isApplied: false,
+      },
+      inningsNumber: 3,
+    });
+  });
+
   it("treats extra wide runs beyond the automatic penalty as movement runs", async () => {
     const { scoringSessionInternals } = await scoringServiceModule;
 

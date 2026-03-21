@@ -50,7 +50,10 @@ import {
   applyScoringSessionMutationResult,
   buildBackgroundScoreRefreshQueries,
 } from "@/routes/matches/$matchId/-score-mutation-utils";
-import { resolveBattingAndBowlingTeamIds } from "@/routes/matches/$matchId/-scoring-flow";
+import {
+  resolveBattingAndBowlingTeamIds,
+  resolveInningsSetupSelection,
+} from "@/routes/matches/$matchId/-scoring-flow";
 import { client, orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/matches/$matchId/score")({
@@ -649,16 +652,37 @@ function resolveLineupPlayersByTeam(params: {
   return [] as SessionLineupPlayer[];
 }
 
+function resolveTeamName(params: {
+  team1Id?: null | number;
+  team1Name: string;
+  team2Id?: null | number;
+  team2Name: string;
+  teamId?: null | number;
+}) {
+  if (params.teamId === params.team1Id) {
+    return params.team1Name;
+  }
+
+  if (params.teamId === params.team2Id) {
+    return params.team2Name;
+  }
+
+  return "TBD";
+}
+
 function createPreMatchSetupViewModel(params: {
-  battingTeamId: null | number;
+  battingTeamName: string;
+  bowlingTeamName: string;
+  followOn?: {
+    isApplied: boolean;
+    onToggle: (checked: boolean) => void;
+  } | null;
   inningsNumber?: number;
   inningsSetupAvailable: boolean;
   isLineupValid: boolean;
   isSavingLineups: boolean;
   isStartingInnings: boolean;
   nonStrikerId: null | number;
-  onBattingTeamChange: (teamId: number) => void;
-  onBowlingTeamChange: (teamId: number) => void;
   onConfirmToss: () => void;
   onEditToss: () => void;
   onNonStrikerChange: (playerId: null | number) => void;
@@ -670,7 +694,6 @@ function createPreMatchSetupViewModel(params: {
   onTossWinnerChange: (teamId: number) => void;
   openingBowlerId: null | number;
   openingBowlerOptions: ScoringPlayerOption[];
-  bowlingTeamId: null | number;
   shouldShowEditToss: boolean;
   strikerId: null | number;
   strikerOptions: ScoringPlayerOption[];
@@ -720,9 +743,10 @@ function createPreMatchSetupViewModel(params: {
       tossWinnerId: params.tossWinnerId,
     },
     inningsSetup: {
-      battingTeamId: params.battingTeamId,
-      bowlingTeamId: params.bowlingTeamId,
+      battingTeamName: params.battingTeamName,
+      bowlingTeamName: params.bowlingTeamName,
       canEditToss: params.shouldShowEditToss,
+      followOn: params.followOn ?? null,
       inningsSetupAvailable: params.inningsSetupAvailable,
       inningsTitle: params.inningsNumber
         ? `Start innings ${params.inningsNumber}`
@@ -730,8 +754,6 @@ function createPreMatchSetupViewModel(params: {
       isStarting: params.isStartingInnings,
       nonStrikerId: params.nonStrikerId,
       nonStrikerOptions: params.nonStrikerOptions,
-      onBattingTeamChange: params.onBattingTeamChange,
-      onBowlingTeamChange: params.onBowlingTeamChange,
       onEditToss: params.onEditToss,
       onNonStrikerChange: params.onNonStrikerChange,
       onOpeningBowlerChange: params.onOpeningBowlerChange,
@@ -741,13 +763,9 @@ function createPreMatchSetupViewModel(params: {
       openingBowlerOptions: params.openingBowlerOptions,
       strikerId: params.strikerId,
       strikerOptions: params.strikerOptions,
-      team1Id: params.team1Id,
       team1LineupNames: params.team1LineupNames,
-      team1Name: params.team1Name,
       team1ShortName: params.team1ShortName,
-      team2Id: params.team2Id,
       team2LineupNames: params.team2LineupNames,
-      team2Name: params.team2Name,
       team2ShortName: params.team2ShortName,
     },
   };
@@ -946,8 +964,7 @@ function RouteComponent() {
         (match?.tossDecision === "bat" || match?.tossDecision === "bowl")
     )
   );
-  const [battingTeamId, setBattingTeamId] = useState<number | null>(null);
-  const [bowlingTeamId, setBowlingTeamId] = useState<number | null>(null);
+  const [followOnApplied, setFollowOnApplied] = useState(false);
   const [strikerId, setStrikerId] = useState<number | null>(null);
   const [nonStrikerId, setNonStrikerId] = useState<number | null>(null);
   const [openingBowlerId, setOpeningBowlerId] = useState<number | null>(null);
@@ -1078,7 +1095,10 @@ function RouteComponent() {
   }, [scoringSetup?.savedLineup]);
 
   useEffect(() => {
-    if (scoringSetup?.currentInnings) {
+    if (
+      scoringSetup?.currentInnings &&
+      !scoringSetup.currentInnings.isCompleted
+    ) {
       return;
     }
 
@@ -1288,42 +1308,20 @@ function RouteComponent() {
     tossWinnerId,
     tossDecision,
   });
+  const inningsSetupSelection = resolveInningsSetupSelection({
+    followOnApplied,
+    nextInningsDefaults: scoringSetup?.nextInningsDefaults,
+    tossDerivedTeams,
+  });
 
   useEffect(() => {
-    if (!(scoringSetup && match)) {
-      return;
-    }
-
-    const defaultBattingTeamId =
-      scoringSetup.currentInnings?.battingTeamId ??
-      scoringSetup.nextInningsDefaults?.battingTeamId ??
-      tossDerivedTeams?.battingTeamId ??
-      match.team1Id ??
-      null;
-    const defaultBowlingTeamId =
-      scoringSetup.currentInnings?.bowlingTeamId ??
-      scoringSetup.nextInningsDefaults?.bowlingTeamId ??
-      tossDerivedTeams?.bowlingTeamId ??
-      match.team2Id ??
-      null;
-
-    setBattingTeamId((previous) =>
-      previous && [match.team1Id, match.team2Id].includes(previous)
-        ? previous
-        : defaultBattingTeamId
+    setFollowOnApplied(
+      Boolean(scoringSetup?.nextInningsDefaults?.followOn?.isApplied)
     );
-    setBowlingTeamId((previous) =>
-      previous && [match.team1Id, match.team2Id].includes(previous)
-        ? previous
-        : defaultBowlingTeamId
-    );
-  }, [
-    match,
-    scoringSetup,
-    tossDerivedTeams?.battingTeamId,
-    tossDerivedTeams?.bowlingTeamId,
-  ]);
+  }, [scoringSetup?.nextInningsDefaults?.followOn?.isApplied]);
 
+  const battingTeamId = inningsSetupSelection.battingTeamId;
+  const bowlingTeamId = inningsSetupSelection.bowlingTeamId;
   const setupBattingPlayers = resolveLineupPlayersByTeam({
     teamId: battingTeamId,
     team1Id: match?.team1Id,
@@ -1600,9 +1598,27 @@ function RouteComponent() {
   const preMatchSetupViewModel = useMemo(
     () =>
       createPreMatchSetupViewModel({
-        battingTeamId,
-        bowlingTeamId,
-        inningsNumber: scoringSetup?.nextInningsDefaults?.inningsNumber,
+        battingTeamName: resolveTeamName({
+          team1Id: match?.team1Id,
+          team1Name,
+          team2Id: match?.team2Id,
+          team2Name,
+          teamId: battingTeamId,
+        }),
+        bowlingTeamName: resolveTeamName({
+          team1Id: match?.team1Id,
+          team1Name,
+          team2Id: match?.team2Id,
+          team2Name,
+          teamId: bowlingTeamId,
+        }),
+        followOn: inningsSetupSelection.followOnAvailable
+          ? {
+              isApplied: followOnApplied,
+              onToggle: setFollowOnApplied,
+            }
+          : null,
+        inningsNumber: inningsSetupSelection.inningsNumber ?? undefined,
         inningsSetupAvailable,
         isLineupValid,
         isSavingLineups: saveLineupMutation.isPending,
@@ -1612,14 +1628,6 @@ function RouteComponent() {
         nonStrikerOptions: toPlayerOptions(
           setupBattingPlayers.filter((player) => player.id !== strikerId)
         ),
-        onBattingTeamChange: (teamId) => {
-          const nextBowlingId =
-            teamId === match?.team1Id ? match?.team2Id : match?.team1Id;
-
-          setBattingTeamId(teamId);
-          setBowlingTeamId(nextBowlingId ?? null);
-        },
-        onBowlingTeamChange: (teamId) => setBowlingTeamId(teamId),
         onConfirmToss: () => {
           if (typeof tossWinnerId !== "number") {
             toast.error("Select the toss winner.");
@@ -1661,7 +1669,7 @@ function RouteComponent() {
           startInningsMutation.mutate({
             battingTeamId,
             bowlingTeamId,
-            inningsNumber: scoringSetup?.nextInningsDefaults?.inningsNumber,
+            inningsNumber: inningsSetupSelection.inningsNumber ?? undefined,
             strikerId,
             nonStrikerId,
             openingBowlerId,
@@ -1714,7 +1722,10 @@ function RouteComponent() {
     [
       battingTeamId,
       bowlingTeamId,
+      followOnApplied,
       inningsSetupAvailable,
+      inningsSetupSelection.followOnAvailable,
+      inningsSetupSelection.inningsNumber,
       isLineupValid,
       match?.team1Id,
       match?.team2Id,
@@ -1723,7 +1734,6 @@ function RouteComponent() {
       playersPerSide,
       saveLineupMutation.mutate,
       saveLineupMutation.isPending,
-      scoringSetup?.nextInningsDefaults?.inningsNumber,
       scoringSetup?.phase,
       setupBattingPlayers,
       setupBowlingPlayers,

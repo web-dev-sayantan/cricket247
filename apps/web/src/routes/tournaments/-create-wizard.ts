@@ -58,6 +58,7 @@ export interface TeamDraft {
 export interface TournamentWizardValues {
   advanced: {
     championTeamId: null | number;
+    playerOfTheTournamentId: null | number;
     timeZone: string;
   };
   ageLimit: number;
@@ -115,6 +116,7 @@ interface TournamentViewSnapshot {
     genderAllowed: string;
     name: string;
     organizationId: number;
+    playerOfTheTournamentId: null | number;
     season: null | string;
     startDate: Date;
     timeZone: string;
@@ -414,6 +416,7 @@ function buildBaseTournamentPayload(values: TournamentWizardValues) {
     endDate: values.endDate,
     timeZone: values.advanced.timeZone.trim() || undefined,
     championTeamId: values.advanced.championTeamId,
+    playerOfTheTournamentId: values.advanced.playerOfTheTournamentId,
     organization:
       values.organization.mode === "existing"
         ? {
@@ -497,6 +500,7 @@ export function getDefaultWizardValues(today: Date): TournamentWizardValues {
     advanced: {
       timeZone: "UTC",
       championTeamId: null,
+      playerOfTheTournamentId: null,
     },
     organization: {
       mode: "existing",
@@ -557,6 +561,7 @@ export function deriveWizardValuesFromTournamentView(
     advanced: {
       timeZone: view.tournament.timeZone,
       championTeamId: view.tournament.championTeamId,
+      playerOfTheTournamentId: view.tournament.playerOfTheTournamentId,
     },
     organization: {
       ...base.organization,

@@ -1603,6 +1603,18 @@
                     "minimum": -9007199254740991,
                     "type": "integer"
                   },
+                  "playerOfTheTournamentId": {
+                    "anyOf": [
+                      {
+                        "maximum": 9007199254740991,
+                        "minimum": -9007199254740991,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "season": {
                     "anyOf": [
                       {
@@ -1946,6 +1958,19 @@
                       }
                     },
                     "type": "object"
+                  },
+                  "playerOfTheTournamentId": {
+                    "anyOf": [
+                      {
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991,
+                        "minimum": -9007199254740991,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "season": {
                     "maxLength": 50,
@@ -3883,6 +3908,41 @@
         }
       }
     },
+    "/playerStatistics": {
+      "post": {
+        "operationId": "playerStatistics",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/playersWithCurrentTeams": {
       "post": {
         "operationId": "playersWithCurrentTeams",
@@ -5049,6 +5109,41 @@
         }
       }
     },
+    "/tournamentPlayers": {
+      "post": {
+        "operationId": "tournamentPlayers",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/tournaments": {
       "post": {
         "operationId": "tournaments",
@@ -6165,6 +6260,18 @@
                         "minimum": -9007199254740991,
                         "type": "integer"
                       },
+                      "playerOfTheTournamentId": {
+                        "anyOf": [
+                          {
+                            "maximum": 9007199254740991,
+                            "minimum": -9007199254740991,
+                            "type": "integer"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
                       "season": {
                         "anyOf": [
                           {
@@ -6515,6 +6622,19 @@
                       }
                     },
                     "type": "object"
+                  },
+                  "playerOfTheTournamentId": {
+                    "anyOf": [
+                      {
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991,
+                        "minimum": -9007199254740991,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "season": {
                     "maxLength": 50,

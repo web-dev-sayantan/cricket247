@@ -37,6 +37,7 @@ import {
 import {
   getAllTournaments,
   getLiveTournaments,
+  getTournamentPlayers,
   getTournamentStructure,
 } from "@/services/tournament.service";
 import {
@@ -136,6 +137,7 @@ function mapTournamentCreateServiceError(error: unknown) {
     case "ORGANIZATION_SYSTEM_FLAG_IMMUTABLE":
     case "GROUP_EDIT_TARGET_NOT_FOUND":
     case "INVALID_TEMPLATE_CONFIGURATION":
+    case "PLAYER_OF_TOURNAMENT_NOT_IN_TOURNAMENT":
     case "STAGE_EDIT_TARGET_NOT_FOUND":
     case "STRUCTURE_LOCKED":
     case "TEAM_MEMBERSHIP_LOCKED_AFTER_START":
@@ -166,6 +168,13 @@ export const tournamentRouter = {
       }
 
       return tournament;
+    }),
+  tournamentPlayers: sensitiveProcedure
+    .input(z.number().int().positive())
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      return getTournamentPlayers(input);
     }),
   createTournament: sensitiveProcedure
     .input(createTournamentBodySchema)

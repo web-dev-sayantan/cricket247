@@ -1,7 +1,8 @@
 import type { PlayerWithCurrentTeams } from "@cricket247/server/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
+  BarChart3,
   ChevronDown,
   FilterX,
   Pencil,
@@ -196,6 +197,7 @@ export const Route = createFileRoute("/players/")({
 });
 
 function RouteComponent() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: session } = authClient.useSession();
   const isAdmin =
@@ -626,6 +628,14 @@ function RouteComponent() {
                 onEditStart={() => handleEditStart(player)}
                 onSaveEdit={handleSaveEdit}
                 onToggleExpand={() => handleToggleExpand(player.id)}
+                onViewStatistics={() =>
+                  navigate({
+                    params: {
+                      playerId: String(player.id),
+                    },
+                    to: "/statistics/$playerId",
+                  })
+                }
                 player={player}
                 uploadedImageName={uploadedEditImageName}
                 uploadImagePending={
@@ -683,6 +693,7 @@ interface PlayerDetailsPanelProps {
   isPending: boolean;
   onDelete: () => void;
   onEdit: () => void;
+  onViewStatistics: () => void;
   player: PlayerWithCurrentTeams;
 }
 
@@ -702,6 +713,7 @@ interface PlayerAccordionRowProps {
   onEditStart: () => void;
   onSaveEdit: () => void;
   onToggleExpand: () => void;
+  onViewStatistics: () => void;
   player: PlayerWithCurrentTeams;
   uploadedImageName: string;
   uploadImagePending: boolean;
@@ -720,6 +732,7 @@ function PlayerAccordionRow({
   onEditStart,
   onSaveEdit,
   onToggleExpand,
+  onViewStatistics,
   player,
   uploadedImageName,
   uploadImagePending,
@@ -848,6 +861,7 @@ function PlayerAccordionRow({
               isPending={isPending}
               onDelete={onDelete}
               onEdit={onEditStart}
+              onViewStatistics={onViewStatistics}
               player={player}
             />
           )}
@@ -862,6 +876,7 @@ function PlayerDetailsPanel({
   isPending,
   onDelete,
   onEdit,
+  onViewStatistics,
   player,
 }: PlayerDetailsPanelProps) {
   return (
@@ -896,29 +911,44 @@ function PlayerDetailsPanel({
         )}
       </section>
 
-      {isAdmin ? (
-        <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-3">
-          <Button
-            disabled={isPending}
-            onClick={onDelete}
-            type="button"
-            variant="destructive"
-          >
-            <Trash2 />
-            Delete
-          </Button>
-          <Button
-            className="flex-1 md:flex-none"
-            disabled={isPending}
-            onClick={onEdit}
-            type="button"
-            variant="outline"
-          >
-            <Pencil />
-            Edit
-          </Button>
-        </div>
-      ) : null}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">
+        <Button
+          aria-label={`View statistics for ${player.name}`}
+          disabled={isPending}
+          onClick={onViewStatistics}
+          size="icon-sm"
+          title="View statistics"
+          type="button"
+          variant="outline"
+        >
+          <BarChart3 />
+          <span className="sr-only">View statistics</span>
+        </Button>
+
+        {isAdmin ? (
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button
+              className="flex-1 md:flex-none"
+              disabled={isPending}
+              onClick={onEdit}
+              type="button"
+              variant="outline"
+            >
+              <Pencil />
+              Edit
+            </Button>
+            <Button
+              disabled={isPending}
+              onClick={onDelete}
+              type="button"
+              variant="destructive"
+            >
+              <Trash2 />
+              Delete
+            </Button>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

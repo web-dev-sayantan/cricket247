@@ -90,6 +90,10 @@ export const relations = defineRelations(
         from: r.tournaments.championTeamId,
         to: r.teams.id,
       }),
+      playerOfTheTournament: r.one.players({
+        from: r.tournaments.playerOfTheTournamentId,
+        to: r.players.id,
+      }),
       defaultMatchFormat: r.one.matchFormats({
         from: r.tournaments.defaultMatchFormatId,
         to: r.matchFormats.id,
@@ -196,6 +200,11 @@ export const relations = defineRelations(
       tournamentStats: r.many.playerTournamentStats(),
       careerStats: r.many.playerCareerStats(),
       matchLineup: r.many.matchLineup(),
+      playerOfTheTournamentWins: r.many.tournaments({
+        from: r.players.id,
+        to: r.tournaments.playerOfTheTournamentId,
+        alias: "playerOfTheTournament",
+      }),
     },
     matches: {
       tournament: r.one.tournaments({

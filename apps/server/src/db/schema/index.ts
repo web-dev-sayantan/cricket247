@@ -245,6 +245,7 @@ export const tournaments = sqliteTable(
       .notNull()
       .references(() => matchFormats.id),
     championTeamId: integer().references(() => teams.id),
+    playerOfTheTournamentId: integer().references(() => players.id),
     fixturePublishedAt: integer({ mode: "timestamp_ms" }),
     activeFixtureVersion: integer(),
     ...timestampCols,

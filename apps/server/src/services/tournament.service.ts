@@ -47,3 +47,35 @@ export function getTournamentStructure(tournamentId: number) {
     },
   });
 }
+
+export async function getTournamentPlayers(tournamentId: number) {
+  const registrations = await db.query.teamPlayers.findMany({
+    where: {
+      tournamentId,
+    },
+    with: {
+      player: true,
+      team: true,
+    },
+  });
+
+  const registrationsWithDetails = registrations.filter(
+    (
+      registration
+    ): registration is typeof registration & {
+      player: NonNullable<typeof registration.player>;
+      team: NonNullable<typeof registration.team>;
+    } => registration.player !== null && registration.team !== null
+  );
+
+  return registrationsWithDetails
+    .sort((first, second) =>
+      first.player.name.localeCompare(second.player.name)
+    )
+    .map((registration) => ({
+      playerId: registration.player.id,
+      playerName: registration.player.name,
+      teamId: registration.team.id,
+      teamName: registration.team.name,
+    }));
+}

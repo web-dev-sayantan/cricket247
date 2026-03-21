@@ -77,6 +77,20 @@ function RouteComponent() {
     enabled: isAdmin,
   });
 
+  const {
+    data: tournamentPlayers = [],
+    error: tournamentPlayersError,
+    isPending: tournamentPlayersPending,
+  } = useQuery({
+    ...orpc.tournamentPlayers.queryOptions({
+      input: numericTournamentId,
+    }),
+    enabled:
+      isAdmin &&
+      Number.isFinite(numericTournamentId) &&
+      numericTournamentId > 0,
+  });
+
   const templateInference = useMemo(() => {
     if (!tournamentView) {
       return null;
@@ -220,13 +234,15 @@ function RouteComponent() {
     tournamentViewError ||
     organizationsError ||
     matchFormatsError ||
-    teamsError
+    teamsError ||
+    tournamentPlayersError
   ) {
     const errorMessage =
       tournamentViewError?.message ||
       organizationsError?.message ||
       matchFormatsError?.message ||
       teamsError?.message ||
+      tournamentPlayersError?.message ||
       "Failed to load tournament edit data";
 
     return (
@@ -276,7 +292,8 @@ function RouteComponent() {
     tournamentViewPending ||
     organizationsPending ||
     matchFormatsPending ||
-    teamsPending;
+    teamsPending ||
+    tournamentPlayersPending;
   const teamsLocked =
     tournamentView.tournament.startDate <= new Date()
       ? "Team membership is locked because the tournament has already started."
@@ -335,6 +352,7 @@ function RouteComponent() {
         }
       }}
       organizations={organizations}
+      playerOptions={tournamentPlayers}
       submitBusyLabel="Saving..."
       submitIdleLabel="Update tournament"
       submitting={updateTournamentMutation.isPending}

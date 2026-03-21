@@ -7,19 +7,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import type { ScoringPlayerOption } from "@/routes/matches/$matchId/-components/score-a-ball";
 
 export interface InningsSetupPhaseCardProps {
-  battingTeamId: null | number;
-  bowlingTeamId: null | number;
+  battingTeamName: string;
+  bowlingTeamName: string;
   canEditToss: boolean;
+  followOn?: {
+    isApplied: boolean;
+    onToggle: (checked: boolean) => void;
+  } | null;
   inningsSetupAvailable: boolean;
   inningsTitle: string;
   isStarting: boolean;
   nonStrikerId: null | number;
   nonStrikerOptions: ScoringPlayerOption[];
-  onBattingTeamChange: (teamId: number) => void;
-  onBowlingTeamChange: (teamId: number) => void;
   onEditToss: () => void;
   onNonStrikerChange: (playerId: null | number) => void;
   onOpeningBowlerChange: (playerId: null | number) => void;
@@ -29,23 +32,17 @@ export interface InningsSetupPhaseCardProps {
   openingBowlerOptions: ScoringPlayerOption[];
   strikerId: null | number;
   strikerOptions: ScoringPlayerOption[];
-  team1Id: number;
   team1LineupNames: string[];
-  team1Name: string;
   team1ShortName: string;
-  team2Id: number;
   team2LineupNames: string[];
-  team2Name: string;
   team2ShortName: string;
 }
 
 export function InningsSetupPhaseCard({
-  battingTeamId,
+  battingTeamName,
   inningsSetupAvailable,
   inningsTitle,
   isStarting,
-  onBattingTeamChange,
-  onBowlingTeamChange,
   onEditToss,
   onNonStrikerChange,
   onOpeningBowlerChange,
@@ -53,19 +50,16 @@ export function InningsSetupPhaseCard({
   onStrikerChange,
   openingBowlerId,
   openingBowlerOptions,
-  bowlingTeamId,
+  bowlingTeamName,
   canEditToss,
+  followOn,
   nonStrikerId,
   nonStrikerOptions,
   strikerId,
   strikerOptions,
-  team1Id,
   team1LineupNames,
-  team1Name,
   team1ShortName,
-  team2Id,
   team2LineupNames,
-  team2Name,
   team2ShortName,
 }: InningsSetupPhaseCardProps) {
   return (
@@ -73,53 +67,31 @@ export function InningsSetupPhaseCard({
       <div className="space-y-1">
         <h2 className="font-medium text-xl">{inningsTitle}</h2>
         <p className="text-muted-foreground text-sm">
-          Choose batting and bowling teams, then set the opening pair and
-          opening bowler.
+          The batting and bowling sides are derived automatically. Set the
+          opening pair and opening bowler to begin the innings.
         </p>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="space-y-1">
-          <p className="text-muted-foreground text-xs">Batting team</p>
-          <Select
-            onValueChange={(value) => {
-              if (!value) {
-                return;
-              }
-              onBattingTeamChange(Number.parseInt(value, 10));
-            }}
-            value={battingTeamId ? String(battingTeamId) : ""}
-          >
-            <SelectTrigger className="h-12 rounded-2xl">
-              <SelectValue placeholder="Select batting side" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={String(team1Id)}>{team1Name}</SelectItem>
-              <SelectItem value={String(team2Id)}>{team2Name}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1">
-          <p className="text-muted-foreground text-xs">Bowling team</p>
-          <Select
-            onValueChange={(value) => {
-              if (!value) {
-                return;
-              }
-              onBowlingTeamChange(Number.parseInt(value, 10));
-            }}
-            value={bowlingTeamId ? String(bowlingTeamId) : ""}
-          >
-            <SelectTrigger className="h-12 rounded-2xl">
-              <SelectValue placeholder="Select bowling side" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={String(team1Id)}>{team1Name}</SelectItem>
-              <SelectItem value={String(team2Id)}>{team2Name}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <TeamSummary label="Batting team" value={battingTeamName} />
+        <TeamSummary label="Bowling team" value={bowlingTeamName} />
       </div>
+
+      {followOn ? (
+        <section className="flex flex-col gap-3 rounded-[1.5rem] border border-border/60 bg-muted/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <h3 className="font-medium text-sm">Apply follow-on</h3>
+            <p className="text-muted-foreground text-sm">
+              Keep the batting and bowling teams the same as innings 2.
+            </p>
+          </div>
+          <Switch
+            aria-label="Apply follow-on"
+            checked={followOn.isApplied}
+            onCheckedChange={followOn.onToggle}
+          />
+        </section>
+      ) : null}
 
       <div className="grid gap-3 lg:grid-cols-3">
         <PlayerPicker
@@ -175,6 +147,17 @@ export function InningsSetupPhaseCard({
         ) : null}
       </div>
     </section>
+  );
+}
+
+function TeamSummary({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="space-y-1">
+      <p className="text-muted-foreground text-xs">{label}</p>
+      <div className="flex h-12 items-center rounded-2xl border border-border/60 bg-muted/10 px-4 text-sm">
+        {value}
+      </div>
+    </div>
   );
 }
 

@@ -1,6 +1,8 @@
 node_modules
 data
 package-lock.json
+.agents
+.vscode
 .turbo
 .alchemy
 .env

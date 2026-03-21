@@ -613,6 +613,127 @@ describe("score route pre-match extraction", () => {
     );
   });
 
+  it("applies the follow-on team pairing for innings three only when the scorer enables it", async () => {
+    currentScoringSetup = {
+      ...createScoringSetup("inningsSetup"),
+      innings: [
+        {
+          ballsBowled: 120,
+          battingTeam: {
+            shortName: "KNI",
+          },
+          id: 501,
+          inningsNumber: 1,
+          isCompleted: true,
+          totalScore: 355,
+          wickets: 10,
+        },
+        {
+          ballsBowled: 98,
+          battingTeam: {
+            shortName: "WAR",
+          },
+          id: 502,
+          inningsNumber: 2,
+          isCompleted: true,
+          totalScore: 149,
+          wickets: 10,
+        },
+      ],
+      match: {
+        ...createScoringSetup("inningsSetup").match,
+        inningsPerSide: 2,
+      },
+      nextInningsDefaults: {
+        battingTeamId: 1,
+        bowlingTeamId: 2,
+        followOn: {
+          battingTeamId: 2,
+          bowlingTeamId: 1,
+          isApplied: false,
+        },
+        inningsNumber: 3,
+      },
+    } as unknown as RouteScoringSetup;
+
+    const inningsRender = await renderScoreRoute();
+    const followOnSwitch = await inningsRender.findByRole("switch", {
+      name: "Apply follow-on",
+    });
+
+    fireEvent.click(followOnSwitch);
+    fireEvent.click(
+      await inningsRender.findByRole("button", { name: "Start innings" })
+    );
+
+    await waitFor(() =>
+      expect(startScoringInnings).toHaveBeenCalledWith({
+        battingTeamId: 2,
+        bowlingTeamId: 1,
+        inningsNumber: 3,
+        matchId: 42,
+        nonStrikerId: 22,
+        openingBowlerId: 11,
+        strikerId: 21,
+        tossDecision: "bat",
+        tossWinnerId: 1,
+      })
+    );
+  });
+
+  it("keeps the next-innings start button enabled when the previous innings is completed", async () => {
+    const baseSetup = createScoringSetup("inningsSetup");
+
+    currentScoringSetup = {
+      ...baseSetup,
+      currentInnings: {
+        ballsBowled: 32,
+        battingTeam: {
+          name: "Warriors",
+          shortName: "WAR",
+        },
+        battingTeamId: 2,
+        bowlingTeamId: 1,
+        deliveries: [],
+        id: 501,
+        inningsNumber: 1,
+        isCompleted: true,
+        targetRuns: null,
+        totalScore: 58,
+        wickets: 6,
+      },
+      innings: [
+        {
+          ballsBowled: 32,
+          battingTeam: {
+            shortName: "WAR",
+          },
+          id: 501,
+          inningsNumber: 1,
+          isCompleted: true,
+          totalScore: 58,
+          wickets: 6,
+        },
+      ],
+      nextInningsDefaults: {
+        battingTeamId: 1,
+        bowlingTeamId: 2,
+        followOn: null,
+        inningsNumber: 2,
+      },
+      phase: "inningsSetup",
+    } as unknown as RouteScoringSetup;
+
+    const inningsRender = await renderScoreRoute();
+    const startButton = await inningsRender.findByRole("button", {
+      name: "Start innings",
+    });
+
+    await waitFor(() =>
+      expect((startButton as HTMLButtonElement).disabled).toBe(false)
+    );
+  });
+
   it("does not forward a dismissed player from the previous ball into the next delivery", async () => {
     const scoringSetup = createScoringSetup("scoring");
 

@@ -1193,6 +1193,19 @@ export interface PendingInningsClosure {
   reason: PendingInningsClosureReason;
 }
 
+export interface NextInningsFollowOnOption {
+  battingTeamId: number;
+  bowlingTeamId: number;
+  isApplied: boolean;
+}
+
+export interface NextInningsDefaults {
+  battingTeamId: number;
+  bowlingTeamId: number;
+  followOn: NextInningsFollowOnOption | null;
+  inningsNumber: number;
+}
+
 export interface ScoringMutationResult {
   action: ScoringMutationAction;
   affectedInnings: ScoringMutationInningsSummary;
@@ -1203,11 +1216,7 @@ export interface ScoringMutationResult {
   delivery: ScoringDeliveryRecord | null;
   entryContext: ScoringEntryContext;
   match: ScoringMutationMatchState;
-  nextInningsDefaults: {
-    battingTeamId: number;
-    bowlingTeamId: number;
-    inningsNumber: number;
-  } | null;
+  nextInningsDefaults: NextInningsDefaults | null;
   pendingInningsClosure: PendingInningsClosure | null;
   phase: ScoringPhase;
   requiredSelections: ScoringRequiredSelections;
@@ -1637,22 +1646,44 @@ function getCompletedInningsCount(
   ).length;
 }
 
-function resolveNextInningsTeams(params: {
+function resolveNextInningsSetup(params: {
+  followOnApplied?: boolean;
+  inningsPerSide: number;
   inningsRows: Array<{
     battingTeamId: number;
     bowlingTeamId: number;
     inningsNumber: number;
+    isCompleted?: boolean | null;
+    totalScore?: number;
   }>;
   team1Id: number;
   team2Id: number;
-}) {
+  tossDecision?: "bat" | "bowl" | null;
+  tossWinnerId?: number | null;
+}): NextInningsDefaults | null {
   const nextInningsNumber = params.inningsRows.length + 1;
-  const shouldFlip = nextInningsNumber % 2 === 0;
+  if (nextInningsNumber > params.inningsPerSide * 2) {
+    return null;
+  }
 
   if (params.inningsRows.length === 0) {
+    const inningsOneTeams = deriveBattingAndBowlingTeamIds({
+      team1Id: params.team1Id,
+      team2Id: params.team2Id,
+      tossDecision:
+        params.tossDecision === "bat" || params.tossDecision === "bowl"
+          ? params.tossDecision
+          : "bat",
+      tossWinnerId:
+        typeof params.tossWinnerId === "number"
+          ? params.tossWinnerId
+          : params.team1Id,
+    });
+
     return {
-      battingTeamId: params.team1Id,
-      bowlingTeamId: params.team2Id,
+      battingTeamId: inningsOneTeams.battingTeamId,
+      bowlingTeamId: inningsOneTeams.bowlingTeamId,
+      followOn: null,
       inningsNumber: 1,
     };
   }
@@ -1662,9 +1693,46 @@ function resolveNextInningsTeams(params: {
     return null;
   }
 
+  if (nextInningsNumber === 3) {
+    const firstInnings = params.inningsRows[0];
+    const secondInnings = params.inningsRows[1];
+    const followOnAvailable =
+      Boolean(firstInnings?.isCompleted) &&
+      Boolean(secondInnings?.isCompleted) &&
+      typeof firstInnings?.totalScore === "number" &&
+      typeof secondInnings?.totalScore === "number" &&
+      firstInnings.totalScore - secondInnings.totalScore >= 200;
+    const followOnTeams = {
+      battingTeamId: previous.battingTeamId,
+      bowlingTeamId: previous.bowlingTeamId,
+    };
+    const traditionalTeams = {
+      battingTeamId: previous.bowlingTeamId,
+      bowlingTeamId: previous.battingTeamId,
+    };
+    const nextTeams =
+      followOnAvailable && params.followOnApplied
+        ? followOnTeams
+        : traditionalTeams;
+
+    return {
+      ...nextTeams,
+      followOn: followOnAvailable
+        ? {
+            ...followOnTeams,
+            isApplied: Boolean(params.followOnApplied),
+          }
+        : null,
+      inningsNumber: nextInningsNumber,
+    };
+  }
+
+  const shouldFlip = nextInningsNumber % 2 === 0;
+
   return {
     battingTeamId: shouldFlip ? previous.bowlingTeamId : previous.battingTeamId,
     bowlingTeamId: shouldFlip ? previous.battingTeamId : previous.bowlingTeamId,
+    followOn: null,
     inningsNumber: nextInningsNumber,
   };
 }
@@ -2518,9 +2586,7 @@ async function assembleMatchScoringSession(matchId: number) {
   });
 
   const currentInningsId =
-    inningsRows.find((inning) => !inning.isCompleted)?.id ??
-    inningsRows.at(-1)?.id ??
-    null;
+    inningsRows.find((inning) => !inning.isCompleted)?.id ?? null;
 
   const inningsWithDeliveries = await Promise.all(
     inningsRows.map(async (inningsRow) => ({
@@ -2582,14 +2648,22 @@ async function assembleMatchScoringSession(matchId: number) {
     null;
 
   const matchRules = getMatchRulesFromSnapshot(match);
-  const nextInningsDefaults = resolveNextInningsTeams({
+  const nextInningsDefaults = resolveNextInningsSetup({
+    inningsPerSide: match.inningsPerSide,
     inningsRows: inningsRows.map((row) => ({
       battingTeamId: row.battingTeamId,
       bowlingTeamId: row.bowlingTeamId,
       inningsNumber: row.inningsNumber,
+      isCompleted: row.isCompleted,
+      totalScore: row.totalScore,
     })),
     team1Id: match.team1Id,
     team2Id: match.team2Id,
+    tossDecision:
+      match.tossDecision === "bat" || match.tossDecision === "bowl"
+        ? match.tossDecision
+        : null,
+    tossWinnerId: match.tossWinnerId,
   });
 
   let phase: ScoringPhase = "inningsSetup";
@@ -3456,6 +3530,8 @@ export async function startScoringInnings(input: StartScoringInningsInput) {
       team1Id: true,
       team2Id: true,
       playersPerSide: true,
+      tossDecision: true,
+      tossWinnerId: true,
     },
   });
 
@@ -3491,6 +3567,50 @@ export async function startScoringInnings(input: StartScoringInningsInput) {
   const inningsNumber = input.inningsNumber ?? inningsRows.length + 1;
   if (inningsNumber > match.inningsPerSide * 2) {
     throw new Error("This match has no innings remaining");
+  }
+
+  const nextInningsDefaults = resolveNextInningsSetup({
+    inningsPerSide: match.inningsPerSide,
+    inningsRows,
+    team1Id: match.team1Id,
+    team2Id: match.team2Id,
+    tossDecision:
+      input.tossDecision ??
+      (match.tossDecision === "bat" || match.tossDecision === "bowl"
+        ? match.tossDecision
+        : null),
+    tossWinnerId: input.tossWinnerId ?? match.tossWinnerId,
+  });
+
+  if (
+    !nextInningsDefaults ||
+    inningsNumber !== nextInningsDefaults.inningsNumber
+  ) {
+    throw new Error("This innings cannot be started");
+  }
+
+  const validTeamSelections = [
+    {
+      battingTeamId: nextInningsDefaults.battingTeamId,
+      bowlingTeamId: nextInningsDefaults.bowlingTeamId,
+    },
+    ...(nextInningsDefaults.followOn
+      ? [
+          {
+            battingTeamId: nextInningsDefaults.followOn.battingTeamId,
+            bowlingTeamId: nextInningsDefaults.followOn.bowlingTeamId,
+          },
+        ]
+      : []),
+  ];
+  const hasValidTeamSelection = validTeamSelections.some(
+    (selection) =>
+      selection.battingTeamId === input.battingTeamId &&
+      selection.bowlingTeamId === input.bowlingTeamId
+  );
+
+  if (!hasValidTeamSelection) {
+    throw new Error("Invalid innings team selection");
   }
 
   await assertLineupMembership({
@@ -4086,6 +4206,7 @@ export const scoringSessionInternals = {
   getNextBallPosition,
   isLegalDeliveryFromRuns,
   resolveAutoCompleteInningsReason,
+  resolveNextInningsSetup,
   shouldAutoCompleteInnings,
   validateDeliveryDraft,
 };

@@ -27,6 +27,7 @@ import {
   sendClaimOtpByEmail,
   verifyClaimOtpAndLinkByEmail,
 } from "@/services/player.service";
+import { getPlayerStatisticsById } from "@/services/player-stats.service";
 import { calculateAgeFromDob } from "@/utils";
 
 const UpdatePlayerInputSchema = z
@@ -49,6 +50,16 @@ export const playerRouter = {
   playersWithCurrentTeams: publicProcedure.handler(() =>
     getPlayersWithCurrentTeams()
   ),
+  playerStatistics: publicProcedure
+    .input(z.number().int().positive())
+    .handler(async ({ input }) => {
+      const stats = await getPlayerStatisticsById(input);
+      if (!stats) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      return stats;
+    }),
   onboardingStatus: protectedProcedure.handler(async ({ context }) =>
     getOnboardingStatusByEmail(context.session.user.email)
   ),

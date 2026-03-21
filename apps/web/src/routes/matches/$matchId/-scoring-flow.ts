@@ -55,6 +55,42 @@ export function resolveBattingAndBowlingTeamIds(params: {
   };
 }
 
+export function resolveInningsSetupSelection(params: {
+  followOnApplied: boolean;
+  nextInningsDefaults?: {
+    battingTeamId: number;
+    bowlingTeamId: number;
+    followOn?: {
+      battingTeamId: number;
+      bowlingTeamId: number;
+      isApplied: boolean;
+    } | null;
+    inningsNumber: number;
+  } | null;
+  tossDerivedTeams?: {
+    battingTeamId: number;
+    bowlingTeamId: number;
+  } | null;
+}) {
+  const nextInningsDefaults = params.nextInningsDefaults;
+  const shouldUseTossDerivedTeams =
+    nextInningsDefaults?.inningsNumber === 1 && params.tossDerivedTeams;
+  const followOnTeams =
+    nextInningsDefaults?.followOn && params.followOnApplied
+      ? nextInningsDefaults.followOn
+      : nextInningsDefaults;
+  const resolvedTeams = shouldUseTossDerivedTeams
+    ? params.tossDerivedTeams
+    : (followOnTeams ?? params.tossDerivedTeams ?? null);
+
+  return {
+    battingTeamId: resolvedTeams?.battingTeamId ?? null,
+    bowlingTeamId: resolvedTeams?.bowlingTeamId ?? null,
+    followOnAvailable: Boolean(nextInningsDefaults?.followOn),
+    inningsNumber: nextInningsDefaults?.inningsNumber ?? null,
+  };
+}
+
 export function calculateNextCreaseState(params: {
   ballsPerOver: number;
   currentBallInOver: number;
