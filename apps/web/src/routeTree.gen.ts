@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as OrganizeRouteImport } from './routes/organize'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -34,6 +35,11 @@ import { Route as TeamsTeamIdAssignPlayersRouteImport } from './routes/teams/$te
 import { Route as MatchesMatchIdScorecardRouteImport } from './routes/matches/$matchId/scorecard'
 import { Route as MatchesMatchIdScoreRouteImport } from './routes/matches/$matchId/score'
 
+const OrganizeRoute = OrganizeRouteImport.update({
+  id: '/organize',
+  path: '/organize',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -164,6 +170,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/organize': typeof OrganizeRoute
   '/matches/$matchId': typeof MatchesMatchIdRouteWithChildren
   '/matches/completed': typeof MatchesCompletedRoute
   '/matches/create': typeof MatchesCreateRoute
@@ -190,6 +197,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/organize': typeof OrganizeRoute
   '/matches/$matchId': typeof MatchesMatchIdRouteWithChildren
   '/matches/completed': typeof MatchesCompletedRoute
   '/matches/create': typeof MatchesCreateRoute
@@ -216,6 +224,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/organize': typeof OrganizeRoute
   '/matches/$matchId': typeof MatchesMatchIdRouteWithChildren
   '/matches/completed': typeof MatchesCompletedRoute
   '/matches/create': typeof MatchesCreateRoute
@@ -244,6 +253,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/onboarding'
+    | '/organize'
     | '/matches/$matchId'
     | '/matches/completed'
     | '/matches/create'
@@ -270,6 +280,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/onboarding'
+    | '/organize'
     | '/matches/$matchId'
     | '/matches/completed'
     | '/matches/create'
@@ -295,6 +306,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/onboarding'
+    | '/organize'
     | '/matches/$matchId'
     | '/matches/completed'
     | '/matches/create'
@@ -322,6 +334,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
+  OrganizeRoute: typeof OrganizeRoute
   MatchesMatchIdRoute: typeof MatchesMatchIdRouteWithChildren
   MatchesCompletedRoute: typeof MatchesCompletedRoute
   MatchesCreateRoute: typeof MatchesCreateRoute
@@ -339,6 +352,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/organize': {
+      id: '/organize'
+      path: '/organize'
+      fullPath: '/organize'
+      preLoaderRoute: typeof OrganizeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/onboarding': {
       id: '/onboarding'
       path: '/onboarding'
@@ -560,6 +580,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
+  OrganizeRoute: OrganizeRoute,
   MatchesMatchIdRoute: MatchesMatchIdRouteWithChildren,
   MatchesCompletedRoute: MatchesCompletedRoute,
   MatchesCreateRoute: MatchesCreateRoute,

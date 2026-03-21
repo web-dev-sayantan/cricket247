@@ -293,8 +293,8 @@ function createScoringSetup(
         : {
             battingTeamId: 1,
             bowlingTeamId: 2,
-          inningsNumber: 1,
-        },
+            inningsNumber: 1,
+          },
     pendingInningsClosure: null,
     phase,
     playersPerSide: 2,
@@ -697,9 +697,13 @@ describe("score route pre-match extraction", () => {
     }
 
     fireEvent.click(scoringButton);
-    fireEvent.click(await findByRole("button", { name: "No, review last ball" }));
+    fireEvent.click(
+      await findByRole("button", { name: "No, review last ball" })
+    );
 
-    expect(await findByRole("button", { name: "Update delivery" })).toBeTruthy();
+    expect(
+      await findByRole("button", { name: "Update delivery" })
+    ).toBeTruthy();
     expect(queryByText("End this innings?")).toBeNull();
   });
 
@@ -751,10 +755,13 @@ describe("score route pre-match extraction", () => {
 
     const { findByRole } = await renderScoreRoute();
 
-    expect(await findByRole("button", { name: "Update delivery" })).toBeTruthy();
     expect(
-      (await findByRole("button", { name: "Record delivery" }))
-        .hasAttribute("disabled")
+      await findByRole("button", { name: "Update delivery" })
+    ).toBeTruthy();
+    expect(
+      (await findByRole("button", { name: "Record delivery" })).hasAttribute(
+        "disabled"
+      )
     ).toBe(true);
   });
 });

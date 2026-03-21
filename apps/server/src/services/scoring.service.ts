@@ -1527,6 +1527,54 @@ function getBowlerLegalBallCounts(
   return counts;
 }
 
+function getBowlerIdsForOver(
+  deliveryRows: Array<{
+    bowlerId: number;
+    overNumber: number;
+  }>,
+  overNumber: number
+) {
+  if (overNumber < 1) {
+    return new Set<number>();
+  }
+
+  return new Set(
+    deliveryRows
+      .filter((delivery) => delivery.overNumber === overNumber)
+      .map((delivery) => delivery.bowlerId)
+  );
+}
+
+function getMaxBowlerBalls(matchRules: {
+  ballsPerOver: number;
+  maxOversPerBowler: null | number;
+}) {
+  return typeof matchRules.maxOversPerBowler === "number"
+    ? matchRules.maxOversPerBowler * matchRules.ballsPerOver
+    : null;
+}
+
+function canBowlerCompleteRemainingOver(params: {
+  bowlerBallCounts: Map<number, number>;
+  bowlerId: number;
+  matchRules: {
+    ballsPerOver: number;
+    maxOversPerBowler: null | number;
+  };
+  remainingLegalBallsInOver: number;
+}) {
+  const maxBowlerBalls = getMaxBowlerBalls(params.matchRules);
+  if (typeof maxBowlerBalls !== "number") {
+    return true;
+  }
+
+  return (
+    (params.bowlerBallCounts.get(params.bowlerId) ?? 0) +
+      params.remainingLegalBallsInOver <=
+    maxBowlerBalls
+  );
+}
+
 function getNextBallPosition(params: {
   ballInOver: number;
   currentOverNumber: number;
@@ -1814,6 +1862,22 @@ function buildEntryContextFromState(params: {
     ballsPerOver: number;
     maxOversPerBowler: null | number;
   };
+  timeline: Array<{
+    ballInOver: number;
+    batterRuns: number;
+    bowlerId: number;
+    byeRuns: number;
+    dismissedPlayerId: null | number;
+    isLegalDelivery: boolean;
+    isWicket: boolean;
+    legByeRuns: number;
+    noBallRuns: number;
+    nonStrikerId: number;
+    overNumber: number;
+    strikerId: number;
+    totalRuns: number;
+    wideRuns: number;
+  }>;
   lastDelivery: {
     ballInOver: number;
     batterRuns: number;
@@ -1858,7 +1922,14 @@ function buildEntryContextFromState(params: {
           player.id !== strikerId &&
           player.id !== nonStrikerId
       ),
-      availableBowlers: params.bowlingPlayers,
+      availableBowlers: params.bowlingPlayers.filter((player) =>
+        canBowlerCompleteRemainingOver({
+          bowlerBallCounts: params.bowlerBallCounts,
+          bowlerId: player.id,
+          matchRules: params.matchRules,
+          remainingLegalBallsInOver: params.matchRules.ballsPerOver,
+        })
+      ),
       entryContext: {
         inningsId: params.inningsRow.id,
         inningsNumber: params.inningsRow.inningsNumber,
@@ -1916,11 +1987,17 @@ function buildEntryContextFromState(params: {
     isLegalDelivery: Boolean(last.isLegalDelivery),
     rulesBallsPerOver: params.matchRules.ballsPerOver,
   });
-
-  const maxBowlerBalls =
-    typeof params.matchRules.maxOversPerBowler === "number"
-      ? params.matchRules.maxOversPerBowler * params.matchRules.ballsPerOver
-      : null;
+  const currentOverBowlerIds = getBowlerIdsForOver(
+    params.timeline,
+    last.overNumber
+  );
+  const previousOverBowlerIds = getBowlerIdsForOver(
+    params.timeline,
+    last.overNumber - 1
+  );
+  const remainingLegalBallsInOver = overComplete
+    ? params.matchRules.ballsPerOver
+    : params.matchRules.ballsPerOver - nextMeta.ballInOver + 1;
 
   return {
     availableBatters: params.battingPlayers.filter(
@@ -1930,22 +2007,42 @@ function buildEntryContextFromState(params: {
         player.id !== nonStrikerId
     ),
     availableBowlers: params.bowlingPlayers.filter((player) => {
-      if (!overComplete) {
-        return player.id === last.bowlerId;
+      if (overComplete) {
+        if (currentOverBowlerIds.has(player.id)) {
+          return false;
+        }
+
+        return canBowlerCompleteRemainingOver({
+          bowlerBallCounts: params.bowlerBallCounts,
+          bowlerId: player.id,
+          matchRules: params.matchRules,
+          remainingLegalBallsInOver,
+        });
       }
 
       if (player.id === last.bowlerId) {
+        return canBowlerCompleteRemainingOver({
+          bowlerBallCounts: params.bowlerBallCounts,
+          bowlerId: player.id,
+          matchRules: params.matchRules,
+          remainingLegalBallsInOver,
+        });
+      }
+
+      if (currentOverBowlerIds.has(player.id)) {
         return false;
       }
 
-      if (
-        typeof maxBowlerBalls === "number" &&
-        (params.bowlerBallCounts.get(player.id) ?? 0) >= maxBowlerBalls
-      ) {
+      if (previousOverBowlerIds.has(player.id)) {
         return false;
       }
 
-      return true;
+      return canBowlerCompleteRemainingOver({
+        bowlerBallCounts: params.bowlerBallCounts,
+        bowlerId: player.id,
+        matchRules: params.matchRules,
+        remainingLegalBallsInOver,
+      });
     }),
     entryContext: {
       inningsId: params.inningsRow.id,
@@ -2012,6 +2109,7 @@ function getEntryContext(params: {
     bowlingPlayers: params.bowlingPlayers,
     dismissedSet: getDismissedPlayerIds(params.timeline),
     inningsRow: params.inningsRow,
+    timeline: params.timeline,
     lastDelivery: params.timeline.at(-1) ?? null,
     matchRules: params.matchRules,
   });
@@ -2777,6 +2875,98 @@ interface ScoringDeliveryContext {
   matchRules: ReturnType<typeof getMatchRulesFromSnapshot>;
   requiredSelections: ScoringRequiredSelections;
   statsByPlayer: Map<number, MutableStats>;
+  timeline: Array<{
+    ballInOver: number;
+    batterRuns: number;
+    bowlerId: number;
+    byeRuns: number;
+    dismissedPlayerId: number | null;
+    isLegalDelivery: boolean;
+    isWicket: boolean;
+    legByeRuns: number;
+    noBallRuns: number;
+    nonStrikerId: number;
+    overNumber: number;
+    sequenceNo: number;
+    strikerId: number;
+    totalRuns: number;
+    wideRuns: number;
+  }>;
+}
+
+function assertBowlerSelectionAllowed(params: {
+  availableBowlers: ScoringSessionPlayerOption[];
+  bowlerBallCounts: Map<number, number>;
+  bowlerId: number;
+  entryContext: Pick<ScoringEntryContext, "ballInOver" | "bowlerId">;
+  lastDelivery: ScoringDeliveryContext["lastDelivery"];
+  matchRules: Pick<
+    ScoringDeliveryContext["matchRules"],
+    "ballsPerOver" | "maxOversPerBowler"
+  >;
+  requiredSelections: Pick<ScoringRequiredSelections, "bowler">;
+  timeline: ScoringDeliveryContext["timeline"];
+}) {
+  const previousOverBowlerIds = params.lastDelivery
+    ? getBowlerIdsForOver(
+        params.timeline,
+        params.requiredSelections.bowler
+          ? params.lastDelivery.overNumber
+          : params.lastDelivery.overNumber - 1
+      )
+    : new Set<number>();
+  const currentOverBowlerIds = params.lastDelivery
+    ? getBowlerIdsForOver(params.timeline, params.lastDelivery.overNumber)
+    : new Set<number>();
+  const remainingLegalBallsInOver = params.requiredSelections.bowler
+    ? params.matchRules.ballsPerOver
+    : params.matchRules.ballsPerOver - params.entryContext.ballInOver + 1;
+  const hasQuota = canBowlerCompleteRemainingOver({
+    bowlerBallCounts: params.bowlerBallCounts,
+    bowlerId: params.bowlerId,
+    matchRules: params.matchRules,
+    remainingLegalBallsInOver,
+  });
+
+  if (params.requiredSelections.bowler) {
+    if (previousOverBowlerIds.has(params.bowlerId)) {
+      throw new Error(
+        "A bowler who bowled in the previous over cannot bowl the next over"
+      );
+    }
+
+    if (!hasQuota) {
+      throw new Error(
+        "Bowler does not have enough quota left to complete this over"
+      );
+    }
+  } else if (params.entryContext.bowlerId !== params.bowlerId) {
+    if (currentOverBowlerIds.has(params.bowlerId)) {
+      throw new Error("A bowler cannot bowl multiple spells in the same over");
+    }
+
+    if (previousOverBowlerIds.has(params.bowlerId)) {
+      throw new Error(
+        "A bowler who bowled the previous over cannot bowl this over"
+      );
+    }
+
+    if (!hasQuota) {
+      throw new Error(
+        "Bowler does not have enough quota left to complete this over"
+      );
+    }
+  } else if (!hasQuota) {
+    throw new Error(
+      "Bowler does not have enough quota left to complete this over"
+    );
+  }
+
+  if (
+    !params.availableBowlers.some((player) => player.id === params.bowlerId)
+  ) {
+    throw new Error("Selected bowler is not available for this over");
+  }
 }
 
 async function getScoringDeliveryContext(
@@ -2846,14 +3036,11 @@ async function getScoringDeliveryContext(
     throw new Error("Innings not found");
   }
 
-  const [lineupRows, lastDelivery, statsRows] = await Promise.all([
+  const [lineupRows, timeline, statsRows] = await Promise.all([
     getSavedMatchLineup(baseRow.matchId),
-    db.query.deliveries.findFirst({
+    db.query.deliveries.findMany({
       where: {
         inningsId,
-      },
-      orderBy: {
-        sequenceNo: "desc",
       },
       columns: {
         ballInOver: true,
@@ -2871,6 +3058,9 @@ async function getScoringDeliveryContext(
         strikerId: true,
         totalRuns: true,
         wideRuns: true,
+      },
+      orderBy: {
+        sequenceNo: "asc",
       },
     }),
     db.query.playerInningsStats.findMany({
@@ -2972,12 +3162,14 @@ async function getScoringDeliveryContext(
     wides: baseRow.wides,
     wickets: baseRow.wickets,
   };
+  const lastDelivery = timeline.at(-1) ?? null;
   const nextState = buildEntryContextFromState({
     battingPlayers,
     bowlerBallCounts,
     bowlingPlayers,
     dismissedSet,
     inningsRow,
+    timeline,
     lastDelivery: lastDelivery ?? null,
     matchRules,
   });
@@ -2999,6 +3191,7 @@ async function getScoringDeliveryContext(
     matchRules,
     requiredSelections: nextState.requiredSelections,
     statsByPlayer,
+    timeline,
   };
 }
 
@@ -3223,6 +3416,7 @@ function buildOpenInningsMutationResult(params: {
     bowlingPlayers: params.context.bowlingPlayers,
     dismissedSet,
     inningsRow: params.context.inningsRow,
+    timeline: [...params.context.timeline, params.delivery],
     lastDelivery: params.delivery,
     matchRules: params.context.matchRules,
   });
@@ -3371,6 +3565,16 @@ export async function recordScoringDelivery(
     nextStrikerId: input.strikerId,
     nextNonStrikerId: input.nonStrikerId,
     nextBowlerId: input.bowlerId,
+  });
+  assertBowlerSelectionAllowed({
+    availableBowlers: context.availableBowlers,
+    bowlerBallCounts: context.bowlerBallCounts,
+    bowlerId: input.bowlerId,
+    entryContext: context.entryContext,
+    lastDelivery: context.lastDelivery,
+    matchRules: context.matchRules,
+    requiredSelections: context.requiredSelections,
+    timeline: context.timeline,
   });
 
   const normalized = validateDeliveryDraft({

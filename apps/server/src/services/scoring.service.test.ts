@@ -188,6 +188,37 @@ function createDefaultDeliveryRow(): DeliveryRow {
   };
 }
 
+function createPlayerInningsStatsRow(
+  overrides: Partial<PlayerInningsStatsRow> = {}
+): PlayerInningsStatsRow {
+  return {
+    assistedById: null,
+    ballsBowled: 0,
+    ballsFaced: 0,
+    battingOrder: 1,
+    catches: 0,
+    dismissalType: null,
+    dismissedById: null,
+    dotBalls: 0,
+    fours: 0,
+    inningsId: 1,
+    isDismissed: false,
+    maidens: 0,
+    matchId: 1,
+    noBalls: 0,
+    playerId: 201,
+    runOuts: 0,
+    runsConceded: 0,
+    runsScored: 0,
+    sixes: 0,
+    stumpings: 0,
+    teamId: 20,
+    wicketsTaken: 0,
+    wides: 0,
+    ...overrides,
+  };
+}
+
 const state: {
   deliveries: DeliveryRow[];
   existingInnings: null | { id: number };
@@ -270,7 +301,29 @@ const dbMock = {
 
         return Promise.resolve(filtered[0] ?? null);
       },
-      findMany: () => Promise.resolve([...state.deliveries]),
+      findMany: (args?: {
+        where?: { inningsId?: number; overNumber?: number };
+        orderBy?: { sequenceNo: "asc" | "desc" };
+      }) => {
+        const filtered = state.deliveries
+          .filter((delivery) =>
+            typeof args?.where?.inningsId === "number"
+              ? delivery.inningsId === args.where.inningsId
+              : true
+          )
+          .filter((delivery) =>
+            typeof args?.where?.overNumber === "number"
+              ? delivery.overNumber === args.where.overNumber
+              : true
+          )
+          .sort((left, right) =>
+            args?.orderBy?.sequenceNo === "desc"
+              ? right.sequenceNo - left.sequenceNo
+              : left.sequenceNo - right.sequenceNo
+          );
+
+        return Promise.resolve(filtered);
+      },
     },
     matchLineup: {
       findMany: () => Promise.resolve(state.lineupRows),
@@ -332,6 +385,7 @@ const dbMock = {
       }),
       insert: (_target: unknown) => ({
         values: (_values: unknown) => ({
+          onConflictDoUpdate: (_config: unknown) => Promise.resolve(),
           returning: (_fields: unknown) => {
             insertCount += 1;
             if (insertCount === 1) {
@@ -419,6 +473,39 @@ describe("scoring.service initializeMatchScoring", () => {
 });
 
 describe("scoring.service replay helpers", () => {
+  beforeEach(() => {
+    state.deliveries = [createDefaultDeliveryRow()];
+    state.failInningsInsert = false;
+    state.lineupRows = [
+      {
+        teamId: 10,
+        playerId: 101,
+        battingOrder: 1,
+        player: { id: 101, name: "A1" },
+      },
+      {
+        teamId: 10,
+        playerId: 102,
+        battingOrder: 2,
+        player: { id: 102, name: "A2" },
+      },
+      {
+        teamId: 20,
+        playerId: 201,
+        battingOrder: 1,
+        player: { id: 201, name: "B1" },
+      },
+      {
+        teamId: 20,
+        playerId: 202,
+        battingOrder: 2,
+        player: { id: 202, name: "B2" },
+      },
+    ];
+    state.playerInningsStatsRows = [];
+    state.scoringContextBaseRow = createDefaultScoringContextBaseRow();
+  });
+
   it("derives append delivery write metadata from the current entry context", async () => {
     const { scoringSessionInternals } = await scoringServiceModule;
 
@@ -1320,6 +1407,304 @@ describe("scoring.service replay helpers", () => {
     );
   });
 
+  it("rejects selecting a bowler who participated in the previous over", async () => {
+    const { recordScoringDelivery } = await scoringServiceModule;
+
+    state.deliveries = [
+      {
+        ...createDefaultDeliveryRow(),
+        ballInOver: 6,
+        overNumber: 1,
+        sequenceNo: 6,
+      },
+    ];
+    state.scoringContextBaseRow = {
+      ...createDefaultScoringContextBaseRow(),
+      ballsBowled: 6,
+      totalScore: 1,
+    };
+
+    await expect(
+      recordScoringDelivery({
+        bowlerId: 201,
+        inningsId: 1,
+        nonStrikerId: 102,
+        strikerId: 101,
+      })
+    ).rejects.toThrow(
+      "A bowler who bowled in the previous over cannot bowl the next over"
+    );
+  });
+
+  it("keeps every bowler from a split over unavailable for the next over", async () => {
+    const { scoringSessionInternals } = await scoringServiceModule;
+
+    expect(
+      scoringSessionInternals.getEntryContext({
+        battingPlayers: [
+          { battingOrder: 1, id: 101, name: "A1", teamId: 10 },
+          { battingOrder: 2, id: 102, name: "A2", teamId: 10 },
+          { battingOrder: 3, id: 103, name: "A3", teamId: 10 },
+        ],
+        bowlingPlayers: [
+          { battingOrder: 1, id: 201, name: "B1", teamId: 20 },
+          { battingOrder: 2, id: 202, name: "B2", teamId: 20 },
+          { battingOrder: 3, id: 203, name: "B3", teamId: 20 },
+        ],
+        inningsRow: {
+          battingTeamId: 10,
+          bowlingTeamId: 20,
+          id: 1,
+          inningsNumber: 1,
+          openingBowlerId: 201,
+          openingNonStrikerId: 102,
+          openingStrikerId: 101,
+          targetRuns: null,
+        },
+        matchRules: {
+          ballsPerOver: 6,
+          maxOversPerBowler: 4,
+        },
+        playersPerSide: 3,
+        timeline: [
+          {
+            ballInOver: 1,
+            batterRuns: 0,
+            bowlerId: 201,
+            byeRuns: 0,
+            dismissedPlayerId: null,
+            isLegalDelivery: true,
+            isWicket: false,
+            legByeRuns: 0,
+            noBallRuns: 0,
+            nonStrikerId: 102,
+            overNumber: 1,
+            strikerId: 101,
+            totalRuns: 0,
+            wideRuns: 0,
+          },
+          {
+            ballInOver: 2,
+            batterRuns: 0,
+            bowlerId: 201,
+            byeRuns: 0,
+            dismissedPlayerId: null,
+            isLegalDelivery: true,
+            isWicket: false,
+            legByeRuns: 0,
+            noBallRuns: 0,
+            nonStrikerId: 102,
+            overNumber: 1,
+            strikerId: 101,
+            totalRuns: 0,
+            wideRuns: 0,
+          },
+          {
+            ballInOver: 3,
+            batterRuns: 0,
+            bowlerId: 201,
+            byeRuns: 0,
+            dismissedPlayerId: null,
+            isLegalDelivery: true,
+            isWicket: false,
+            legByeRuns: 0,
+            noBallRuns: 0,
+            nonStrikerId: 102,
+            overNumber: 1,
+            strikerId: 101,
+            totalRuns: 0,
+            wideRuns: 0,
+          },
+          {
+            ballInOver: 4,
+            batterRuns: 0,
+            bowlerId: 202,
+            byeRuns: 0,
+            dismissedPlayerId: null,
+            isLegalDelivery: true,
+            isWicket: false,
+            legByeRuns: 0,
+            noBallRuns: 0,
+            nonStrikerId: 102,
+            overNumber: 1,
+            strikerId: 101,
+            totalRuns: 0,
+            wideRuns: 0,
+          },
+          {
+            ballInOver: 5,
+            batterRuns: 0,
+            bowlerId: 202,
+            byeRuns: 0,
+            dismissedPlayerId: null,
+            isLegalDelivery: true,
+            isWicket: false,
+            legByeRuns: 0,
+            noBallRuns: 0,
+            nonStrikerId: 102,
+            overNumber: 1,
+            strikerId: 101,
+            totalRuns: 0,
+            wideRuns: 0,
+          },
+          {
+            ballInOver: 6,
+            batterRuns: 1,
+            bowlerId: 202,
+            byeRuns: 0,
+            dismissedPlayerId: null,
+            isLegalDelivery: true,
+            isWicket: false,
+            legByeRuns: 0,
+            noBallRuns: 0,
+            nonStrikerId: 102,
+            overNumber: 1,
+            strikerId: 101,
+            totalRuns: 1,
+            wideRuns: 0,
+          },
+        ],
+      })
+    ).toMatchObject({
+      availableBowlers: [{ id: 203 }],
+      entryContext: {
+        ballInOver: 1,
+        bowlerId: null,
+        overNumber: 2,
+      },
+      requiredSelections: {
+        bowler: true,
+      },
+    });
+  });
+
+  it("allows a replacement bowler to complete the same over", async () => {
+    const { recordScoringDelivery } = await scoringServiceModule;
+
+    state.deliveries = [
+      {
+        ...createDefaultDeliveryRow(),
+        ballInOver: 3,
+        overNumber: 1,
+        sequenceNo: 3,
+      },
+    ];
+    state.scoringContextBaseRow = {
+      ...createDefaultScoringContextBaseRow(),
+      ballsBowled: 3,
+      totalScore: 1,
+    };
+
+    const result = await recordScoringDelivery({
+      bowlerId: 202,
+      inningsId: 1,
+      nonStrikerId: 102,
+      strikerId: 101,
+    });
+
+    expect(result.delivery).toMatchObject({
+      ballInOver: 4,
+      bowlerId: 202,
+      overNumber: 1,
+    });
+    expect(result.entryContext).toMatchObject({
+      ballInOver: 5,
+      bowlerId: 202,
+      overNumber: 1,
+    });
+  });
+
+  it("rejects starting a new over when the bowler only has 3.1 overs remaining", async () => {
+    const { recordScoringDelivery } = await scoringServiceModule;
+
+    state.deliveries = [
+      {
+        ...createDefaultDeliveryRow(),
+        ballInOver: 6,
+        overNumber: 1,
+        sequenceNo: 6,
+      },
+    ];
+    state.lineupRows = [
+      ...state.lineupRows,
+      {
+        teamId: 20,
+        playerId: 203,
+        battingOrder: 3,
+        player: { id: 203, name: "B3" },
+      },
+    ];
+    state.playerInningsStatsRows = [
+      createPlayerInningsStatsRow({
+        ballsBowled: 19,
+        battingOrder: 2,
+        playerId: 202,
+      }),
+      createPlayerInningsStatsRow({
+        ballsBowled: 0,
+        battingOrder: 3,
+        playerId: 203,
+      }),
+    ];
+    state.scoringContextBaseRow = {
+      ...createDefaultScoringContextBaseRow(),
+      ballsBowled: 6,
+      matchPlayersPerSide: 3,
+      totalScore: 1,
+    };
+
+    await expect(
+      recordScoringDelivery({
+        bowlerId: 202,
+        inningsId: 1,
+        nonStrikerId: 102,
+        strikerId: 101,
+      })
+    ).rejects.toThrow(
+      "Bowler does not have enough quota left to complete this over"
+    );
+  });
+
+  it("uses the match-format ball limit before advancing to the next over", async () => {
+    const { recordScoringDelivery } = await scoringServiceModule;
+
+    state.deliveries = [
+      {
+        ...createDefaultDeliveryRow(),
+        ballInOver: 7,
+        overNumber: 1,
+        sequenceNo: 7,
+      },
+    ];
+    state.scoringContextBaseRow = {
+      ...createDefaultScoringContextBaseRow(),
+      ballsBowled: 7,
+      ballsPerOverSnapshot: 8,
+      maxLegalBallsPerInningsSnapshot: 16,
+      totalScore: 1,
+    };
+
+    const result = await recordScoringDelivery({
+      bowlerId: 201,
+      inningsId: 1,
+      nonStrikerId: 102,
+      strikerId: 101,
+    });
+
+    expect(result.delivery).toMatchObject({
+      ballInOver: 8,
+      overNumber: 1,
+    });
+    expect(result.entryContext).toMatchObject({
+      ballInOver: 1,
+      bowlerId: null,
+      overNumber: 2,
+    });
+    expect(result.requiredSelections).toMatchObject({
+      bowler: true,
+    });
+  });
+
   it("applies incremental delivery stats updates for wickets, assists, and maiden overs", async () => {
     const { scoringSessionInternals } = await scoringServiceModule;
     const statsByPlayer = new Map<
@@ -1407,7 +1792,7 @@ describe("scoring.service replay helpers", () => {
     });
   });
 
-  it("derives entry context from compact scorer state without scanning a timeline", async () => {
+  it("derives entry context from scorer state with timeline-aware bowler restrictions", async () => {
     const { scoringSessionInternals } = await scoringServiceModule;
 
     expect(
@@ -1436,6 +1821,24 @@ describe("scoring.service replay helpers", () => {
           openingStrikerId: 101,
           targetRuns: null,
         },
+        timeline: [
+          {
+            ballInOver: 6,
+            batterRuns: 1,
+            bowlerId: 201,
+            byeRuns: 0,
+            dismissedPlayerId: 101,
+            isLegalDelivery: true,
+            isWicket: true,
+            legByeRuns: 0,
+            noBallRuns: 0,
+            nonStrikerId: 102,
+            overNumber: 1,
+            strikerId: 101,
+            totalRuns: 1,
+            wideRuns: 0,
+          },
+        ],
         lastDelivery: {
           ballInOver: 6,
           batterRuns: 1,

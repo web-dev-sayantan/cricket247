@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
@@ -10,6 +10,9 @@ import UserMenu from "./user-menu";
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const { data: session } = authClient.useSession();
+  const isHomePage = useRouterState({
+    select: (s) => s.location.pathname === "/",
+  });
 
   const protectedLinks = [{ to: "/dashboard", label: "Dashboard" }] as const;
   const publicLinks = [
@@ -74,6 +77,18 @@ export default function Header() {
                 {label}
               </Link>
             ))}
+            {isHomePage && (
+              <Link
+                className={cn(
+                  buttonVariants({ size: "sm", variant: "outline" }),
+                  "angled-cut border-primary/40 text-primary hover:border-primary hover:bg-primary/10"
+                )}
+                onClick={() => setIsOpen(false)}
+                to="/organize"
+              >
+                For Organizers
+              </Link>
+            )}
           </nav>
 
           <div className="hidden items-center gap-2 md:flex">
@@ -143,6 +158,17 @@ export default function Header() {
               {label}
             </Link>
           ))}
+          {isHomePage && (
+            <Link
+              className={cn(
+                "rounded-md border border-primary/40 px-3 py-2 font-medium text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+              )}
+              onClick={() => setIsOpen(false)}
+              to="/organize"
+            >
+              For Organizers
+            </Link>
+          )}
         </nav>
 
         <div className="mt-auto grid gap-3 border-t pt-4">
