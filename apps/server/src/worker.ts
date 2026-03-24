@@ -1,3 +1,5 @@
+import { RateLimitDurableObject as ImportedRateLimitDurableObject } from "./lib/rate-limit";
+
 interface App {
   fetch: (request: Request) => Response | Promise<Response>;
 }
@@ -67,6 +69,7 @@ interface WorkerEnv {
   R2_ACCESS_KEY_ID?: string;
   R2_ACCOUNT_ID?: string;
   R2_SECRET_ACCESS_KEY?: string;
+  RATE_LIMITER?: object;
   RESEND_API_KEY?: string;
 }
 
@@ -120,3 +123,5 @@ export default {
     return app.fetch(request);
   },
 };
+
+export const RateLimitDurableObject = ImportedRateLimitDurableObject;

@@ -18,6 +18,7 @@ mock.module("@/components/header", () => ({
 }));
 
 const PLAYER_ROW_NAME_PATTERN = /Aarav Rao/i;
+const LANDING_SEARCH_RESULT_PATTERN = /Meera Das/i;
 
 const sessionState = {
   data: {
@@ -114,7 +115,32 @@ interface MockPlayerStatistics {
   };
 }
 
+interface MockStatisticsLandingLeader {
+  ballsBowled: number;
+  economy: null | number;
+  inningsBatted: number;
+  matchesPlayed: number;
+  metric: number;
+  player: MockPlayerStatistics["player"];
+  runsConceded: number;
+  runsScored: number;
+  wicketsTaken: number;
+}
+
+interface MockStatisticsLandingView {
+  leaders: {
+    bestAverageBatter: MockStatisticsLandingLeader | null;
+    bestEconomyBowler: MockStatisticsLandingLeader | null;
+    highestRunGetter: MockStatisticsLandingLeader | null;
+    highestWicketTaker: MockStatisticsLandingLeader | null;
+  };
+  players: MockPlayerStatistics["player"][];
+}
+
 const playerStatisticsById = new Map<number, MockPlayerStatistics | null>();
+const statisticsLandingState = {
+  data: null as MockStatisticsLandingView | null,
+};
 const playersWithCurrentTeamsState = {
   rows: [] as Array<{
     age: number;
@@ -137,6 +163,12 @@ const playersWithCurrentTeamsState = {
 mock.module("@/utils/orpc", () => ({
   client: {},
   orpc: {
+    statisticsLanding: {
+      queryOptions: () => ({
+        queryFn: async () => statisticsLandingState.data,
+        queryKey: ["statisticsLanding"],
+      }),
+    },
     playerStatistics: {
       queryOptions: ({ input }: { input: number }) => ({
         queryFn: async () => playerStatisticsById.get(input) ?? null,
@@ -251,6 +283,99 @@ function createStatisticsFixture(playerId: number): MockPlayerStatistics {
   };
 }
 
+function createLandingFixture(): MockStatisticsLandingView {
+  const aaravPlayer = {
+    id: 7,
+    name: "Aarav Rao",
+    image: null,
+    role: "All-rounder",
+    nationality: "India",
+    battingStance: "Right handed",
+    bowlingStance: "Right-arm off break",
+    isWicketKeeper: true,
+  } as const;
+  const rohanPlayer = {
+    id: 9,
+    name: "Rohan Sen",
+    image: null,
+    role: "Bowler",
+    nationality: "India",
+    battingStance: "Right handed",
+    bowlingStance: "Left-arm fast",
+    isWicketKeeper: false,
+  } as const;
+  const meeraPlayer = {
+    id: 11,
+    name: "Meera Das",
+    image: null,
+    role: "Batter",
+    nationality: "India",
+    battingStance: "Left handed",
+    bowlingStance: null,
+    isWicketKeeper: false,
+  } as const;
+  const kavyaPlayer = {
+    id: 12,
+    name: "Kavya Nair",
+    image: null,
+    role: "Bowler",
+    nationality: "India",
+    battingStance: "Right handed",
+    bowlingStance: "Right-arm medium",
+    isWicketKeeper: false,
+  } as const;
+
+  return {
+    players: [aaravPlayer, rohanPlayer, meeraPlayer, kavyaPlayer],
+    leaders: {
+      highestRunGetter: {
+        player: aaravPlayer,
+        metric: 412,
+        matchesPlayed: 9,
+        runsConceded: 76,
+        runsScored: 412,
+        wicketsTaken: 7,
+        inningsBatted: 9,
+        ballsBowled: 84,
+        economy: 5.43,
+      },
+      highestWicketTaker: {
+        player: rohanPlayer,
+        metric: 18,
+        matchesPlayed: 8,
+        runsConceded: 169,
+        runsScored: 61,
+        wicketsTaken: 18,
+        inningsBatted: 5,
+        ballsBowled: 210,
+        economy: 4.82,
+      },
+      bestAverageBatter: {
+        player: meeraPlayer,
+        metric: 68.5,
+        matchesPlayed: 7,
+        runsConceded: 0,
+        runsScored: 274,
+        wicketsTaken: 0,
+        inningsBatted: 6,
+        ballsBowled: 0,
+        economy: null,
+      },
+      bestEconomyBowler: {
+        player: kavyaPlayer,
+        metric: 3.75,
+        matchesPlayed: 6,
+        runsConceded: 90,
+        runsScored: 49,
+        wicketsTaken: 11,
+        inningsBatted: 4,
+        ballsBowled: 144,
+        economy: 3.75,
+      },
+    },
+  };
+}
+
 beforeEach(() => {
   sessionState.data = {
     user: {
@@ -258,6 +383,7 @@ beforeEach(() => {
     },
   };
   sessionState.isPending = false;
+  statisticsLandingState.data = createLandingFixture();
   playerStatisticsById.clear();
   playersWithCurrentTeamsState.rows = [
     {
@@ -293,10 +419,45 @@ beforeEach(() => {
     },
     formats: [],
   });
+  playerStatisticsById.set(11, createStatisticsFixture(11));
   mock.clearAllMocks();
 });
 
 describe("player statistics route", () => {
+  it("renders the statistics landing page with leaderboard cards and search results", async () => {
+    const { findAllByRole, findAllByText, findByRole, findByText, router } =
+      await renderRoute("/statistics");
+
+    expect(
+      await findByRole("heading", {
+        name: "Follow the players everyone is talking about.",
+      })
+    ).toBeTruthy();
+    expect(await findByText("Leading run scorer")).toBeTruthy();
+    expect(await findByText("Best bowling economy")).toBeTruthy();
+    expect((await findAllByText("Aarav Rao")).length).toBeGreaterThan(0);
+    expect(await findByText("Conceded")).toBeTruthy();
+    expect(await findByText("90")).toBeTruthy();
+
+    fireEvent.change(
+      await findByRole("searchbox", {
+        name: "Search by player name",
+      }),
+      {
+        target: {
+          value: "Meera",
+        },
+      }
+    );
+
+    const meeraLinks = await findAllByRole("link", {
+      name: LANDING_SEARCH_RESULT_PATTERN,
+    });
+    fireEvent.click(meeraLinks[0]);
+
+    expect(router.state.location.pathname).toBe("/statistics/11");
+  });
+
   it("renders exact format tabs, hides empty sections, and shows overview-only empty states", async () => {
     const { findAllByRole, findByRole, findByText, queryByText } =
       await renderRoute("/statistics/7");

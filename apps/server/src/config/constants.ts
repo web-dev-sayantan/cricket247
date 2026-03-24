@@ -8,6 +8,43 @@ export const RATE_LIMITS = {
   STRICT: 5,
 } as const;
 
+export const RPC_RATE_LIMIT_BUCKETS = {
+  public: {
+    capacity: 120,
+    refillRatePerSecond: 2,
+  },
+  protected: {
+    capacity: 60,
+    refillRatePerSecond: 1,
+  },
+  sensitive: {
+    capacity: 20,
+    refillRatePerSecond: 0.25,
+  },
+  scoring: {
+    capacity: 60,
+    refillRatePerSecond: 1,
+  },
+} as const;
+
+export const RPC_RATE_LIMIT_EXEMPT_PROCEDURES = ["healthCheck"] as const;
+
+export const RPC_RATE_LIMIT_SCORING_PROCEDURES = [
+  "startMatchScoring",
+  "saveMatchLineup",
+  "initializeMatchScoring",
+  "startScoringInnings",
+  "recordScoringDelivery",
+  "updateScoringDelivery",
+  "deleteScoringDelivery",
+  "closeCurrentScoringInnings",
+  "saveScoringDelivery",
+  "createNextScoringDelivery",
+  "endScoringInnings",
+] as const;
+
+export const RATE_LIMITER_DURABLE_OBJECT_TIMEOUT_MS = 250;
+
 export const PAGINATION = {
   DEFAULT_PAGE: 1,
   DEFAULT_LIMIT: 20,

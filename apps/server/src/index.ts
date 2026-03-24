@@ -3,6 +3,7 @@ import { OpenAPIHandler } from "@orpc/openapi/fetch";
 import { OpenAPIReferencePlugin } from "@orpc/openapi/plugins";
 import { onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
+import { ResponseHeadersPlugin } from "@orpc/server/plugins";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -53,6 +54,7 @@ app.get("/api/openapi.yaml", async (c) => {
 // ORPC handlers for type-safe RPC calls
 export const apiHandler = new OpenAPIHandler(appRouter, {
   plugins: [
+    new ResponseHeadersPlugin(),
     new OpenAPIReferencePlugin({
       docsPath: OPENAPI_DOCS_PATH,
       docsProvider: "swagger",
@@ -72,6 +74,7 @@ export const apiHandler = new OpenAPIHandler(appRouter, {
 });
 
 export const rpcHandler = new RPCHandler(appRouter, {
+  plugins: [new ResponseHeadersPlugin()],
   interceptors: [
     onError((error) => {
       console.error("RPC Error:", error);

@@ -66,6 +66,28 @@ export interface PlayerStatisticsView {
   player: PlayerStatisticsSummary;
 }
 
+export interface StatisticsLandingLeader {
+  ballsBowled: number;
+  economy: null | number;
+  inningsBatted: number;
+  matchesPlayed: number;
+  metric: number;
+  player: PlayerStatisticsSummary;
+  runsConceded: number;
+  runsScored: number;
+  wicketsTaken: number;
+}
+
+export interface StatisticsLandingView {
+  leaders: {
+    bestAverageBatter: null | StatisticsLandingLeader;
+    bestEconomyBowler: null | StatisticsLandingLeader;
+    highestRunGetter: null | StatisticsLandingLeader;
+    highestWicketTaker: null | StatisticsLandingLeader;
+  };
+  players: PlayerStatisticsSummary[];
+}
+
 interface MutableFormatStats {
   ballsPerOver: number;
   batting: {
@@ -127,6 +149,7 @@ interface PlayerStatisticsMatch {
 
 interface PlayerStatisticsLineupRow {
   match: null | PlayerStatisticsMatch;
+  playerId: number;
 }
 
 interface PlayerStatisticsStatsRow {
@@ -136,6 +159,7 @@ interface PlayerStatisticsStatsRow {
   fours: number;
   isDismissed: boolean;
   matchId: number;
+  playerId: number;
   runOuts: number;
   runsConceded: number;
   runsScored: number;
@@ -148,6 +172,18 @@ interface RelevantMatchState {
   formatStatsByLabel: Map<string, MutableFormatStats>;
   relevantMatchById: Map<number, PlayerStatisticsMatch>;
   relevantMatchIds: Set<number>;
+}
+
+interface PlayerAggregateMetrics {
+  ballsBowled: number;
+  battingAverage: null | number;
+  economy: null | number;
+  inningsBatted: number;
+  matchesPlayed: number;
+  player: PlayerStatisticsSummary;
+  runsConceded: number;
+  runsScored: number;
+  wicketsTaken: number;
 }
 
 function roundToTwo(value: number): number {
@@ -206,6 +242,32 @@ function calculateEconomy(
   }
 
   return roundToTwo((runsConceded * ballsPerOver) / ballsBowled);
+}
+
+function calculateOverallEconomy(
+  segments: Array<{
+    ballsBowled: number;
+    ballsPerOver: number;
+    runsConceded: number;
+  }>
+) {
+  let oversBowled = 0;
+  let runsConceded = 0;
+
+  for (const segment of segments) {
+    if (segment.ballsBowled <= 0 || segment.ballsPerOver <= 0) {
+      continue;
+    }
+
+    oversBowled += segment.ballsBowled / segment.ballsPerOver;
+    runsConceded += segment.runsConceded;
+  }
+
+  if (oversBowled <= 0) {
+    return null;
+  }
+
+  return roundToTwo(runsConceded / oversBowled);
 }
 
 function calculateBowlingAverage(runsConceded: number, wicketsTaken: number) {
@@ -624,6 +686,200 @@ function buildFormats(
     }));
 }
 
+function buildPlayerStatisticsView(params: {
+  lineupRows: PlayerStatisticsLineupRow[];
+  player: Player;
+  statsRows: PlayerStatisticsStatsRow[];
+}): PlayerStatisticsView {
+  const { lineupRows, player, statsRows } = params;
+  const relevantMatches = buildRelevantMatchState(lineupRows, player.id);
+
+  applyStatsRows({
+    statsRows,
+    relevantMatchIds: relevantMatches.relevantMatchIds,
+    relevantMatchById: relevantMatches.relevantMatchById,
+    formatStatsByLabel: relevantMatches.formatStatsByLabel,
+    isWicketKeeper: player.isWicketKeeper,
+  });
+
+  return {
+    player: createPlayerSummary(player),
+    formats: buildFormats(
+      relevantMatches.formatStatsByLabel,
+      player.isWicketKeeper
+    ),
+  };
+}
+
+function createAggregateMetrics(
+  playerStatistics: PlayerStatisticsView
+): PlayerAggregateMetrics {
+  let ballsBowled = 0;
+  let inningsBatted = 0;
+  let notOuts = 0;
+  let runsConceded = 0;
+  let runsScored = 0;
+  let wicketsTaken = 0;
+  const economySegments: Array<{
+    ballsBowled: number;
+    ballsPerOver: number;
+    runsConceded: number;
+  }> = [];
+
+  for (const format of playerStatistics.formats) {
+    runsScored += format.overview.runsScored;
+    wicketsTaken += format.overview.wicketsTaken;
+
+    if (format.batting) {
+      inningsBatted += format.batting.inningsBatted;
+      notOuts += format.batting.notOuts;
+    }
+
+    if (format.bowling) {
+      ballsBowled += format.bowling.ballsBowled;
+      runsConceded += format.bowling.runsConceded;
+      economySegments.push({
+        ballsBowled: format.bowling.ballsBowled,
+        ballsPerOver: format.bowling.ballsPerOver,
+        runsConceded: format.bowling.runsConceded,
+      });
+    }
+  }
+
+  const dismissals = inningsBatted - notOuts;
+
+  return {
+    player: playerStatistics.player,
+    matchesPlayed: playerStatistics.formats.reduce(
+      (total, format) => total + format.overview.matchesPlayed,
+      0
+    ),
+    runsConceded,
+    runsScored,
+    wicketsTaken,
+    inningsBatted,
+    ballsBowled,
+    battingAverage: calculateBattingAverage(runsScored, dismissals),
+    economy: calculateOverallEconomy(economySegments),
+  };
+}
+
+function isBetterHighMetricCandidate(params: {
+  current: PlayerAggregateMetrics;
+  next: PlayerAggregateMetrics;
+  selectMetric: (entry: PlayerAggregateMetrics) => number;
+}) {
+  const { current, next, selectMetric } = params;
+  const currentMetric = selectMetric(current);
+  const nextMetric = selectMetric(next);
+
+  if (nextMetric !== currentMetric) {
+    return nextMetric > currentMetric;
+  }
+
+  if (next.matchesPlayed !== current.matchesPlayed) {
+    return next.matchesPlayed > current.matchesPlayed;
+  }
+
+  return next.player.name.localeCompare(current.player.name) < 0;
+}
+
+function isBetterLowMetricCandidate(params: {
+  current: PlayerAggregateMetrics;
+  next: PlayerAggregateMetrics;
+  selectMetric: (entry: PlayerAggregateMetrics) => number;
+}) {
+  const { current, next, selectMetric } = params;
+  const currentMetric = selectMetric(current);
+  const nextMetric = selectMetric(next);
+
+  if (nextMetric !== currentMetric) {
+    return nextMetric < currentMetric;
+  }
+
+  if (next.ballsBowled !== current.ballsBowled) {
+    return next.ballsBowled > current.ballsBowled;
+  }
+
+  if (next.matchesPlayed !== current.matchesPlayed) {
+    return next.matchesPlayed > current.matchesPlayed;
+  }
+
+  return next.player.name.localeCompare(current.player.name) < 0;
+}
+
+function selectHighMetricLeader(params: {
+  entries: PlayerAggregateMetrics[];
+  isEligible: (entry: PlayerAggregateMetrics) => boolean;
+  selectMetric: (entry: PlayerAggregateMetrics) => number;
+}) {
+  const { entries, isEligible, selectMetric } = params;
+  let bestEntry: null | PlayerAggregateMetrics = null;
+
+  for (const entry of entries) {
+    if (!isEligible(entry)) {
+      continue;
+    }
+
+    if (
+      bestEntry === null ||
+      isBetterHighMetricCandidate({
+        current: bestEntry,
+        next: entry,
+        selectMetric,
+      })
+    ) {
+      bestEntry = entry;
+    }
+  }
+
+  if (bestEntry === null) {
+    return null;
+  }
+
+  return {
+    ...bestEntry,
+    metric: selectMetric(bestEntry),
+  };
+}
+
+function selectLowMetricLeader(params: {
+  entries: PlayerAggregateMetrics[];
+  isEligible: (entry: PlayerAggregateMetrics) => boolean;
+  selectMetric: (entry: PlayerAggregateMetrics) => null | number;
+}) {
+  const { entries, isEligible, selectMetric } = params;
+  let bestEntry: null | PlayerAggregateMetrics = null;
+
+  for (const entry of entries) {
+    const metric = selectMetric(entry);
+    if (metric === null || !isEligible(entry)) {
+      continue;
+    }
+
+    if (
+      bestEntry === null ||
+      isBetterLowMetricCandidate({
+        current: bestEntry,
+        next: entry,
+        selectMetric: (candidate) =>
+          selectMetric(candidate) ?? Number.POSITIVE_INFINITY,
+      })
+    ) {
+      bestEntry = entry;
+    }
+  }
+
+  if (bestEntry === null) {
+    return null;
+  }
+
+  return {
+    ...bestEntry,
+    metric: selectMetric(bestEntry) ?? 0,
+  };
+}
+
 export async function getPlayerStatisticsById(
   playerId: number
 ): Promise<PlayerStatisticsView | null> {
@@ -660,24 +916,81 @@ export async function getPlayerStatisticsById(
     return null;
   }
 
-  const relevantMatches = buildRelevantMatchState(
-    lineupRows as PlayerStatisticsLineupRow[],
-    playerId
+  return buildPlayerStatisticsView({
+    player,
+    lineupRows: lineupRows as PlayerStatisticsLineupRow[],
+    statsRows: statsRows as PlayerStatisticsStatsRow[],
+  });
+}
+
+export async function getStatisticsLandingView(): Promise<StatisticsLandingView> {
+  const [players, lineupRows, statsRows] = await Promise.all([
+    db.query.players.findMany({
+      orderBy: (table, { asc }) => [asc(table.name)],
+    }),
+    db.query.matchLineup.findMany({
+      with: {
+        match: {
+          with: {
+            tournament: {
+              with: {
+                defaultMatchFormat: true,
+              },
+            },
+          },
+        },
+      },
+    }),
+    db.query.playerInningsStats.findMany(),
+  ]);
+
+  const lineupRowsByPlayerId = new Map<number, PlayerStatisticsLineupRow[]>();
+  for (const lineupRow of lineupRows as PlayerStatisticsLineupRow[]) {
+    const playerLineups = lineupRowsByPlayerId.get(lineupRow.playerId) ?? [];
+    playerLineups.push(lineupRow);
+    lineupRowsByPlayerId.set(lineupRow.playerId, playerLineups);
+  }
+
+  const statsRowsByPlayerId = new Map<number, PlayerStatisticsStatsRow[]>();
+  for (const statsRow of statsRows as PlayerStatisticsStatsRow[]) {
+    const playerStats = statsRowsByPlayerId.get(statsRow.playerId) ?? [];
+    playerStats.push(statsRow);
+    statsRowsByPlayerId.set(statsRow.playerId, playerStats);
+  }
+
+  const aggregates = players.map((player) =>
+    createAggregateMetrics(
+      buildPlayerStatisticsView({
+        player,
+        lineupRows: lineupRowsByPlayerId.get(player.id) ?? [],
+        statsRows: statsRowsByPlayerId.get(player.id) ?? [],
+      })
+    )
   );
 
-  applyStatsRows({
-    statsRows: statsRows as PlayerStatisticsStatsRow[],
-    relevantMatchIds: relevantMatches.relevantMatchIds,
-    relevantMatchById: relevantMatches.relevantMatchById,
-    formatStatsByLabel: relevantMatches.formatStatsByLabel,
-    isWicketKeeper: player.isWicketKeeper,
-  });
-
   return {
-    player: createPlayerSummary(player),
-    formats: buildFormats(
-      relevantMatches.formatStatsByLabel,
-      player.isWicketKeeper
-    ),
+    players: players.map(createPlayerSummary),
+    leaders: {
+      highestRunGetter: selectHighMetricLeader({
+        entries: aggregates,
+        isEligible: (entry) => entry.runsScored > 0,
+        selectMetric: (entry) => entry.runsScored,
+      }),
+      highestWicketTaker: selectHighMetricLeader({
+        entries: aggregates,
+        isEligible: (entry) => entry.wicketsTaken > 0,
+        selectMetric: (entry) => entry.wicketsTaken,
+      }),
+      bestAverageBatter: selectHighMetricLeader({
+        entries: aggregates,
+        isEligible: (entry) => entry.battingAverage !== null,
+        selectMetric: (entry) => entry.battingAverage ?? 0,
+      }),
+      bestEconomyBowler: selectLowMetricLeader({
+        entries: aggregates,
+        isEligible: (entry) => entry.ballsBowled >= 6,
+        selectMetric: (entry) => entry.economy,
+      }),
+    },
   };
 }
