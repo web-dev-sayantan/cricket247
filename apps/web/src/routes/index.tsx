@@ -39,23 +39,25 @@ function HomeComponent() {
           className="grid items-center gap-12 pt-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] lg:gap-16"
         >
           <div className="relative z-10 animate-stagger-1 space-y-8">
-            <div className="angled-cut inline-flex w-fit items-center gap-3 border border-red-500/30 bg-red-500/10 px-3 py-1.5 font-bold text-red-500 text-xs uppercase tracking-widest shadow-[0_0_12px_rgba(239,68,68,0.15)]">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
-              </span>
-              Live Scores
+            <div className="angled-cut inline-flex w-fit bg-red-500/35 p-px shadow-[0_0_12px_rgba(239,68,68,0.15)]">
+              <div className="angled-cut inline-flex items-center gap-3 bg-[color-mix(in_oklab,var(--color-background)_86%,rgb(239_68_68)_14%)] px-3 py-1.5 font-bold text-red-500 text-xs uppercase tracking-widest">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+                </span>
+                Live Scores
+              </div>
             </div>
 
             <div className="space-y-5">
               <h1
-                className="text-balance font-extrabold font-serif text-5xl text-foreground leading-[1.05] tracking-tight drop-shadow-sm sm:text-6xl lg:text-7xl"
+                className="text-balance font-normal font-serif text-5xl text-foreground leading-[1.05] tracking-tight drop-shadow-sm sm:text-6xl lg:text-7xl"
                 id="hero-title"
               >
                 Every Ball.{" "}
-                <span className="relative z-10 inline-block text-primary italic">
+                <span className="relative z-10 inline-block text-primary">
                   Every Boundary.
-                  <span className="slanted-wavy absolute -bottom-2 left-0 z-[-1] h-[4px] w-full bg-accent" />
+                  <span className="slanted-wavy absolute -bottom-2 left-0 z-[-1] h-1 w-full bg-accent" />
                 </span>
                 <br />
                 Live.
@@ -68,23 +70,31 @@ function HomeComponent() {
 
             <div className="flex flex-col gap-4 pt-4 sm:flex-row">
               <Link
-                className={cn(
-                  buttonVariants({ size: "lg" }),
-                  "angled-cut h-14 px-8 text-base shadow-[0_0_20px_rgba(var(--color-primary)/0.3)] transition-shadow hover:shadow-[0_0_30px_rgba(var(--color-primary)/0.5)]"
-                )}
+                className="angled-cut group inline-flex bg-primary/40 p-px shadow-[0_0_20px_rgba(var(--color-primary)/0.3)] transition-shadow hover:shadow-[0_0_30px_rgba(var(--color-primary)/0.5)]"
                 to="/matches"
               >
-                View Live Scores
-                <Activity className="ml-2 size-4" />
+                <span
+                  className={cn(
+                    buttonVariants({ size: "lg" }),
+                    "angled-cut h-14 border-transparent bg-primary px-8 text-base"
+                  )}
+                >
+                  View Live Scores
+                  <Activity className="ml-2 size-4" />
+                </span>
               </Link>
               <Link
-                className={cn(
-                  buttonVariants({ size: "lg", variant: "outline" }),
-                  "angled-cut h-14 border-border/50 bg-background/50 px-8 text-base transition-colors hover:border-accent hover:bg-accent/10 hover:text-accent"
-                )}
+                className="angled-cut group inline-flex bg-border/70 p-px"
                 to="/tournaments"
               >
-                Explore Tournaments
+                <span
+                  className={cn(
+                    buttonVariants({ size: "lg", variant: "outline" }),
+                    "angled-cut h-14 border-transparent bg-background/94 px-8 text-base transition-colors group-hover:bg-accent/10 group-hover:text-accent"
+                  )}
+                >
+                  Explore Tournaments
+                </span>
               </Link>
             </div>
           </div>
@@ -101,7 +111,7 @@ function HomeComponent() {
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuCIvdMNfmHQmC-njsrK454hNGBMEWD0lG1m1x-7ZfGW1UUjsp3gNhpDuYd0wXtuuLg-YrDi80WeB9d92yxWg75IfE6wthJuSg3xp0NV9IZsKQUaGumjystZMagh6Z_4Pe-fEFNG2-Rt43MOzB3-2Dgda6A9ex95eblMop0NXxy-Q8LtFqQ7l1qbcGMFAo9DlkxmkVNUj3tYN50ZA6pRiMnz6sBut39pYLe7MRZPQmBf7KpabF3EIOccZ59GUnKxnL9hDMGg4181D_4"
                 width={960}
               />
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
+              <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-background/90 via-background/20 to-transparent" />
 
               <figcaption className="absolute inset-x-0 bottom-0 flex items-end p-6">
                 <div className="angled-cut w-full border border-border bg-background/85 p-4 shadow-xl backdrop-blur-md">
@@ -143,7 +153,7 @@ function HomeComponent() {
               <div className="flex items-center gap-3">
                 <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
                 <h2
-                  className="font-bold font-serif text-3xl text-foreground sm:text-4xl"
+                  className="font-normal font-serif text-3xl text-foreground sm:text-4xl"
                   id="live-title"
                 >
                   Happening Now
@@ -197,10 +207,10 @@ function HomeComponent() {
         >
           <div className="max-w-2xl space-y-4">
             <h2
-              className="font-bold font-serif text-4xl text-foreground tracking-tight sm:text-5xl"
+              className="font-normal font-serif text-4xl text-foreground tracking-tight sm:text-5xl"
               id="features-title"
             >
-              Your Match, <span className="text-primary italic">Your Way</span>
+              Your Match, <span className="text-primary">Your Way</span>
             </h2>
             <p className="font-sans text-lg text-muted-foreground">
               From the opening delivery to the last wicket — everything you need
@@ -234,7 +244,7 @@ function HomeComponent() {
           <div className="absolute top-10 -left-10 z-0 hidden h-40 w-40 rounded-full bg-accent/10 blur-3xl dark:block" />
           <div className="relative z-10 max-w-3xl space-y-4">
             <h2
-              className="font-bold font-serif text-4xl tracking-tight sm:text-5xl"
+              className="font-normal font-serif text-4xl tracking-tight sm:text-5xl"
               id="why-title"
             >
               Stay{" "}
@@ -291,7 +301,7 @@ function HomeComponent() {
             <div className="absolute bottom-0 left-0 z-0 h-64 w-64 bg-accent/20 blur-3xl" />
             <div className="relative z-10 mx-auto max-w-2xl space-y-6">
               <h2
-                className="font-extrabold font-serif text-4xl tracking-tight drop-shadow-md sm:text-5xl"
+                className="font-normal font-serif text-4xl tracking-tight drop-shadow-md sm:text-5xl"
                 id="cta-title"
               >
                 The Score Won't Wait.
@@ -302,22 +312,30 @@ function HomeComponent() {
               </p>
               <div className="flex flex-col items-center gap-4 pt-4 sm:flex-row sm:justify-center">
                 <Link
-                  className={cn(
-                    buttonVariants({ size: "lg" }),
-                    "angled-cut h-14 px-10 text-base shadow-[0_0_15px_rgba(var(--color-primary)/0.4)] hover:shadow-[0_0_25px_rgba(var(--color-primary)/0.6)]"
-                  )}
+                  className="angled-cut group inline-flex bg-primary/40 p-px shadow-[0_0_15px_rgba(var(--color-primary)/0.4)] hover:shadow-[0_0_25px_rgba(var(--color-primary)/0.6)]"
                   to="/matches"
                 >
-                  View Live Scores
+                  <span
+                    className={cn(
+                      buttonVariants({ size: "lg" }),
+                      "angled-cut h-14 border-transparent bg-primary px-10 text-base"
+                    )}
+                  >
+                    View Live Scores
+                  </span>
                 </Link>
                 <Link
-                  className={cn(
-                    buttonVariants({ size: "lg", variant: "outline" }),
-                    "angled-cut h-14 border-border/50 px-10 text-base"
-                  )}
+                  className="angled-cut group inline-flex bg-border/70 p-px"
                   to="/tournaments"
                 >
-                  Browse Tournaments
+                  <span
+                    className={cn(
+                      buttonVariants({ size: "lg", variant: "outline" }),
+                      "angled-cut h-14 border-transparent bg-background/94 px-10 text-base transition-colors group-hover:bg-accent/10 group-hover:text-accent"
+                    )}
+                  >
+                    Browse Tournaments
+                  </span>
                 </Link>
               </div>
             </div>
@@ -328,8 +346,8 @@ function HomeComponent() {
       <footer className="relative z-10 mt-16 border-border border-t bg-background">
         <div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-6 px-4 py-10 text-center sm:flex-row sm:justify-between sm:px-6 sm:text-left lg:px-8">
           <div className="flex flex-col space-y-1">
-            <p className="font-bold font-serif text-xl tracking-wide">
-              Cricket <span className="text-primary italic">24/7</span>
+            <p className="font-normal font-serif text-xl tracking-wide">
+              Cricket <span className="text-primary">24/7</span>
             </p>
             <p className="text-muted-foreground text-xs uppercase tracking-widest">
               © 2026 All rights reserved
@@ -414,7 +432,7 @@ function HeroScoreOverlay({
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
           Live
         </p>
-        <p className="truncate font-semibold font-serif text-base text-foreground">
+        <p className="truncate font-semibold text-base text-foreground">
           {heroMatch.team1Name}{" "}
           <span className="mx-1 text-muted-foreground text-sm">vs</span>{" "}
           {heroMatch.team2Name}
@@ -465,13 +483,13 @@ function LiveMatchTile({
       </div>
 
       <div className="flex items-center justify-between gap-2">
-        <span className="min-w-0 flex-1 truncate font-bold font-serif text-base">
+        <span className="min-w-0 flex-1 truncate font-semibold text-base">
           {team1Name}
         </span>
         <span className="shrink-0 px-2 font-medium text-muted-foreground/70 text-xs">
           vs
         </span>
-        <span className="min-w-0 flex-1 truncate text-right font-bold font-serif text-base">
+        <span className="min-w-0 flex-1 truncate text-right font-semibold text-base">
           {team2Name}
         </span>
       </div>
@@ -522,7 +540,7 @@ function FanFeatureCard({
       <div className="angled-cut relative z-10 inline-flex border border-primary/20 bg-primary/10 p-3 text-primary shadow-[0_0_10px_rgba(var(--color-primary)/0.2)]">
         {icon}
       </div>
-      <h3 className="relative z-10 font-bold font-serif text-xl">{title}</h3>
+      <h3 className="relative z-10 font-semibold text-xl">{title}</h3>
       <p className="relative z-10 font-sans text-muted-foreground text-sm leading-relaxed">
         {description}
       </p>
@@ -544,7 +562,7 @@ function WhyCard({
       <div className="angled-cut mb-4 inline-flex border border-accent/20 bg-accent/10 p-3 text-accent shadow-[0_0_10px_rgba(var(--color-accent)/0.2)] transition-transform duration-300 group-hover:scale-110">
         {icon}
       </div>
-      <h3 className="font-bold font-serif text-xl">{title}</h3>
+      <h3 className="font-semibold text-xl">{title}</h3>
       <p className="mt-2 font-sans text-muted-foreground text-sm leading-relaxed">
         {description}
       </p>

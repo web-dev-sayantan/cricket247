@@ -61,7 +61,7 @@ function DashboardComponent() {
     <PageShell className="overflow-x-hidden selection:bg-primary/20">
       <PageHeader
         description={`Welcome back, ${session.data?.user.name ?? "there"}`}
-        headingClassName="font-extrabold text-4xl lg:text-5xl"
+        headingClassName="font-normal font-serif text-4xl lg:text-5xl"
         title="Dashboard"
       />
 

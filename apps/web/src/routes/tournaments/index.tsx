@@ -98,7 +98,7 @@ function TournamentsPageComponent() {
           ) : null
         }
         description="Discover and manage cricket tournaments"
-        headingClassName="font-extrabold text-4xl lg:text-5xl"
+        headingClassName="font-normal font-serif text-4xl lg:text-5xl"
         title="Tournaments"
       />
 

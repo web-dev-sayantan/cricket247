@@ -51,7 +51,7 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85">
+      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/85">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link
             className="font-bold text-lg tracking-tight transition-colors hover:text-primary"
@@ -79,14 +79,18 @@ export default function Header() {
             ))}
             {isHomePage && (
               <Link
-                className={cn(
-                  buttonVariants({ size: "sm", variant: "outline" }),
-                  "angled-cut border-primary/40 text-primary hover:border-primary hover:bg-primary/10"
-                )}
+                className="angled-cut group inline-flex bg-primary/35 p-px"
                 onClick={() => setIsOpen(false)}
                 to="/organize"
               >
-                For Organizers
+                <span
+                  className={cn(
+                    buttonVariants({ size: "sm", variant: "outline" }),
+                    "angled-cut border-transparent bg-background/96 text-primary transition-colors group-hover:bg-primary/10"
+                  )}
+                >
+                  For Organizers
+                </span>
               </Link>
             )}
           </nav>
