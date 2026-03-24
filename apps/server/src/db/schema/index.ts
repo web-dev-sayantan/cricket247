@@ -515,6 +515,7 @@ export const matches = sqliteTable(
     ballsPerOverSnapshot: integer().notNull().default(6),
     maxLegalBallsPerInningsSnapshot: integer(),
     maxOversPerBowlerSnapshot: integer(),
+    followOnAllowedSnapshot: booleanFlag(),
     playersPerSide: integer().notNull().default(11),
     hasSuperSub: booleanFlag(),
     substitutesPerSide: integer().notNull().default(0),

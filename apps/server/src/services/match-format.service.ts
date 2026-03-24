@@ -169,16 +169,15 @@ export async function getMatchFormatRulesByMatchId(
       maxLegalBallsPerInnings: format?.maxLegalBallsPerInnings,
       noOfOvers: format?.noOfOvers ?? match.oversPerSide,
     });
-  const matchNoOfInnings = toPositiveIntOrNull(match.inningsPerSide)
-    ? (toPositiveIntOrNull(match.inningsPerSide) ?? 1) * 2
-    : null;
+  const matchInningsPerSide = toPositiveIntOrNull(match.inningsPerSide);
+  const matchNoOfInnings = matchInningsPerSide ? matchInningsPerSide * 2 : null;
 
   return {
     matchFormatId: resolvedFormatId,
     formatLabel: format?.name ?? match.format,
     ballsPerOver,
-    followOnAllowed: Boolean(format?.isFollowOnAllowed),
-    noOfInnings: toPositiveIntOrNull(format?.noOfInnings) ?? matchNoOfInnings,
+    followOnAllowed: Boolean(match.followOnAllowedSnapshot),
+    noOfInnings: matchNoOfInnings ?? toPositiveIntOrNull(format?.noOfInnings),
     noOfOvers:
       toPositiveIntOrNull(format?.noOfOvers) ??
       toPositiveIntOrNull(match.oversPerSide),

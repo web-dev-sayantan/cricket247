@@ -1,4 +1,6 @@
 import {
+  LOCAL_RATE_LIMIT_STORE_ENTRY_TTL_MS,
+  LOCAL_RATE_LIMIT_STORE_PRUNE_INTERVAL_MS,
   RATE_LIMITER_DURABLE_OBJECT_TIMEOUT_MS,
   RPC_RATE_LIMIT_BUCKETS,
   RPC_RATE_LIMIT_EXEMPT_PROCEDURES,
@@ -14,8 +16,16 @@ export interface RateLimitBucketConfig {
 
 export interface TokenBucketState {
   lastRefillAt: number;
+  lastSeen: number;
+  nextRefill: number;
   tokens: number;
 }
+
+type StoredTokenBucketState = Pick<
+  TokenBucketState,
+  "lastRefillAt" | "tokens"
+> &
+  Partial<Pick<TokenBucketState, "lastSeen" | "nextRefill">>;
 
 export interface RateLimitEvaluation {
   allowed: boolean;
@@ -63,7 +73,10 @@ interface ConsumeRateLimitOptions {
 
 const TOKEN_BUCKET_STATE_KEY = "token-bucket-state";
 const CONSUME_PATH = "https://rate-limiter/consume";
+
+const MAX_LOCAL_STORE_SIZE = 10_000;
 const LOCAL_RATE_LIMIT_STORE = new Map<string, TokenBucketState>();
+let lastLocalRateLimitStorePruneAt = 0;
 const SCORING_PROCEDURE_SET = new Set<string>(
   RPC_RATE_LIMIT_SCORING_PROCEDURES
 );
@@ -73,18 +86,141 @@ function ceilSeconds(milliseconds: number) {
   return Math.max(0, Math.ceil(milliseconds / 1000));
 }
 
+function getNextRefillTimestamp(
+  config: RateLimitBucketConfig,
+  tokens: number,
+  now: number
+) {
+  if (tokens >= config.capacity) {
+    return now;
+  }
+
+  const refillRatePerMillisecond = config.refillRatePerSecond / 1000;
+  if (refillRatePerMillisecond <= 0) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return now + Math.ceil((config.capacity - tokens) / refillRatePerMillisecond);
+}
+
+function normalizeTokenBucketState(
+  config: RateLimitBucketConfig,
+  currentState: StoredTokenBucketState | undefined,
+  now: number
+): TokenBucketState {
+  const lastRefillAt = currentState?.lastRefillAt ?? now;
+  const tokens = Math.min(
+    config.capacity,
+    Math.max(0, currentState?.tokens ?? config.capacity)
+  );
+
+  return {
+    lastRefillAt,
+    lastSeen: currentState?.lastSeen ?? lastRefillAt,
+    nextRefill:
+      currentState?.nextRefill ??
+      getNextRefillTimestamp(config, tokens, lastRefillAt),
+    tokens,
+  };
+}
+
+function shouldPruneLocalRateLimitState(state: TokenBucketState, now: number) {
+  if (now >= state.nextRefill) {
+    return true;
+  }
+
+  return now - state.lastSeen > LOCAL_RATE_LIMIT_STORE_ENTRY_TTL_MS;
+}
+
+function enforceLocalRateLimitStoreSize() {
+  if (LOCAL_RATE_LIMIT_STORE.size <= MAX_LOCAL_STORE_SIZE) {
+    return;
+  }
+
+  const entries = Array.from(LOCAL_RATE_LIMIT_STORE.entries());
+  entries.sort((a, b) => a[1].lastSeen - b[1].lastSeen);
+
+  let index = 0;
+  while (
+    LOCAL_RATE_LIMIT_STORE.size > MAX_LOCAL_STORE_SIZE &&
+    index < entries.length
+  ) {
+    const [key] = entries[index];
+    LOCAL_RATE_LIMIT_STORE.delete(key);
+    index += 1;
+  }
+}
+
+export function pruneLocalRateLimitStore(now = Date.now()) {
+  if (
+    now - lastLocalRateLimitStorePruneAt <
+    LOCAL_RATE_LIMIT_STORE_PRUNE_INTERVAL_MS
+  ) {
+    return;
+  }
+
+  for (const [key, state] of LOCAL_RATE_LIMIT_STORE) {
+    if (shouldPruneLocalRateLimitState(state, now)) {
+      LOCAL_RATE_LIMIT_STORE.delete(key);
+    }
+  }
+
+  lastLocalRateLimitStorePruneAt = now;
+}
+
+function getLocalRateLimitState(key: string, now: number) {
+  const state = LOCAL_RATE_LIMIT_STORE.get(key);
+  if (!state) {
+    return undefined;
+  }
+
+  if (shouldPruneLocalRateLimitState(state, now)) {
+    LOCAL_RATE_LIMIT_STORE.delete(key);
+    return undefined;
+  }
+
+  return state;
+}
+
+function setLocalRateLimitState(
+  key: string,
+  state: TokenBucketState,
+  now: number
+) {
+  if (shouldPruneLocalRateLimitState(state, now)) {
+    LOCAL_RATE_LIMIT_STORE.delete(key);
+    return;
+  }
+
+  LOCAL_RATE_LIMIT_STORE.set(key, state);
+  enforceLocalRateLimitStoreSize();
+}
+
+export function clearLocalRateLimitStoreForTests() {
+  LOCAL_RATE_LIMIT_STORE.clear();
+  lastLocalRateLimitStorePruneAt = 0;
+}
+
+export function getLocalRateLimitStoreSizeForTests() {
+  return LOCAL_RATE_LIMIT_STORE.size;
+}
+
+export function setLocalRateLimitStateForTests(
+  key: string,
+  state: TokenBucketState
+) {
+  LOCAL_RATE_LIMIT_STORE.set(key, state);
+}
+
 export function evaluateTokenBucket(
   config: RateLimitBucketConfig,
-  currentState: TokenBucketState | undefined,
+  currentState: StoredTokenBucketState | undefined,
   now: number,
   cost = 1
 ): RateLimitEvaluation {
   const capacity = config.capacity;
   const refillRatePerMillisecond = config.refillRatePerSecond / 1000;
-  const baselineState = currentState ?? {
-    lastRefillAt: now,
-    tokens: capacity,
-  };
+  const baselineState = normalizeTokenBucketState(config, currentState, now);
   const elapsedMs = Math.max(0, now - baselineState.lastRefillAt);
   const refilledTokens = Math.min(
     capacity,
@@ -95,10 +231,14 @@ export function evaluateTokenBucket(
   const nextState = allowed
     ? {
         lastRefillAt: now,
+        lastSeen: now,
+        nextRefill: getNextRefillTimestamp(config, remainingTokens, now),
         tokens: remainingTokens,
       }
     : {
         lastRefillAt: now,
+        lastSeen: now,
+        nextRefill: getNextRefillTimestamp(config, refilledTokens, now),
         tokens: refilledTokens,
       };
   const missingTokens = allowed ? 0 : Math.max(0, cost - refilledTokens);
@@ -140,12 +280,18 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number) {
   });
 }
 
+function buildRateLimitStateKey(bucket: RateLimitBucketName, key: string) {
+  return `${bucket}:${key}`;
+}
+
 function consumeLocalRateLimit(
   options: Omit<ConsumeRateLimitOptions, "namespace">
 ) {
   const config = RPC_RATE_LIMIT_BUCKETS[options.bucket];
   const now = options.now ?? Date.now();
-  const currentState = LOCAL_RATE_LIMIT_STORE.get(options.key);
+  pruneLocalRateLimitStore(now);
+  const stateKey = buildRateLimitStateKey(options.bucket, options.key);
+  const currentState = getLocalRateLimitState(stateKey, now);
   const evaluation = evaluateTokenBucket(
     config,
     currentState,
@@ -153,7 +299,7 @@ function consumeLocalRateLimit(
     options.cost ?? 1
   );
 
-  LOCAL_RATE_LIMIT_STORE.set(options.key, evaluation.state);
+  setLocalRateLimitState(stateKey, evaluation.state, now);
 
   return evaluation;
 }
@@ -163,7 +309,9 @@ export async function consumeRateLimit(options: ConsumeRateLimitOptions) {
     return consumeLocalRateLimit(options);
   }
 
-  const id = options.namespace.idFromName(options.key);
+  const id = options.namespace.idFromName(
+    buildRateLimitStateKey(options.bucket, options.key)
+  );
   const stub = options.namespace.get(id);
   const response = await withTimeout(
     stub.fetch(CONSUME_PATH, {
@@ -196,20 +344,34 @@ export function getRateLimitHeaders(evaluation: RateLimitEvaluation) {
   } as const;
 }
 
-export function getClientIp(headers: Headers) {
-  const forwardedFor = headers.get("cf-connecting-ip")?.trim();
-  if (forwardedFor) {
-    return forwardedFor;
+export interface GetClientIpOptions {
+  /**
+   * Enable parsing of proxy headers (x-forwarded-for, x-real-ip).
+   * Only enable if the request is known to come through a trusted proxy.
+   * By default, only Cloudflare's cf-connecting-ip header is trusted.
+   */
+  trustedProxy?: boolean;
+}
+
+export function getClientIp(
+  headers: Headers,
+  options: GetClientIpOptions = {}
+) {
+  const cfConnectingIp = headers.get("cf-connecting-ip")?.trim();
+  if (cfConnectingIp) {
+    return cfConnectingIp;
   }
 
-  const proxiedFor = headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  if (proxiedFor) {
-    return proxiedFor;
-  }
+  if (options.trustedProxy) {
+    const proxiedFor = headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+    if (proxiedFor) {
+      return proxiedFor;
+    }
 
-  const realIp = headers.get("x-real-ip")?.trim();
-  if (realIp) {
-    return realIp;
+    const realIp = headers.get("x-real-ip")?.trim();
+    if (realIp) {
+      return realIp;
+    }
   }
 
   return undefined;
@@ -274,7 +436,7 @@ export class RateLimitDurableObject {
 
     const payload = (await request.json()) as ConsumeRateLimitRequest;
     const config = RPC_RATE_LIMIT_BUCKETS[payload.bucket];
-    const currentState = await this.state.storage.get<TokenBucketState>(
+    const currentState = await this.state.storage.get<StoredTokenBucketState>(
       TOKEN_BUCKET_STATE_KEY
     );
     const evaluation = evaluateTokenBucket(

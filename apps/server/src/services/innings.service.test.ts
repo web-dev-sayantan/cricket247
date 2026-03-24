@@ -26,12 +26,9 @@ interface InningsSequenceRow {
 }
 
 interface MatchRow {
+  followOnAllowedSnapshot: boolean | null;
   id: number;
   inningsPerSide: number;
-  matchFormat: {
-    isFollowOnAllowed: boolean | null;
-    noOfInnings: number | null;
-  } | null;
   team1Id: number | null;
   team2Id: number | null;
 }
@@ -59,9 +56,9 @@ const state: InningsMockState = {
   inningsSequenceRows: [],
   insertResult: { lastInsertRowid: 0 },
   matchRow: {
+    followOnAllowedSnapshot: false,
     id: 5,
     inningsPerSide: 1,
-    matchFormat: null,
     team1Id: 2,
     team2Id: 3,
   },
@@ -122,9 +119,9 @@ describe("innings.service", () => {
     state.inningsDetailRow = null;
     state.inningsSequenceRows = [];
     state.matchRow = {
+      followOnAllowedSnapshot: false,
       id: 5,
       inningsPerSide: 1,
-      matchFormat: null,
       team1Id: 2,
       team2Id: 3,
     };
@@ -222,12 +219,9 @@ describe("innings.service", () => {
   it("allows a third-innings follow-on when the second side trails by 200 or more", async () => {
     state.insertResult = { lastInsertRowid: 88 };
     state.matchRow = {
+      followOnAllowedSnapshot: true,
       id: 5,
       inningsPerSide: 2,
-      matchFormat: {
-        isFollowOnAllowed: true,
-        noOfInnings: 4,
-      },
       team1Id: 2,
       team2Id: 3,
     };
@@ -264,12 +258,9 @@ describe("innings.service", () => {
 
   it("rejects a third-innings follow-on when the deficit is below 200", async () => {
     state.matchRow = {
+      followOnAllowedSnapshot: true,
       id: 5,
       inningsPerSide: 2,
-      matchFormat: {
-        isFollowOnAllowed: true,
-        noOfInnings: 4,
-      },
       team1Id: 2,
       team2Id: 3,
     };

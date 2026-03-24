@@ -165,7 +165,15 @@
   }
 
   .skip-link {
-    @apply sr-only fixed left-4 top-3 z-[100] bg-primary px-3 py-2 font-medium text-primary-foreground text-sm shadow-lg focus:not-sr-only focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/70 angled-cut;
+    clip-path: polygon(
+      12px 0,
+      100% 0,
+      100% calc(100% - 12px),
+      calc(100% - 12px) 100%,
+      0 100%,
+      0 12px
+    );
+    @apply sr-only fixed left-4 top-3 z-[100] bg-primary px-3 py-2 font-medium text-primary-foreground text-sm shadow-lg focus:not-sr-only focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/70;
   }
 
   .page-surface {

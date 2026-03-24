@@ -11,8 +11,24 @@ interface MatchFormatRow {
   noOfOvers: number | null;
 }
 
+interface MatchRow {
+  ballsPerOverSnapshot: number | null;
+  followOnAllowedSnapshot: boolean | null;
+  format: string;
+  id: number;
+  inningsPerSide: number;
+  matchFormatId: number | null;
+  maxLegalBallsPerInningsSnapshot: number | null;
+  maxOverPerBowler: number;
+  maxOversPerBowlerSnapshot: number | null;
+  oversPerSide: number;
+  stageId: number | null;
+  tournamentId: number;
+}
+
 interface MockState {
   formatRow: MatchFormatRow | null;
+  matchRow: MatchRow | null;
   stageMatchFormatId: number | null;
   tournamentDefaultMatchFormatId: number | null;
 }
@@ -21,10 +37,16 @@ const state: MockState = {
   stageMatchFormatId: null,
   tournamentDefaultMatchFormatId: null,
   formatRow: null,
+  matchRow: null,
 };
 
 const dbMock = {
   query: {
+    matches: {
+      findFirst: (): Promise<MatchRow | null> => {
+        return Promise.resolve(state.matchRow);
+      },
+    },
     tournamentStages: {
       findFirst: (): Promise<{ matchFormatId: number | null } | null> => {
         if (state.stageMatchFormatId === null) {
@@ -51,6 +73,25 @@ const dbMock = {
       },
     },
   },
+  select: () => ({
+    from: () => ({
+      where: () => ({
+        limit: (): Promise<
+          {
+            defaultMatchFormatId: number | null;
+            matchFormatId: number | null;
+          }[]
+        > => {
+          return Promise.resolve([
+            {
+              defaultMatchFormatId: state.tournamentDefaultMatchFormatId,
+              matchFormatId: state.stageMatchFormatId,
+            },
+          ]);
+        },
+      }),
+    }),
+  }),
 };
 
 mock.module("@/db", () => ({ db: dbMock }));
@@ -62,6 +103,7 @@ describe("match-format.service", () => {
     state.stageMatchFormatId = null;
     state.tournamentDefaultMatchFormatId = null;
     state.formatRow = null;
+    state.matchRow = null;
   });
 
   it("uses explicit match format and derives max balls from overs", async () => {
@@ -129,5 +171,39 @@ describe("match-format.service", () => {
     });
 
     expect(result).toBeNull();
+  });
+
+  it("prefers immutable match snapshots over live match format values", async () => {
+    state.matchRow = {
+      ballsPerOverSnapshot: 6,
+      followOnAllowedSnapshot: false,
+      format: "Test",
+      id: 12,
+      inningsPerSide: 2,
+      matchFormatId: 7,
+      maxLegalBallsPerInningsSnapshot: 540,
+      maxOverPerBowler: 25,
+      maxOversPerBowlerSnapshot: 25,
+      oversPerSide: 90,
+      stageId: null,
+      tournamentId: 99,
+    };
+    state.formatRow = {
+      id: 7,
+      name: "Test",
+      ballsPerOver: 6,
+      isFollowOnAllowed: true,
+      maxLegalBallsPerInnings: 300,
+      maxOversPerBowler: 10,
+      noOfInnings: 2,
+      noOfOvers: 50,
+    };
+
+    const { getMatchFormatRulesByMatchId } = await serviceModulePromise;
+    const result = await getMatchFormatRulesByMatchId(12);
+
+    expect(result.followOnAllowed).toBe(false);
+    expect(result.noOfInnings).toBe(4);
+    expect(result.maxLegalBallsPerInnings).toBe(540);
   });
 });

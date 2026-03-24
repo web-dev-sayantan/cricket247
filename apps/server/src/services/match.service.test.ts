@@ -13,6 +13,7 @@ interface MatchFormatRulesRow {
 
 interface MatchInsertPayload {
   ballsPerOverSnapshot: number;
+  followOnAllowedSnapshot: boolean;
   format: string;
   inningsPerSide: number;
   matchFormatId: number | null;
@@ -89,5 +90,6 @@ describe("match.service createMatchAction", () => {
     expect(state.capturedPayload?.inningsPerSide).toBe(2);
     expect(state.capturedPayload?.matchFormatId).toBe(9);
     expect(state.capturedPayload?.oversPerSide).toBe(90);
+    expect(state.capturedPayload?.followOnAllowedSnapshot).toBe(true);
   });
 });

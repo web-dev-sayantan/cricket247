@@ -215,6 +215,7 @@ export async function createMatchAction({
       resolvedFormat?.maxLegalBallsPerInnings ??
       effectiveOversPerSide * (resolvedFormat?.ballsPerOver ?? 6),
     maxOversPerBowlerSnapshot: effectiveMaxOverPerBowler,
+    followOnAllowedSnapshot: resolvedFormat?.followOnAllowed ?? false,
     winnerId,
     result,
     format: resolvedFormat?.formatLabel ?? format ?? "Custom",

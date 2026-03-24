@@ -404,7 +404,10 @@ export const scoringRouter = {
           ...session,
           canCurrentUserScore: true,
         };
-      } catch (_error) {
+      } catch (error) {
+        if (error instanceof ORPCError) {
+          throw error;
+        }
         throw new ORPCError("BAD_REQUEST");
       }
     }),

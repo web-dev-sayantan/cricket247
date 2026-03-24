@@ -875,6 +875,7 @@ async function findMatchFormatById(matchFormatId: number | null) {
   const [format] = await db
     .select({
       id: matchFormats.id,
+      isFollowOnAllowed: matchFormats.isFollowOnAllowed,
       name: matchFormats.name,
       noOfOvers: matchFormats.noOfOvers,
       ballsPerOver: matchFormats.ballsPerOver,
@@ -941,6 +942,7 @@ export async function createDraftFixtureMatch(
         format?.maxLegalBallsPerInnings ??
         (format?.noOfOvers ?? 20) * (format?.ballsPerOver ?? 6),
       maxOversPerBowlerSnapshot: format?.maxOversPerBowler ?? 4,
+      followOnAllowedSnapshot: format?.isFollowOnAllowed ?? false,
       playersPerSide: format?.playersPerSide ?? 11,
       format: format?.name ?? "Custom",
       fixtureStatus: "draft",
@@ -1320,6 +1322,7 @@ async function createGeneratedMatches(params: {
           format?.maxLegalBallsPerInnings ??
           (format?.noOfOvers ?? 20) * (format?.ballsPerOver ?? 6),
         maxOversPerBowlerSnapshot: format?.maxOversPerBowler ?? 4,
+        followOnAllowedSnapshot: format?.isFollowOnAllowed ?? false,
         playersPerSide: format?.playersPerSide ?? 11,
         format: format?.name ?? "Custom",
         fixtureStatus: "draft",

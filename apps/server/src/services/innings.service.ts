@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-
+import { FOLLOW_ON_LEAD_THRESHOLD } from "@/config/constants";
 import { db } from "@/db";
 import { innings, matches } from "@/db/schema";
 
@@ -11,17 +11,7 @@ interface InningsSequenceRow {
   totalScore: number;
 }
 
-function resolveScheduledInningsCount(match: {
-  inningsPerSide: number;
-  matchFormat?: {
-    noOfInnings: number | null;
-  } | null;
-}) {
-  const formatNoOfInnings = match.matchFormat?.noOfInnings;
-  if (formatNoOfInnings === 2 || formatNoOfInnings === 4) {
-    return formatNoOfInnings;
-  }
-
+function resolveScheduledInningsCount(match: { inningsPerSide: number }) {
   const scheduledInningsCount = match.inningsPerSide * 2;
   if (scheduledInningsCount === 2 || scheduledInningsCount === 4) {
     return scheduledInningsCount;
@@ -59,7 +49,10 @@ function isFollowOnEligible(params: {
     return false;
   }
 
-  return firstInnings.totalScore - secondInnings.totalScore >= 200;
+  return (
+    firstInnings.totalScore - secondInnings.totalScore >=
+    FOLLOW_ON_LEAD_THRESHOLD
+  );
 }
 
 async function validateInningsCreation(params: {
@@ -73,18 +66,11 @@ async function validateInningsCreation(params: {
       id: params.matchId,
     },
     columns: {
+      followOnAllowedSnapshot: true,
       id: true,
       inningsPerSide: true,
       team1Id: true,
       team2Id: true,
-    },
-    with: {
-      matchFormat: {
-        columns: {
-          isFollowOnAllowed: true,
-          noOfInnings: true,
-        },
-      },
     },
   });
 
@@ -140,7 +126,7 @@ async function validateInningsCreation(params: {
       inningsNumber: params.inningsNumber,
       inningsRows,
       scheduledInningsCount,
-      followOnAllowed: Boolean(match.matchFormat?.isFollowOnAllowed),
+      followOnAllowed: Boolean(match.followOnAllowedSnapshot),
     })
   ) {
     throw new Error(
