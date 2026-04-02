@@ -90,6 +90,10 @@ export const relations = defineRelations(
         from: r.tournaments.championTeamId,
         to: r.teams.id,
       }),
+      playerOfTheTournament: r.one.players({
+        from: r.tournaments.playerOfTheTournamentId,
+        to: r.players.id,
+      }),
       defaultMatchFormat: r.one.matchFormats({
         from: r.tournaments.defaultMatchFormatId,
         to: r.matchFormats.id,
@@ -196,6 +200,11 @@ export const relations = defineRelations(
       tournamentStats: r.many.playerTournamentStats(),
       careerStats: r.many.playerCareerStats(),
       matchLineup: r.many.matchLineup(),
+      playerOfTheTournamentWins: r.many.tournaments({
+        from: r.players.id,
+        to: r.tournaments.playerOfTheTournamentId,
+        alias: "playerOfTheTournament",
+      }),
     },
     matches: {
       tournament: r.one.tournaments({
@@ -293,6 +302,21 @@ export const relations = defineRelations(
       bowlingTeam: r.one.teams({
         from: r.innings.bowlingTeamId,
         to: r.teams.id,
+      }),
+      openingStriker: r.one.players({
+        from: r.innings.openingStrikerId,
+        to: r.players.id,
+        alias: "openingStriker",
+      }),
+      openingNonStriker: r.one.players({
+        from: r.innings.openingNonStrikerId,
+        to: r.players.id,
+        alias: "openingNonStriker",
+      }),
+      openingBowler: r.one.players({
+        from: r.innings.openingBowlerId,
+        to: r.players.id,
+        alias: "openingBowler",
       }),
       deliveries: r.many.deliveries(),
       playerInningsStats: r.many.playerInningsStats(),

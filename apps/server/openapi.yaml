@@ -69,6 +69,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /autoGenerateNextSwissRound:
     post:
       operationId: autoGenerateNextSwissRound
@@ -101,6 +144,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /bulkImportPlayers:
     post:
       operationId: bulkImportPlayers
@@ -176,6 +262,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /claimablePlayers:
     post:
       operationId: claimablePlayers
@@ -198,6 +327,118 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
+  /closeCurrentScoringInnings:
+    post:
+      operationId: closeCurrentScoringInnings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                inningsId:
+                  exclusiveMinimum: 0
+                  maximum: 9007199254740991
+                  minimum: -9007199254740991
+                  type: integer
+              required:
+                - inningsId
+              type: object
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+          description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /completedMatches:
     post:
       operationId: completedMatches
@@ -210,6 +451,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /createDraftFixtureMatch:
     post:
       operationId: createDraftFixtureMatch
@@ -325,6 +609,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /createFixtureDraft:
     post:
       operationId: createFixtureDraft
@@ -370,6 +697,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /createFixtureRound:
     post:
       operationId: createFixtureRound
@@ -450,6 +820,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /createMatch:
     post:
       operationId: createMatch
@@ -565,6 +978,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /createMatchFormat:
     post:
       operationId: createMatchFormat
@@ -592,6 +1048,8 @@ paths:
                       type: integer
                     - type: "null"
                 isDrawAllowed:
+                  type: boolean
+                isFollowOnAllowed:
                   type: boolean
                 isSuperOverAllowed:
                   type: boolean
@@ -642,6 +1100,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /createNextScoringDelivery:
     post:
       operationId: createNextScoringDelivery
@@ -686,6 +1187,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /createOrganization:
     post:
       operationId: createOrganization
@@ -758,6 +1302,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /createOwnPlayerProfile:
     post:
       operationId: createOwnPlayerProfile
@@ -824,6 +1411,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /createPlayer:
     post:
       operationId: createPlayer
@@ -901,6 +1531,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /createTeam:
     post:
       operationId: createTeam
@@ -945,6 +1618,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /createTournament:
     post:
       operationId: createTournament
@@ -1004,6 +1720,12 @@ paths:
                   maximum: 9007199254740991
                   minimum: -9007199254740991
                   type: integer
+                playerOfTheTournamentId:
+                  anyOf:
+                    - maximum: 9007199254740991
+                      minimum: -9007199254740991
+                      type: integer
+                    - type: "null"
                 season:
                   anyOf:
                     - type: string
@@ -1036,6 +1758,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /createTournamentFromScratch:
     post:
       operationId: createTournamentFromScratch
@@ -1086,6 +1851,8 @@ paths:
                               type: integer
                             - type: "null"
                         isDrawAllowed:
+                          type: boolean
+                        isFollowOnAllowed:
                           type: boolean
                         isSuperOverAllowed:
                           type: boolean
@@ -1210,6 +1977,13 @@ paths:
                       minimum: -9007199254740991
                       type: integer
                   type: object
+                playerOfTheTournamentId:
+                  anyOf:
+                    - exclusiveMinimum: 0
+                      maximum: 9007199254740991
+                      minimum: -9007199254740991
+                      type: integer
+                    - type: "null"
                 season:
                   maxLength: 50
                   type: string
@@ -1351,6 +2125,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /createTournamentStage:
     post:
       operationId: createTournamentStage
@@ -1461,6 +2278,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /createTournamentStageAdvancement:
     post:
       operationId: createTournamentStageAdvancement
@@ -1517,6 +2377,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /createTournamentStageGroup:
     post:
       operationId: createTournamentStageGroup
@@ -1580,6 +2483,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /createTournamentStageTeamEntry:
     post:
       operationId: createTournamentStageTeamEntry
@@ -1641,6 +2587,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /createTournamentTeam:
     post:
       operationId: createTournamentTeam
@@ -1715,6 +2704,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /currentUserRole:
     post:
       operationId: currentUserRole
@@ -1727,6 +2759,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /deleteDraftFixtureMatch:
     post:
       operationId: deleteDraftFixtureMatch
@@ -1759,6 +2834,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /deletePlayer:
     post:
       operationId: deletePlayer
@@ -1780,6 +2898,118 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
+  /deleteScoringDelivery:
+    post:
+      operationId: deleteScoringDelivery
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                deliveryId:
+                  exclusiveMinimum: 0
+                  maximum: 9007199254740991
+                  minimum: -9007199254740991
+                  type: integer
+              required:
+                - deliveryId
+              type: object
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+          description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /deleteTeam:
     post:
       operationId: deleteTeam
@@ -1801,6 +3031,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /deleteTournament:
     post:
       operationId: deleteTournament
@@ -1822,6 +3095,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /deleteTournamentStage:
     post:
       operationId: deleteTournamentStage
@@ -1843,6 +3159,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /deleteTournamentStageAdvancement:
     post:
       operationId: deleteTournamentStageAdvancement
@@ -1864,6 +3223,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /deleteTournamentStageGroup:
     post:
       operationId: deleteTournamentStageGroup
@@ -1885,6 +3287,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /deleteTournamentStageTeamEntry:
     post:
       operationId: deleteTournamentStageTeamEntry
@@ -1906,6 +3351,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /deleteTournamentTeam:
     post:
       operationId: deleteTournamentTeam
@@ -1927,6 +3415,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /endScoringInnings:
     post:
       operationId: endScoringInnings
@@ -1953,6 +3484,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /getBallsOfSameOver:
     post:
       operationId: getBallsOfSameOver
@@ -1979,6 +3553,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /getMatchById:
     post:
       operationId: getMatchById
@@ -1997,6 +3614,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /getMatchScorecard:
     post:
       operationId: getMatchScorecard
@@ -2024,6 +3684,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /getMatchScoringSetup:
     post:
       operationId: getMatchScoringSetup
@@ -2050,6 +3753,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /getTeamById:
     post:
       operationId: getTeamById
@@ -2071,6 +3817,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /getTeamStatsById:
     post:
       operationId: getTeamStatsById
@@ -2092,6 +3881,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /getTeamTournamentStats:
     post:
       operationId: getTeamTournamentStats
@@ -2124,6 +3956,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /getTournamentTeamRoster:
     post:
       operationId: getTournamentTeamRoster
@@ -2156,6 +4031,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /healthCheck:
     post:
       operationId: healthCheck
@@ -2223,6 +4141,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /listTeamStats:
     post:
       operationId: listTeamStats
@@ -2235,6 +4196,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /liveMatches:
     post:
       operationId: liveMatches
@@ -2247,6 +4251,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /liveTournaments:
     post:
       operationId: liveTournaments
@@ -2259,6 +4306,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /managementTournamentById:
     post:
       operationId: managementTournamentById
@@ -2280,6 +4370,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /managementTournaments:
     post:
       operationId: managementTournaments
@@ -2292,6 +4425,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /markOnboardingSeen:
     post:
       operationId: markOnboardingSeen
@@ -2304,6 +4480,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /matchFormats:
     post:
       operationId: matchFormats
@@ -2316,6 +4535,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /onboardingStatus:
     post:
       operationId: onboardingStatus
@@ -2328,6 +4590,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /organizations:
     post:
       operationId: organizations
@@ -2340,6 +4645,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /players:
     post:
       operationId: players
@@ -2352,6 +4700,113 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
+  /playerStatistics:
+    post:
+      operationId: playerStatistics
+      requestBody:
+        content:
+          application/json:
+            schema:
+              exclusiveMinimum: 0
+              maximum: 9007199254740991
+              minimum: -9007199254740991
+              type: integer
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+          description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /playersWithCurrentTeams:
     post:
       operationId: playersWithCurrentTeams
@@ -2364,6 +4819,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /privateData:
     post:
       operationId: privateData
@@ -2376,6 +4874,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /publishFixtureMatches:
     post:
       operationId: publishFixtureMatches
@@ -2414,6 +4955,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /publishFixtureVersion:
     post:
       operationId: publishFixtureVersion
@@ -2449,6 +5033,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /reassignTournamentTeamPlayer:
     post:
       operationId: reassignTournamentTeamPlayer
@@ -2495,6 +5122,176 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
+  /recordScoringDelivery:
+    post:
+      operationId: recordScoringDelivery
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                assistedById:
+                  anyOf:
+                    - exclusiveMinimum: 0
+                      maximum: 9007199254740991
+                      minimum: -9007199254740991
+                      type: integer
+                    - type: "null"
+                batterRuns:
+                  maximum: 9007199254740991
+                  minimum: 0
+                  type: integer
+                bowlerId:
+                  exclusiveMinimum: 0
+                  maximum: 9007199254740991
+                  minimum: -9007199254740991
+                  type: integer
+                byeRuns:
+                  maximum: 9007199254740991
+                  minimum: 0
+                  type: integer
+                dismissedPlayerId:
+                  anyOf:
+                    - exclusiveMinimum: 0
+                      maximum: 9007199254740991
+                      minimum: -9007199254740991
+                      type: integer
+                    - type: "null"
+                inningsId:
+                  exclusiveMinimum: 0
+                  maximum: 9007199254740991
+                  minimum: -9007199254740991
+                  type: integer
+                legByeRuns:
+                  maximum: 9007199254740991
+                  minimum: 0
+                  type: integer
+                noBallRuns:
+                  maximum: 9007199254740991
+                  minimum: 0
+                  type: integer
+                nonStrikerId:
+                  exclusiveMinimum: 0
+                  maximum: 9007199254740991
+                  minimum: -9007199254740991
+                  type: integer
+                penaltyRuns:
+                  maximum: 9007199254740991
+                  minimum: 0
+                  type: integer
+                strikerId:
+                  exclusiveMinimum: 0
+                  maximum: 9007199254740991
+                  minimum: -9007199254740991
+                  type: integer
+                wicketType:
+                  type: string
+                wideRuns:
+                  maximum: 9007199254740991
+                  minimum: 0
+                  type: integer
+              required:
+                - inningsId
+                - strikerId
+                - nonStrikerId
+                - bowlerId
+              type: object
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+          description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /registerTournamentTeamPlayer:
     post:
       operationId: registerTournamentTeamPlayer
@@ -2537,6 +5334,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /saveMatchLineup:
     post:
       operationId: saveMatchLineup
@@ -2621,6 +5461,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /saveScoringDelivery:
     post:
       operationId: saveScoringDelivery
@@ -2698,6 +5581,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /searchTeamsByName:
     post:
       operationId: searchTeamsByName
@@ -2716,6 +5642,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /seedTournamentTemplate:
     post:
       operationId: seedTournamentTemplate
@@ -2766,6 +5735,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /sendClaimOtp:
     post:
       operationId: sendClaimOtp
@@ -2792,6 +5804,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /setStagePointsConfig:
     post:
       operationId: setStagePointsConfig
@@ -2850,6 +5905,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /stageGroupsByStage:
     post:
       operationId: stageGroupsByStage
@@ -2871,6 +5969,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /startMatchScoring:
     post:
       operationId: startMatchScoring
@@ -2897,6 +6038,217 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
+  /startScoringInnings:
+    post:
+      operationId: startScoringInnings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                battingTeamId:
+                  exclusiveMinimum: 0
+                  maximum: 9007199254740991
+                  minimum: -9007199254740991
+                  type: integer
+                bowlingTeamId:
+                  exclusiveMinimum: 0
+                  maximum: 9007199254740991
+                  minimum: -9007199254740991
+                  type: integer
+                inningsNumber:
+                  exclusiveMinimum: 0
+                  maximum: 9007199254740991
+                  minimum: -9007199254740991
+                  type: integer
+                matchId:
+                  exclusiveMinimum: 0
+                  maximum: 9007199254740991
+                  minimum: -9007199254740991
+                  type: integer
+                nonStrikerId:
+                  exclusiveMinimum: 0
+                  maximum: 9007199254740991
+                  minimum: -9007199254740991
+                  type: integer
+                openingBowlerId:
+                  exclusiveMinimum: 0
+                  maximum: 9007199254740991
+                  minimum: -9007199254740991
+                  type: integer
+                strikerId:
+                  exclusiveMinimum: 0
+                  maximum: 9007199254740991
+                  minimum: -9007199254740991
+                  type: integer
+                tossDecision:
+                  enum:
+                    - bat
+                    - bowl
+                tossWinnerId:
+                  exclusiveMinimum: 0
+                  maximum: 9007199254740991
+                  minimum: -9007199254740991
+                  type: integer
+              required:
+                - matchId
+                - battingTeamId
+                - bowlingTeamId
+                - strikerId
+                - nonStrikerId
+                - openingBowlerId
+              type: object
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+          description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
+  /statisticsLanding:
+    post:
+      operationId: statisticsLanding
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+          description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /teams:
     post:
       operationId: teams
@@ -2909,6 +6261,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /teamTournaments:
     post:
       operationId: teamTournaments
@@ -2935,6 +6330,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /tournamentFixtures:
     post:
       operationId: tournamentFixtures
@@ -2974,6 +6412,113 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
+  /tournamentPlayers:
+    post:
+      operationId: tournamentPlayers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              exclusiveMinimum: 0
+              maximum: 9007199254740991
+              minimum: -9007199254740991
+              type: integer
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+          description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /tournaments:
     post:
       operationId: tournaments
@@ -2986,6 +6531,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /tournamentStageAdvancementById:
     post:
       operationId: tournamentStageAdvancementById
@@ -3007,6 +6595,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /tournamentStageAdvancements:
     post:
       operationId: tournamentStageAdvancements
@@ -3019,6 +6650,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /tournamentStageById:
     post:
       operationId: tournamentStageById
@@ -3040,6 +6714,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /tournamentStageGroupById:
     post:
       operationId: tournamentStageGroupById
@@ -3061,6 +6778,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /tournamentStageGroups:
     post:
       operationId: tournamentStageGroups
@@ -3073,6 +6833,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /tournamentStages:
     post:
       operationId: tournamentStages
@@ -3085,6 +6888,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /tournamentStageTeamEntries:
     post:
       operationId: tournamentStageTeamEntries
@@ -3097,6 +6943,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /tournamentStageTeamEntryById:
     post:
       operationId: tournamentStageTeamEntryById
@@ -3118,6 +7007,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /tournamentStandings:
     post:
       operationId: tournamentStandings
@@ -3156,6 +7088,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /tournamentStructure:
     post:
       operationId: tournamentStructure
@@ -3182,6 +7157,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /tournamentTeamById:
     post:
       operationId: tournamentTeamById
@@ -3203,6 +7221,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /tournamentTeams:
     post:
       operationId: tournamentTeams
@@ -3215,6 +7276,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /tournamentView:
     post:
       operationId: tournamentView
@@ -3241,6 +7345,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /unassignTournamentTeamPlayer:
     post:
       operationId: unassignTournamentTeamPlayer
@@ -3279,6 +7426,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /updateDraftFixtureMatch:
     post:
       operationId: updateDraftFixtureMatch
@@ -3383,6 +7573,127 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
+  /updateMatchSchedule:
+    post:
+      operationId: updateMatchSchedule
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                matchId:
+                  exclusiveMinimum: 0
+                  maximum: 9007199254740991
+                  minimum: -9007199254740991
+                  type: integer
+                scheduledEndAt:
+                  format: date-time
+                  type: string
+                  x-native-type: date
+                scheduledStartAt:
+                  format: date-time
+                  type: string
+                  x-native-type: date
+              required:
+                - matchId
+                - scheduledStartAt
+              type: object
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+          description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /updatePlayer:
     post:
       operationId: updatePlayer
@@ -3469,6 +7780,182 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
+  /updateScoringDelivery:
+    post:
+      operationId: updateScoringDelivery
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                assistedById:
+                  anyOf:
+                    - exclusiveMinimum: 0
+                      maximum: 9007199254740991
+                      minimum: -9007199254740991
+                      type: integer
+                    - type: "null"
+                batterRuns:
+                  maximum: 9007199254740991
+                  minimum: 0
+                  type: integer
+                bowlerId:
+                  exclusiveMinimum: 0
+                  maximum: 9007199254740991
+                  minimum: -9007199254740991
+                  type: integer
+                byeRuns:
+                  maximum: 9007199254740991
+                  minimum: 0
+                  type: integer
+                deliveryId:
+                  exclusiveMinimum: 0
+                  maximum: 9007199254740991
+                  minimum: -9007199254740991
+                  type: integer
+                dismissedPlayerId:
+                  anyOf:
+                    - exclusiveMinimum: 0
+                      maximum: 9007199254740991
+                      minimum: -9007199254740991
+                      type: integer
+                    - type: "null"
+                inningsId:
+                  exclusiveMinimum: 0
+                  maximum: 9007199254740991
+                  minimum: -9007199254740991
+                  type: integer
+                legByeRuns:
+                  maximum: 9007199254740991
+                  minimum: 0
+                  type: integer
+                noBallRuns:
+                  maximum: 9007199254740991
+                  minimum: 0
+                  type: integer
+                nonStrikerId:
+                  exclusiveMinimum: 0
+                  maximum: 9007199254740991
+                  minimum: -9007199254740991
+                  type: integer
+                penaltyRuns:
+                  maximum: 9007199254740991
+                  minimum: 0
+                  type: integer
+                strikerId:
+                  exclusiveMinimum: 0
+                  maximum: 9007199254740991
+                  minimum: -9007199254740991
+                  type: integer
+                wicketType:
+                  type: string
+                wideRuns:
+                  maximum: 9007199254740991
+                  minimum: 0
+                  type: integer
+              required:
+                - inningsId
+                - strikerId
+                - nonStrikerId
+                - bowlerId
+                - deliveryId
+              type: object
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+          description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /updateTeam:
     post:
       operationId: updateTeam
@@ -3521,6 +8008,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /updateTournament:
     post:
       operationId: updateTournament
@@ -3582,6 +8112,12 @@ paths:
                       maximum: 9007199254740991
                       minimum: -9007199254740991
                       type: integer
+                    playerOfTheTournamentId:
+                      anyOf:
+                        - maximum: 9007199254740991
+                          minimum: -9007199254740991
+                          type: integer
+                        - type: "null"
                     season:
                       anyOf:
                         - type: string
@@ -3618,6 +8154,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /updateTournamentFromScratch:
     post:
       operationId: updateTournamentFromScratch
@@ -3668,6 +8247,8 @@ paths:
                               type: integer
                             - type: "null"
                         isDrawAllowed:
+                          type: boolean
+                        isFollowOnAllowed:
                           type: boolean
                         isSuperOverAllowed:
                           type: boolean
@@ -3792,6 +8373,13 @@ paths:
                       minimum: -9007199254740991
                       type: integer
                   type: object
+                playerOfTheTournamentId:
+                  anyOf:
+                    - exclusiveMinimum: 0
+                      maximum: 9007199254740991
+                      minimum: -9007199254740991
+                      type: integer
+                    - type: "null"
                 season:
                   maxLength: 50
                   type: string
@@ -3939,6 +8527,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /updateTournamentStage:
     post:
       operationId: updateTournamentStage
@@ -4056,6 +8687,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /updateTournamentStageAdvancement:
     post:
       operationId: updateTournamentStageAdvancement
@@ -4118,6 +8792,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /updateTournamentStageGroup:
     post:
       operationId: updateTournamentStageGroup
@@ -4189,6 +8906,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /updateTournamentStageTeamEntry:
     post:
       operationId: updateTournamentStageTeamEntry
@@ -4257,6 +9017,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /updateTournamentTeam:
     post:
       operationId: updateTournamentTeam
@@ -4339,6 +9142,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /validateFixtureConflicts:
     post:
       operationId: validateFixtureConflicts
@@ -4399,6 +9245,49 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /verifyClaimOtpAndLink:
     post:
       operationId: verifyClaimOtpAndLink
@@ -4429,5 +9318,48 @@ paths:
                   - {}
                   - not: {}
           description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
 servers:
   - url: http://localhost:3000/api

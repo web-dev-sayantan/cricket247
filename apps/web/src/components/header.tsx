@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
@@ -10,9 +10,19 @@ import UserMenu from "./user-menu";
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const { data: session } = authClient.useSession();
+  const isHomePage = useRouterState({
+    select: (s) => s.location.pathname === "/",
+  });
 
   const protectedLinks = [{ to: "/dashboard", label: "Dashboard" }] as const;
-  const publicLinks = [{ to: "/matches", label: "Matches" }] as const;
+  const publicLinks = [
+    { to: "/matches", label: "Matches" },
+    {
+      to: "/tournaments",
+      label: "Tournaments",
+    },
+    { to: "/players", label: "Players" },
+  ] as const;
   const allLinks = [...publicLinks, ...(session ? protectedLinks : [])];
 
   useEffect(() => {
@@ -41,7 +51,7 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85">
+      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/85">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link
             className="font-bold text-lg tracking-tight transition-colors hover:text-primary"
@@ -67,6 +77,22 @@ export default function Header() {
                 {label}
               </Link>
             ))}
+            {isHomePage && (
+              <Link
+                className="angled-cut group inline-flex bg-primary/35 p-px"
+                onClick={() => setIsOpen(false)}
+                to="/organize"
+              >
+                <span
+                  className={cn(
+                    buttonVariants({ size: "sm", variant: "outline" }),
+                    "angled-cut border-transparent bg-background/96 text-primary transition-colors group-hover:bg-primary/10"
+                  )}
+                >
+                  For Organizers
+                </span>
+              </Link>
+            )}
           </nav>
 
           <div className="hidden items-center gap-2 md:flex">
@@ -136,6 +162,17 @@ export default function Header() {
               {label}
             </Link>
           ))}
+          {isHomePage && (
+            <Link
+              className={cn(
+                "rounded-md border border-primary/40 px-3 py-2 font-medium text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+              )}
+              onClick={() => setIsOpen(false)}
+              to="/organize"
+            >
+              For Organizers
+            </Link>
+          )}
         </nav>
 
         <div className="mt-auto grid gap-3 border-t pt-4">

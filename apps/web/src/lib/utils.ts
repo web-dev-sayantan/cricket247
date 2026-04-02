@@ -33,7 +33,7 @@ export function getInitials(name: string) {
     return "";
   }
   if (parts.length === 1) {
-    return parts[0].substring(0, 2).toUpperCase();
+    return parts[0].slice(0, 2).toUpperCase();
   }
   const lastPart = parts.at(-1);
   return (parts[0][0] + (lastPart ? lastPart[0] : "")).toUpperCase();

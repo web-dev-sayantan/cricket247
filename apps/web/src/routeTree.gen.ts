@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as OrganizeRouteImport } from './routes/organize'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -16,12 +17,14 @@ import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TournamentsIndexRouteImport } from './routes/tournaments/index'
 import { Route as TeamsIndexRouteImport } from './routes/teams/index'
+import { Route as StatisticsIndexRouteImport } from './routes/statistics/index'
 import { Route as PlayersIndexRouteImport } from './routes/players/index'
 import { Route as MatchesIndexRouteImport } from './routes/matches/index'
 import { Route as TournamentsCreateRouteImport } from './routes/tournaments/create'
 import { Route as TournamentsTournamentIdRouteImport } from './routes/tournaments/$tournamentId'
 import { Route as TeamsCreateRouteImport } from './routes/teams/create'
 import { Route as TeamsTeamIdRouteImport } from './routes/teams/$teamId'
+import { Route as StatisticsPlayerIdRouteImport } from './routes/statistics/$playerId'
 import { Route as PlayersCreateRouteImport } from './routes/players/create'
 import { Route as MatchesCreateMatchRouteImport } from './routes/matches/create-match'
 import { Route as MatchesCreateRouteImport } from './routes/matches/create'
@@ -34,6 +37,11 @@ import { Route as TeamsTeamIdAssignPlayersRouteImport } from './routes/teams/$te
 import { Route as MatchesMatchIdScorecardRouteImport } from './routes/matches/$matchId/scorecard'
 import { Route as MatchesMatchIdScoreRouteImport } from './routes/matches/$matchId/score'
 
+const OrganizeRoute = OrganizeRouteImport.update({
+  id: '/organize',
+  path: '/organize',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -69,6 +77,11 @@ const TeamsIndexRoute = TeamsIndexRouteImport.update({
   path: '/teams/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StatisticsIndexRoute = StatisticsIndexRouteImport.update({
+  id: '/statistics/',
+  path: '/statistics/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PlayersIndexRoute = PlayersIndexRouteImport.update({
   id: '/players/',
   path: '/players/',
@@ -97,6 +110,11 @@ const TeamsCreateRoute = TeamsCreateRouteImport.update({
 const TeamsTeamIdRoute = TeamsTeamIdRouteImport.update({
   id: '/teams/$teamId',
   path: '/teams/$teamId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StatisticsPlayerIdRoute = StatisticsPlayerIdRouteImport.update({
+  id: '/statistics/$playerId',
+  path: '/statistics/$playerId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlayersCreateRoute = PlayersCreateRouteImport.update({
@@ -164,17 +182,20 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/organize': typeof OrganizeRoute
   '/matches/$matchId': typeof MatchesMatchIdRouteWithChildren
   '/matches/completed': typeof MatchesCompletedRoute
   '/matches/create': typeof MatchesCreateRoute
   '/matches/create-match': typeof MatchesCreateMatchRoute
   '/players/create': typeof PlayersCreateRoute
+  '/statistics/$playerId': typeof StatisticsPlayerIdRoute
   '/teams/$teamId': typeof TeamsTeamIdRouteWithChildren
   '/teams/create': typeof TeamsCreateRoute
   '/tournaments/$tournamentId': typeof TournamentsTournamentIdRouteWithChildren
   '/tournaments/create': typeof TournamentsCreateRoute
   '/matches/': typeof MatchesIndexRoute
   '/players/': typeof PlayersIndexRoute
+  '/statistics/': typeof StatisticsIndexRoute
   '/teams/': typeof TeamsIndexRoute
   '/tournaments/': typeof TournamentsIndexRoute
   '/matches/$matchId/score': typeof MatchesMatchIdScoreRoute
@@ -190,16 +211,19 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/organize': typeof OrganizeRoute
   '/matches/$matchId': typeof MatchesMatchIdRouteWithChildren
   '/matches/completed': typeof MatchesCompletedRoute
   '/matches/create': typeof MatchesCreateRoute
   '/matches/create-match': typeof MatchesCreateMatchRoute
   '/players/create': typeof PlayersCreateRoute
+  '/statistics/$playerId': typeof StatisticsPlayerIdRoute
   '/teams/$teamId': typeof TeamsTeamIdRouteWithChildren
   '/teams/create': typeof TeamsCreateRoute
   '/tournaments/create': typeof TournamentsCreateRoute
   '/matches': typeof MatchesIndexRoute
   '/players': typeof PlayersIndexRoute
+  '/statistics': typeof StatisticsIndexRoute
   '/teams': typeof TeamsIndexRoute
   '/tournaments': typeof TournamentsIndexRoute
   '/matches/$matchId/score': typeof MatchesMatchIdScoreRoute
@@ -216,17 +240,20 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/organize': typeof OrganizeRoute
   '/matches/$matchId': typeof MatchesMatchIdRouteWithChildren
   '/matches/completed': typeof MatchesCompletedRoute
   '/matches/create': typeof MatchesCreateRoute
   '/matches/create-match': typeof MatchesCreateMatchRoute
   '/players/create': typeof PlayersCreateRoute
+  '/statistics/$playerId': typeof StatisticsPlayerIdRoute
   '/teams/$teamId': typeof TeamsTeamIdRouteWithChildren
   '/teams/create': typeof TeamsCreateRoute
   '/tournaments/$tournamentId': typeof TournamentsTournamentIdRouteWithChildren
   '/tournaments/create': typeof TournamentsCreateRoute
   '/matches/': typeof MatchesIndexRoute
   '/players/': typeof PlayersIndexRoute
+  '/statistics/': typeof StatisticsIndexRoute
   '/teams/': typeof TeamsIndexRoute
   '/tournaments/': typeof TournamentsIndexRoute
   '/matches/$matchId/score': typeof MatchesMatchIdScoreRoute
@@ -244,17 +271,20 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/onboarding'
+    | '/organize'
     | '/matches/$matchId'
     | '/matches/completed'
     | '/matches/create'
     | '/matches/create-match'
     | '/players/create'
+    | '/statistics/$playerId'
     | '/teams/$teamId'
     | '/teams/create'
     | '/tournaments/$tournamentId'
     | '/tournaments/create'
     | '/matches/'
     | '/players/'
+    | '/statistics/'
     | '/teams/'
     | '/tournaments/'
     | '/matches/$matchId/score'
@@ -270,16 +300,19 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/onboarding'
+    | '/organize'
     | '/matches/$matchId'
     | '/matches/completed'
     | '/matches/create'
     | '/matches/create-match'
     | '/players/create'
+    | '/statistics/$playerId'
     | '/teams/$teamId'
     | '/teams/create'
     | '/tournaments/create'
     | '/matches'
     | '/players'
+    | '/statistics'
     | '/teams'
     | '/tournaments'
     | '/matches/$matchId/score'
@@ -295,17 +328,20 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/onboarding'
+    | '/organize'
     | '/matches/$matchId'
     | '/matches/completed'
     | '/matches/create'
     | '/matches/create-match'
     | '/players/create'
+    | '/statistics/$playerId'
     | '/teams/$teamId'
     | '/teams/create'
     | '/tournaments/$tournamentId'
     | '/tournaments/create'
     | '/matches/'
     | '/players/'
+    | '/statistics/'
     | '/teams/'
     | '/tournaments/'
     | '/matches/$matchId/score'
@@ -322,23 +358,33 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
+  OrganizeRoute: typeof OrganizeRoute
   MatchesMatchIdRoute: typeof MatchesMatchIdRouteWithChildren
   MatchesCompletedRoute: typeof MatchesCompletedRoute
   MatchesCreateRoute: typeof MatchesCreateRoute
   MatchesCreateMatchRoute: typeof MatchesCreateMatchRoute
   PlayersCreateRoute: typeof PlayersCreateRoute
+  StatisticsPlayerIdRoute: typeof StatisticsPlayerIdRoute
   TeamsTeamIdRoute: typeof TeamsTeamIdRouteWithChildren
   TeamsCreateRoute: typeof TeamsCreateRoute
   TournamentsTournamentIdRoute: typeof TournamentsTournamentIdRouteWithChildren
   TournamentsCreateRoute: typeof TournamentsCreateRoute
   MatchesIndexRoute: typeof MatchesIndexRoute
   PlayersIndexRoute: typeof PlayersIndexRoute
+  StatisticsIndexRoute: typeof StatisticsIndexRoute
   TeamsIndexRoute: typeof TeamsIndexRoute
   TournamentsIndexRoute: typeof TournamentsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/organize': {
+      id: '/organize'
+      path: '/organize'
+      fullPath: '/organize'
+      preLoaderRoute: typeof OrganizeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/onboarding': {
       id: '/onboarding'
       path: '/onboarding'
@@ -388,6 +434,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/statistics/': {
+      id: '/statistics/'
+      path: '/statistics'
+      fullPath: '/statistics/'
+      preLoaderRoute: typeof StatisticsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/players/': {
       id: '/players/'
       path: '/players'
@@ -428,6 +481,13 @@ declare module '@tanstack/react-router' {
       path: '/teams/$teamId'
       fullPath: '/teams/$teamId'
       preLoaderRoute: typeof TeamsTeamIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/statistics/$playerId': {
+      id: '/statistics/$playerId'
+      path: '/statistics/$playerId'
+      fullPath: '/statistics/$playerId'
+      preLoaderRoute: typeof StatisticsPlayerIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/players/create': {
@@ -560,17 +620,20 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
+  OrganizeRoute: OrganizeRoute,
   MatchesMatchIdRoute: MatchesMatchIdRouteWithChildren,
   MatchesCompletedRoute: MatchesCompletedRoute,
   MatchesCreateRoute: MatchesCreateRoute,
   MatchesCreateMatchRoute: MatchesCreateMatchRoute,
   PlayersCreateRoute: PlayersCreateRoute,
+  StatisticsPlayerIdRoute: StatisticsPlayerIdRoute,
   TeamsTeamIdRoute: TeamsTeamIdRouteWithChildren,
   TeamsCreateRoute: TeamsCreateRoute,
   TournamentsTournamentIdRoute: TournamentsTournamentIdRouteWithChildren,
   TournamentsCreateRoute: TournamentsCreateRoute,
   MatchesIndexRoute: MatchesIndexRoute,
   PlayersIndexRoute: PlayersIndexRoute,
+  StatisticsIndexRoute: StatisticsIndexRoute,
   TeamsIndexRoute: TeamsIndexRoute,
   TournamentsIndexRoute: TournamentsIndexRoute,
 }

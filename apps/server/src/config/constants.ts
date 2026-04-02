@@ -8,6 +8,52 @@ export const RATE_LIMITS = {
   STRICT: 5,
 } as const;
 
+export const RPC_RATE_LIMIT_BUCKETS = {
+  public: {
+    capacity: 120,
+    refillRatePerSecond: 2,
+  },
+  protected: {
+    capacity: 60,
+    refillRatePerSecond: 1,
+  },
+  sensitive: {
+    capacity: 20,
+    refillRatePerSecond: 0.25,
+  },
+  scoring: {
+    capacity: 60,
+    refillRatePerSecond: 1,
+  },
+} as const;
+
+export const RPC_RATE_LIMIT_EXEMPT_PROCEDURES = ["healthCheck"] as const;
+
+export const RPC_RATE_LIMIT_SCORING_PROCEDURES = [
+  "startMatchScoring",
+  "saveMatchLineup",
+  "initializeMatchScoring",
+  "startScoringInnings",
+  "recordScoringDelivery",
+  "updateScoringDelivery",
+  "deleteScoringDelivery",
+  "closeCurrentScoringInnings",
+  "saveScoringDelivery",
+  "createNextScoringDelivery",
+  "endScoringInnings",
+] as const;
+
+export const RATE_LIMITER_DURABLE_OBJECT_TIMEOUT_MS = 250;
+
+// The in-memory local fallback should only retain idle principals briefly.
+// Entries are pruned once they have had enough time to fully refill, with this
+// TTL acting as a backstop for entries that stay full but are never read again.
+export const LOCAL_RATE_LIMIT_STORE_ENTRY_TTL_MS = 15 * 60 * 1000;
+
+// Local fallback pruning runs opportunistically on access so cleanup stays
+// lightweight without scheduling timers in the worker runtime.
+export const LOCAL_RATE_LIMIT_STORE_PRUNE_INTERVAL_MS = 60 * 1000;
+
 export const PAGINATION = {
   DEFAULT_PAGE: 1,
   DEFAULT_LIMIT: 20,
@@ -42,3 +88,5 @@ export const DISMISSAL_TYPES = {
   RETIRED_HURT: "retired_hurt",
   TIMED_OUT: "timed_out",
 } as const;
+
+export const FOLLOW_ON_LEAD_THRESHOLD = 200; // Cricket rule: In Test cricket, a team can enforce a follow-on if the opposing team's first innings score is 200 runs or more behind their own first innings score.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { shouldShowBackToScoring } from "./scorecard-visibility";
+import { shouldShowBackToScoring } from "./-scorecard-visibility";
 
 describe("shouldShowBackToScoring", () => {
   it("returns true when match is live and user can score", () => {

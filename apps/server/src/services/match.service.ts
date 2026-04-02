@@ -194,6 +194,10 @@ export async function createMatchAction({
   const effectiveOversPerSide = resolvedFormat?.noOfOvers ?? oversPerSide;
   const effectiveMaxOverPerBowler =
     resolvedFormat?.maxOversPerBowler ?? maxOverPerBowler;
+  let inningsPerSide = 1;
+  if (resolvedFormat?.noOfInnings === 4) {
+    inningsPerSide = 2;
+  }
 
   const newMatch = await db.insert(matches).values({
     matchDate: matchDate ? toDate(matchDate) : getCurrentDate(),
@@ -202,6 +206,7 @@ export async function createMatchAction({
     tossDecision,
     team1Id,
     team2Id,
+    inningsPerSide,
     matchFormatId: resolvedFormat?.matchFormatId ?? matchFormatId ?? null,
     oversPerSide: effectiveOversPerSide,
     maxOverPerBowler: effectiveMaxOverPerBowler,
@@ -210,6 +215,7 @@ export async function createMatchAction({
       resolvedFormat?.maxLegalBallsPerInnings ??
       effectiveOversPerSide * (resolvedFormat?.ballsPerOver ?? 6),
     maxOversPerBowlerSnapshot: effectiveMaxOverPerBowler,
+    followOnAllowedSnapshot: resolvedFormat?.followOnAllowed ?? false,
     winnerId,
     result,
     format: resolvedFormat?.formatLabel ?? format ?? "Custom",

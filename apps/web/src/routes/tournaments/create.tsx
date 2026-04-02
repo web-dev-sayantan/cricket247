@@ -177,6 +177,7 @@ function RouteComponent() {
         }
       }}
       organizations={organizations}
+      playerOptions={[]}
       submitBusyLabel="Creating..."
       submitIdleLabel="Create tournament"
       submitting={createTournamentMutation.isPending}

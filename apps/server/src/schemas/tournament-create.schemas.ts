@@ -38,6 +38,7 @@ const tournamentFromScratchBodySchema = z.object({
   endDate: z.coerce.date(),
   timeZone: z.string().trim().min(1).max(80).optional(),
   championTeamId: z.number().int().positive().nullable().optional(),
+  playerOfTheTournamentId: z.number().int().positive().nullable().optional(),
   organization: z.object({
     existingId: z.number().int().positive().optional(),
     create: createOrganizationBodySchema.optional(),

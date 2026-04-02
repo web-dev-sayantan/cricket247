@@ -3,12 +3,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import z from "zod";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
 import FacebookButton from "@/components/ui/facebook-button";
 import {
   Field,
@@ -133,26 +127,29 @@ export default function SignUpForm({
 
   return (
     <main
-      className="page-surface flex items-start justify-center px-4 py-6 sm:px-6 sm:py-10"
+      className="page-surface flex items-start justify-center px-4 py-8 sm:px-6 sm:py-12"
       id="main-content"
     >
-      <Card className="w-full max-w-md">
-        <CardHeader className="flex flex-col items-center justify-center">
+      <div className="w-full max-w-sm space-y-6">
+        <div className="flex flex-col items-center justify-center space-y-3">
           <img
-            alt="logo"
+            alt="Cricket 24/7 Logo"
             className="rounded-full"
-            height="80"
+            height="48"
             src="/cricket-24-7.svg"
-            width="80"
+            width="48"
           />
-          <h1 className="py-2 text-center font-bold text-xl">Cricket 24/7</h1>
-        </CardHeader>
-        <CardContent>
-          <p className="mb-3 text-center text-sm">
+          <h1 className="text-center font-semibold text-2xl tracking-tight">
+            Cricket 24/7
+          </h1>
+          <p className="text-center text-muted-foreground text-sm">
             {otpSent
               ? "Check your email for the verification code"
               : "Create your account with"}
           </p>
+        </div>
+
+        <div>
           {!otpSent && (
             <>
               <div className="flex w-full items-center gap-4 pb-4">
@@ -331,19 +328,18 @@ export default function SignUpForm({
               )}
             </form.Subscribe>
           </form>
-        </CardContent>
-        <CardFooter className="flex items-center justify-center">
-          <div className="mt-4 text-center">
-            <Button
-              className="text-indigo-600 hover:text-indigo-800"
-              onClick={onSwitchToSignIn}
-              variant="link"
-            >
-              Already have an account? Sign In
-            </Button>
-          </div>
-        </CardFooter>
-      </Card>
+        </div>
+
+        <div className="mt-6 flex justify-center">
+          <Button
+            className="text-muted-foreground text-sm hover:text-foreground"
+            onClick={onSwitchToSignIn}
+            variant="link"
+          >
+            Already have an account? Sign In
+          </Button>
+        </div>
+      </div>
     </main>
   );
 }

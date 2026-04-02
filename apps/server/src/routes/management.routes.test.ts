@@ -103,10 +103,15 @@ mock.module("@/services/crud.service", () => ({
   venueCrudService: createNoopCrudService(),
 }));
 
-const managementRoutesModulePromise = import("./management.routes");
+let managementRoutesImportCounter = 0;
+
+function loadManagementRoutesModule() {
+  managementRoutesImportCounter += 1;
+  return import(`./management.routes?test=${managementRoutesImportCounter}`);
+}
 
 const createApp = async () => {
-  const { default: managementRoutes } = await managementRoutesModulePromise;
+  const { default: managementRoutes } = await loadManagementRoutesModule();
   const app = new Hono();
   app.use("*", errorHandler);
   app.route("/", managementRoutes);

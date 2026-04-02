@@ -18,5 +18,6 @@
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
     "strictNullChecks": true
-  }
+  },
+  "exclude": ["dist", "src/**/*.test.ts", "src/**/*.test.tsx"]
 }

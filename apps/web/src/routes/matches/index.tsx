@@ -21,31 +21,31 @@ function RouteComponent() {
     <PageShell className="selection:bg-primary/20">
       <PageHeader
         description="Watch cricket matches in real-time"
-        headingClassName="font-extrabold text-4xl lg:text-5xl"
+        headingClassName="font-normal font-serif text-4xl lg:text-5xl"
         title="Live Matches"
       />
 
       <div className="space-y-8 sm:space-y-10">
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Link className="group" to="/matches/create-match">
-            <div className="flex h-24 flex-col items-center justify-center gap-2 rounded-3xl border border-primary/20 bg-primary/5 p-4 text-primary backdrop-blur-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:border-primary/40 hover:bg-primary/10 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background">
+            <div className="angled-cut flex h-24 flex-col items-center justify-center gap-2 border border-primary/20 bg-primary/5 p-4 text-primary backdrop-blur-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:border-primary/40 hover:bg-primary/10 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background">
               <div className="flex items-center gap-3">
-                <div className="rounded-full bg-primary p-2.5 text-primary-foreground transition-transform duration-300 group-hover:scale-110 group-hover:bg-primary/90">
+                <div className="angled-cut bg-primary p-2.5 text-primary-foreground transition-transform duration-300 group-hover:scale-110 group-hover:bg-primary/90">
                   <PlusIcon className="relative z-10 size-5" />
                 </div>
-                <span className="font-bold text-base tracking-wide">
+                <span className="font-semibold text-base tracking-wide">
                   Create Match
                 </span>
               </div>
             </div>
           </Link>
           <Link className="group" to="/matches/completed">
-            <div className="flex h-24 flex-col items-center justify-center gap-2 rounded-3xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:border-border/80 hover:bg-card hover:shadow-lg">
+            <div className="angled-cut flex h-24 flex-col items-center justify-center gap-2 border border-border/50 bg-card/50 p-4 backdrop-blur-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:border-border/80 hover:bg-card hover:shadow-lg">
               <div className="flex items-center gap-3">
-                <div className="rounded-full bg-secondary p-2.5 text-secondary-foreground transition-transform duration-300 group-hover:scale-110 group-hover:bg-secondary/80">
+                <div className="angled-cut bg-secondary p-2.5 text-secondary-foreground transition-transform duration-300 group-hover:scale-110 group-hover:bg-secondary/80">
                   <HistoryIcon className="relative z-10 size-5" />
                 </div>
-                <span className="font-bold text-base text-foreground tracking-wide">
+                <span className="font-semibold text-base text-foreground tracking-wide">
                   Completed Matches
                 </span>
               </div>
@@ -64,8 +64,8 @@ function RouteComponent() {
           )}
 
           {!isLoading && liveMatches.length === 0 && (
-            <div className="mx-auto mt-4 flex max-w-2xl flex-col items-center justify-center gap-6 rounded-3xl border border-border/60 border-dashed bg-muted/10 px-4 py-20 text-center">
-              <div className="mb-2 rounded-full bg-primary/10 p-6 ring-8 ring-primary/5">
+            <div className="angled-cut mx-auto mt-4 flex max-w-2xl flex-col items-center justify-center gap-6 border border-border/60 border-dashed bg-muted/10 px-4 py-20 text-center">
+              <div className="angled-cut mb-2 bg-primary/10 p-6 ring-8 ring-primary/5">
                 <Activity className="size-10 text-primary opacity-80" />
               </div>
               <div className="space-y-2">
@@ -78,16 +78,18 @@ function RouteComponent() {
                 </p>
               </div>
               <Link
-                className={cn(
-                  buttonVariants({
-                    className:
-                      "mt-4 h-12 rounded-full px-8 font-semibold text-base shadow-sm transition-all hover:shadow-md active:scale-95",
-                  })
-                )}
+                className="angled-cut group mt-4 inline-flex bg-primary/40 p-px shadow-sm transition-all hover:shadow-md active:scale-95"
                 to="/matches/create-match"
               >
-                <PlusIcon className="mr-2 size-5" />
-                Start a Match
+                <span
+                  className={cn(
+                    buttonVariants(),
+                    "angled-cut h-12 border-transparent bg-primary px-8 font-semibold text-base"
+                  )}
+                >
+                  <PlusIcon className="mr-2 size-5" />
+                  Start a Match
+                </span>
               </Link>
             </div>
           )}

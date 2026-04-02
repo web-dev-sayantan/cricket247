@@ -10,11 +10,27 @@ interface BattingTeam {
   teamPlayers: TeamPlayer[];
 }
 
-interface InningsRow {
+interface InningsDetailRow {
   battingTeam: BattingTeam | null;
   deliveries: { sequenceNo: number }[];
   id: number;
   matchId: number;
+}
+
+interface InningsSequenceRow {
+  battingTeamId: number;
+  bowlingTeamId: number;
+  inningsNumber: number;
+  isCompleted: boolean | null;
+  totalScore: number;
+}
+
+interface MatchRow {
+  followOnAllowedSnapshot: boolean | null;
+  id: number;
+  inningsPerSide: number;
+  team1Id: number | null;
+  team2Id: number | null;
 }
 
 interface InningsUpdateRow {
@@ -27,30 +43,42 @@ interface InningsInsertResult {
 }
 
 interface InningsMockState {
-  inningsRow: InningsRow | null;
+  inningsDetailRow: InningsDetailRow | null;
+  inningsSequenceRows: InningsSequenceRow[];
   insertResult: InningsInsertResult;
+  matchRow: MatchRow | null;
   matchTournamentId: number | null;
   updateRows: InningsUpdateRow[];
 }
 
 const state: InningsMockState = {
-  inningsRow: null,
-  matchTournamentId: null,
+  inningsDetailRow: null,
+  inningsSequenceRows: [],
   insertResult: { lastInsertRowid: 0 },
+  matchRow: {
+    followOnAllowedSnapshot: false,
+    id: 5,
+    inningsPerSide: 1,
+    team1Id: 2,
+    team2Id: 3,
+  },
+  matchTournamentId: null,
   updateRows: [],
 };
 
 const dbMock = {
   query: {
     innings: {
-      findFirst: (): Promise<InningsRow | null> => {
-        return Promise.resolve(state.inningsRow);
+      findFirst: (): Promise<InningsDetailRow | null> => {
+        return Promise.resolve(state.inningsDetailRow);
       },
-      findMany: (): Promise<InningsRow[]> => {
-        if (!state.inningsRow) {
-          return Promise.resolve([]);
-        }
-        return Promise.resolve([state.inningsRow]);
+      findMany: (): Promise<InningsSequenceRow[]> => {
+        return Promise.resolve(state.inningsSequenceRows);
+      },
+    },
+    matches: {
+      findFirst: (): Promise<MatchRow | null> => {
+        return Promise.resolve(state.matchRow);
       },
     },
   },
@@ -88,7 +116,15 @@ const serviceModulePromise = import("./innings.service");
 
 describe("innings.service", () => {
   beforeEach(() => {
-    state.inningsRow = null;
+    state.inningsDetailRow = null;
+    state.inningsSequenceRows = [];
+    state.matchRow = {
+      followOnAllowedSnapshot: false,
+      id: 5,
+      inningsPerSide: 1,
+      team1Id: 2,
+      team2Id: 3,
+    };
     state.matchTournamentId = null;
     state.insertResult = { lastInsertRowid: 0 };
     state.updateRows = [];
@@ -103,7 +139,7 @@ describe("innings.service", () => {
 
   it("filters batting team players by tournament id", async () => {
     state.matchTournamentId = 2026;
-    state.inningsRow = {
+    state.inningsDetailRow = {
       id: 21,
       matchId: 99,
       battingTeam: {
@@ -129,20 +165,134 @@ describe("innings.service", () => {
     expect(battingTeamPlayers).toEqual([{ id: 11, tournamentId: 2026 }]);
   });
 
-  it("returns inserted row id for create action", async () => {
+  it("returns inserted row id for a valid second innings", async () => {
     state.insertResult = { lastInsertRowid: 77 };
+    state.inningsSequenceRows = [
+      {
+        battingTeamId: 2,
+        bowlingTeamId: 3,
+        inningsNumber: 1,
+        isCompleted: true,
+        totalScore: 144,
+      },
+    ];
 
     const { createInningsAction } = await serviceModulePromise;
     const createdId = await createInningsAction({
       matchId: 5,
-      battingTeamId: 2,
-      bowlingTeamId: 3,
+      battingTeamId: 3,
+      bowlingTeamId: 2,
+      inningsNumber: 2,
     });
 
     const normalizedCreatedId =
       typeof createdId === "bigint" ? Number(createdId) : createdId;
 
     expect(normalizedCreatedId).toBe(77);
+  });
+
+  it("rejects back-to-back batting when follow-on is not in play", async () => {
+    state.inningsSequenceRows = [
+      {
+        battingTeamId: 2,
+        bowlingTeamId: 3,
+        inningsNumber: 1,
+        isCompleted: true,
+        totalScore: 260,
+      },
+    ];
+
+    const { createInningsAction } = await serviceModulePromise;
+
+    await expect(
+      createInningsAction({
+        matchId: 5,
+        battingTeamId: 2,
+        bowlingTeamId: 3,
+        inningsNumber: 2,
+      })
+    ).rejects.toThrow(
+      "Teams cannot bat in consecutive innings unless a follow-on is enforced"
+    );
+  });
+
+  it("allows a third-innings follow-on when the second side trails by 200 or more", async () => {
+    state.insertResult = { lastInsertRowid: 88 };
+    state.matchRow = {
+      followOnAllowedSnapshot: true,
+      id: 5,
+      inningsPerSide: 2,
+      team1Id: 2,
+      team2Id: 3,
+    };
+    state.inningsSequenceRows = [
+      {
+        battingTeamId: 2,
+        bowlingTeamId: 3,
+        inningsNumber: 1,
+        isCompleted: true,
+        totalScore: 410,
+      },
+      {
+        battingTeamId: 3,
+        bowlingTeamId: 2,
+        inningsNumber: 2,
+        isCompleted: true,
+        totalScore: 190,
+      },
+    ];
+
+    const { createInningsAction } = await serviceModulePromise;
+    const createdId = await createInningsAction({
+      matchId: 5,
+      battingTeamId: 3,
+      bowlingTeamId: 2,
+      inningsNumber: 3,
+    });
+
+    const normalizedCreatedId =
+      typeof createdId === "bigint" ? Number(createdId) : createdId;
+
+    expect(normalizedCreatedId).toBe(88);
+  });
+
+  it("rejects a third-innings follow-on when the deficit is below 200", async () => {
+    state.matchRow = {
+      followOnAllowedSnapshot: true,
+      id: 5,
+      inningsPerSide: 2,
+      team1Id: 2,
+      team2Id: 3,
+    };
+    state.inningsSequenceRows = [
+      {
+        battingTeamId: 2,
+        bowlingTeamId: 3,
+        inningsNumber: 1,
+        isCompleted: true,
+        totalScore: 360,
+      },
+      {
+        battingTeamId: 3,
+        bowlingTeamId: 2,
+        inningsNumber: 2,
+        isCompleted: true,
+        totalScore: 170,
+      },
+    ];
+
+    const { createInningsAction } = await serviceModulePromise;
+
+    await expect(
+      createInningsAction({
+        matchId: 5,
+        battingTeamId: 3,
+        bowlingTeamId: 2,
+        inningsNumber: 3,
+      })
+    ).rejects.toThrow(
+      "Teams cannot bat in consecutive innings unless a follow-on is enforced"
+    );
   });
 
   it("returns first updated row for update action", async () => {

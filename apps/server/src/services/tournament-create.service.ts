@@ -38,6 +38,7 @@ type TournamentCreateServiceErrorCode =
   | "ORGANIZATION_SYSTEM_FLAG_IMMUTABLE"
   | "GROUP_EDIT_TARGET_NOT_FOUND"
   | "INVALID_TEMPLATE_CONFIGURATION"
+  | "PLAYER_OF_TOURNAMENT_NOT_IN_TOURNAMENT"
   | "STAGE_EDIT_TARGET_NOT_FOUND"
   | "STRUCTURE_LOCKED"
   | "TEAM_COUNT_TOO_LOW"
@@ -286,6 +287,7 @@ async function createTournamentRecord(params: {
       timeZone: normalizeTimeZone(input.timeZone),
       defaultMatchFormatId,
       championTeamId: input.championTeamId ?? null,
+      playerOfTheTournamentId: input.playerOfTheTournamentId ?? null,
     })
     .returning();
 
@@ -321,6 +323,7 @@ async function updateTournamentRecord(params: {
       timeZone: normalizeTimeZone(input.timeZone),
       defaultMatchFormatId,
       championTeamId: input.championTeamId ?? null,
+      playerOfTheTournamentId: input.playerOfTheTournamentId ?? null,
     })
     .where(eq(tournaments.id, input.tournamentId))
     .returning();
@@ -344,6 +347,29 @@ async function attachTeamsToTournament(
       teamId,
     }))
   );
+}
+
+async function assertPlayerOfTheTournamentEligible(params: {
+  playerId: null | number | undefined;
+  tournamentId: number;
+  tx: TransactionClient;
+}) {
+  if (typeof params.playerId !== "number") {
+    return;
+  }
+
+  const registration = await params.tx.query.teamPlayers.findFirst({
+    where: {
+      tournamentId: params.tournamentId,
+      playerId: params.playerId,
+    },
+  });
+
+  if (!registration) {
+    throw new TournamentCreateServiceError(
+      "PLAYER_OF_TOURNAMENT_NOT_IN_TOURNAMENT"
+    );
+  }
 }
 
 async function replaceTournamentTeams(
@@ -985,6 +1011,11 @@ export async function createTournamentFromScratch(
     });
 
     await attachTeamsToTournament(tx, tournament.id, selectedTeamIds);
+    await assertPlayerOfTheTournamentEligible({
+      tx,
+      tournamentId: tournament.id,
+      playerId: input.playerOfTheTournamentId,
+    });
     const templateSummary = await createTemplateForTournament({
       tx,
       tournamentId: tournament.id,
@@ -1080,6 +1111,12 @@ export async function updateTournamentFromScratch(
     if (teamMembershipChanged) {
       await replaceTournamentTeams(tx, input.tournamentId, selectedTeamIds);
     }
+
+    await assertPlayerOfTheTournamentEligible({
+      tx,
+      tournamentId: input.tournamentId,
+      playerId: input.playerOfTheTournamentId,
+    });
 
     const templateSupported = existingStructure.supported;
     const tournamentType = templateSupported

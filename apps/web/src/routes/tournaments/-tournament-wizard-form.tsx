@@ -90,6 +90,12 @@ interface TournamentWizardFormProps {
   onCancel: () => void;
   onSubmit: (values: TournamentWizardValues) => Promise<void>;
   organizations: Array<{ id: number; name: string }>;
+  playerOptions: Array<{
+    playerId: number;
+    playerName: string;
+    teamId: number;
+    teamName: string;
+  }>;
   submitBusyLabel: string;
   submitIdleLabel: string;
   submitting: boolean;
@@ -194,6 +200,124 @@ function getCurrentStepError(step: number, values: TournamentWizardValues) {
   return null;
 }
 
+interface TournamentAdvancedSectionProps {
+  championTeamId: null | number;
+  onChampionTeamChange: (value: null | number) => void;
+  onPlayerOfTheTournamentChange: (value: null | number) => void;
+  onTimeZoneChange: (value: string) => void;
+  playerOfTheTournamentId: null | number;
+  playerOptionsForAward: Array<{
+    playerId: number;
+    playerName: string;
+    teamId: number;
+    teamName: string;
+  }>;
+  teamOptionsForChampion: Array<{ id: number; name: string }>;
+  timeZone: string;
+}
+
+function TournamentAdvancedSection({
+  championTeamId,
+  onChampionTeamChange,
+  onPlayerOfTheTournamentChange,
+  onTimeZoneChange,
+  playerOfTheTournamentId,
+  playerOptionsForAward,
+  teamOptionsForChampion,
+  timeZone,
+}: TournamentAdvancedSectionProps) {
+  return (
+    <div className="space-y-4 rounded-lg border p-4">
+      <div>
+        <h3 className="font-medium text-sm">Advanced</h3>
+        <p className="text-muted-foreground text-xs">
+          Optional scheduling and completion metadata.
+        </p>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field>
+          <FieldLabel htmlFor="time-zone">Time Zone</FieldLabel>
+          <Input
+            id="time-zone"
+            onChange={(event) => onTimeZoneChange(event.target.value)}
+            placeholder="e.g. Asia/Kolkata"
+            value={timeZone}
+          />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="champion-team">Champion Team</FieldLabel>
+          <Select
+            onValueChange={(value) => {
+              const nextChampionTeamId =
+                !value || value === "none" ? null : Number.parseInt(value, 10);
+              onChampionTeamChange(
+                Number.isNaN(nextChampionTeamId) ? null : nextChampionTeamId
+              );
+            }}
+            value={
+              typeof championTeamId === "number"
+                ? String(championTeamId)
+                : "none"
+            }
+          >
+            <SelectTrigger id="champion-team">
+              <SelectValue placeholder="Select champion team" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Not decided yet</SelectItem>
+              {teamOptionsForChampion.map((team) => (
+                <SelectItem key={team.id} value={String(team.id)}>
+                  {team.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="player-of-the-tournament">
+            Player of the Tournament
+          </FieldLabel>
+          <Select
+            disabled={playerOptionsForAward.length === 0}
+            onValueChange={(value) => {
+              const nextPlayerId =
+                !value || value === "none" ? null : Number.parseInt(value, 10);
+              onPlayerOfTheTournamentChange(
+                Number.isNaN(nextPlayerId) ? null : nextPlayerId
+              );
+            }}
+            value={
+              typeof playerOfTheTournamentId === "number"
+                ? String(playerOfTheTournamentId)
+                : "none"
+            }
+          >
+            <SelectTrigger id="player-of-the-tournament">
+              <SelectValue placeholder="Select player of the tournament" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Not decided yet</SelectItem>
+              {playerOptionsForAward.map((player) => (
+                <SelectItem
+                  key={`${String(player.teamId)}-${String(player.playerId)}`}
+                  value={String(player.playerId)}
+                >
+                  {player.playerName} • {player.teamName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FieldDescription>
+            {playerOptionsForAward.length > 0
+              ? "Only players registered in this tournament are eligible."
+              : "Assign this after players are registered to the tournament."}
+          </FieldDescription>
+        </Field>
+      </div>
+    </div>
+  );
+}
+
 export function TournamentWizardForm(props: TournamentWizardFormProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [globalError, setGlobalError] = useState<null | string>(null);
@@ -239,6 +363,13 @@ export function TournamentWizardForm(props: TournamentWizardFormProps) {
       .map((teamId) => byId.get(teamId))
       .filter((team): team is NonNullable<typeof team> => Boolean(team));
   }, [props.teams, values.teams.existingTeamIds]);
+
+  const playerOptionsForAward = useMemo(() => {
+    const validTeamIds = new Set(values.teams.existingTeamIds);
+    return props.playerOptions.filter((player) =>
+      validTeamIds.has(player.teamId)
+    );
+  }, [props.playerOptions, values.teams.existingTeamIds]);
 
   const selectedOrganizationLabel = useMemo(() => {
     if (typeof values.organization.existingId !== "number") {
@@ -554,6 +685,38 @@ export function TournamentWizardForm(props: TournamentWizardFormProps) {
     }
   };
 
+  const updateTimeZone = (timeZone: string) => {
+    setValues((previous) => ({
+      ...previous,
+      advanced: {
+        ...previous.advanced,
+        timeZone,
+      },
+    }));
+  };
+
+  const updateChampionTeamId = (championTeamId: null | number) => {
+    setValues((previous) => ({
+      ...previous,
+      advanced: {
+        ...previous.advanced,
+        championTeamId,
+      },
+    }));
+  };
+
+  const updatePlayerOfTheTournamentId = (
+    playerOfTheTournamentId: null | number
+  ) => {
+    setValues((previous) => ({
+      ...previous,
+      advanced: {
+        ...previous.advanced,
+        playerOfTheTournamentId,
+      },
+    }));
+  };
+
   const renderBasicsStep = () => {
     return (
       <div className="space-y-5">
@@ -704,70 +867,16 @@ export function TournamentWizardForm(props: TournamentWizardFormProps) {
           </Field>
         </div>
 
-        <div className="space-y-4 rounded-lg border p-4">
-          <div>
-            <h3 className="font-medium text-sm">Advanced</h3>
-            <p className="text-muted-foreground text-xs">
-              Optional scheduling and completion metadata.
-            </p>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field>
-              <FieldLabel htmlFor="time-zone">Time Zone</FieldLabel>
-              <Input
-                id="time-zone"
-                onChange={(event) =>
-                  setValues((previous) => ({
-                    ...previous,
-                    advanced: {
-                      ...previous.advanced,
-                      timeZone: event.target.value,
-                    },
-                  }))
-                }
-                placeholder="e.g. Asia/Kolkata"
-                value={values.advanced.timeZone}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="champion-team">Champion Team</FieldLabel>
-              <Select
-                onValueChange={(value) => {
-                  const championTeamId =
-                    !value || value === "none"
-                      ? null
-                      : Number.parseInt(value, 10);
-                  setValues((previous) => ({
-                    ...previous,
-                    advanced: {
-                      ...previous.advanced,
-                      championTeamId: Number.isNaN(championTeamId)
-                        ? null
-                        : championTeamId,
-                    },
-                  }));
-                }}
-                value={
-                  typeof values.advanced.championTeamId === "number"
-                    ? String(values.advanced.championTeamId)
-                    : "none"
-                }
-              >
-                <SelectTrigger id="champion-team">
-                  <SelectValue placeholder="Select champion team" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Not decided yet</SelectItem>
-                  {teamOptionsForChampion.map((team) => (
-                    <SelectItem key={team.id} value={String(team.id)}>
-                      {team.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-          </div>
-        </div>
+        <TournamentAdvancedSection
+          championTeamId={values.advanced.championTeamId}
+          onChampionTeamChange={updateChampionTeamId}
+          onPlayerOfTheTournamentChange={updatePlayerOfTheTournamentId}
+          onTimeZoneChange={updateTimeZone}
+          playerOfTheTournamentId={values.advanced.playerOfTheTournamentId}
+          playerOptionsForAward={playerOptionsForAward}
+          teamOptionsForChampion={teamOptionsForChampion}
+          timeZone={values.advanced.timeZone}
+        />
 
         <div className="space-y-4 rounded-lg border p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1286,7 +1395,7 @@ export function TournamentWizardForm(props: TournamentWizardFormProps) {
               {values.teams.createTeams.map((team, index) => (
                 <div
                   className="flex items-center justify-between rounded border px-3 py-2"
-                  key={`${team.name}-${team.shortName}-${index}`}
+                  key={`${team.name}-${team.shortName}`}
                 >
                   <div>
                     <p className="font-medium text-sm">{team.name}</p>

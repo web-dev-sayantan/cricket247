@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
   calculateNextCreaseState,
   resolveBattingAndBowlingTeamIds,
+  resolveInningsSetupSelection,
   resolveScoringStep,
 } from "./-scoring-flow";
 
@@ -97,6 +98,52 @@ describe("scoring flow helpers", () => {
       isOverComplete: true,
       nextStrikerId: 2,
       nextNonStrikerId: 1,
+    });
+  });
+
+  it("uses the follow-on team pairing for innings three only when the toggle is enabled", () => {
+    expect(
+      resolveInningsSetupSelection({
+        followOnApplied: false,
+        nextInningsDefaults: {
+          battingTeamId: 10,
+          bowlingTeamId: 20,
+          followOn: {
+            battingTeamId: 20,
+            bowlingTeamId: 10,
+            isApplied: false,
+          },
+          inningsNumber: 3,
+        },
+        tossDerivedTeams: null,
+      })
+    ).toEqual({
+      battingTeamId: 10,
+      bowlingTeamId: 20,
+      followOnAvailable: true,
+      inningsNumber: 3,
+    });
+
+    expect(
+      resolveInningsSetupSelection({
+        followOnApplied: true,
+        nextInningsDefaults: {
+          battingTeamId: 10,
+          bowlingTeamId: 20,
+          followOn: {
+            battingTeamId: 20,
+            bowlingTeamId: 10,
+            isApplied: false,
+          },
+          inningsNumber: 3,
+        },
+        tossDerivedTeams: null,
+      })
+    ).toEqual({
+      battingTeamId: 20,
+      bowlingTeamId: 10,
+      followOnAvailable: true,
+      inningsNumber: 3,
     });
   });
 });

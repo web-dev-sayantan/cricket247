@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { CalendarIcon, TrophyIcon } from "lucide-react";
+import { memo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatMonthDay, isDateWithinInclusiveRange } from "@/lib/date";
@@ -14,7 +15,7 @@ interface TournamentCardProps {
   startDate: Date;
 }
 
-export function TournamentCard({
+export const TournamentCard = memo(function TournamentCard({
   className,
   id,
   name,
@@ -78,4 +79,4 @@ export function TournamentCard({
       </Card>
     </Link>
   );
-}
+});

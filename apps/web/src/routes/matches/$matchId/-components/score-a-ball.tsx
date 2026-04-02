@@ -1,6 +1,11 @@
 import type { WicketType } from "@cricket247/server/types";
-import { MinusIcon, PlusIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  RotateCcwIcon,
+  Trash2Icon,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,533 +15,954 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetFooter,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 export interface ScoringPlayerOption {
+  battingOrder?: null | number;
   id: number;
   name: string;
+  teamId: number;
 }
 
-export interface ScoringDelivery {
-  assistedById: number | null;
-  ballInOver: number;
+export interface DeliveryDraft {
+  assistedById: null | number;
   batterRuns: number;
-  bowler: ScoringPlayerOption;
-  bowlerId: number;
+  bowlerId: null | number;
   byeRuns: number;
-  dismissedPlayerId: number | null;
-  id: number;
+  dismissedPlayerId: null | number;
   inningsId: number;
-  isWicket: boolean;
   legByeRuns: number;
   noBallRuns: number;
-  nonStriker: ScoringPlayerOption;
-  nonStrikerId: number;
-  overNumber: number;
-  sequenceNo: number;
-  striker: ScoringPlayerOption;
-  strikerId: number;
-  totalRuns: number;
-  wicketType: null | string;
+  nonStrikerId: null | number;
+  penaltyRuns: number;
+  strikerId: null | number;
+  wicketType: "" | WicketType;
   wideRuns: number;
 }
 
-export interface ScoreBallUpdateInput {
-  assistPlayerId?: number;
-  bowlerId: number;
-  dismissedPlayerId?: number;
-  id: number;
-  inningsId: number;
-  isBye: boolean;
-  isLegBye: boolean;
-  isNoBall: boolean;
-  isWicket: boolean;
-  isWide: boolean;
-  nonStrikerId: number;
-  runsScored: number;
-  strikerId: number;
-  wicketType?: WicketType;
+export interface MatchFlags {
+  hasBoundaryOut: boolean;
+  hasBye: boolean;
+  hasLBW: boolean;
+  hasLegBye: boolean;
+  hasNoBalls: boolean;
+  hasPenaltyRuns: boolean;
+  hasWides: boolean;
 }
 
-interface DismissalState {
-  assistPlayerId?: number;
-  dismissedPlayerId: number;
-  type: WicketType;
-}
+type ExtraField =
+  | "byeRuns"
+  | "legByeRuns"
+  | "noBallRuns"
+  | "penaltyRuns"
+  | "wideRuns";
 
 interface ScoreABallProps {
-  ball: ScoringDelivery;
+  battingPlayers: ScoringPlayerOption[];
   bowlingPlayers: ScoringPlayerOption[];
-  hasBoundaryOut?: boolean;
-  hasBye?: boolean;
-  hasLBW?: boolean;
-  hasLegBye?: boolean;
+  draft: DeliveryDraft;
+  fieldingOptions: ScoringPlayerOption[];
+  isEditing: boolean;
   isSubmitting?: boolean;
-  onSubmitBall: (input: ScoreBallUpdateInput) => void;
-  otherBalls: ScoringDelivery[];
+  matchFlags: MatchFlags;
+  onChange: (patch: Partial<DeliveryDraft>) => void;
+  onDelete?: () => void;
+  onDiscardEdit?: () => void;
+  onReset: () => void;
+  onSubmit: () => void;
+  requiredSelections: {
+    bowler: boolean;
+    nonStriker: boolean;
+    striker: boolean;
+  };
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Ball scoring interactions are intentionally grouped in a single mobile panel.
+export function resolveBattingPairSelection(params: {
+  currentNonStrikerId: null | number;
+  currentStrikerId: null | number;
+  nextPlayerId: null | number;
+  role: "nonStriker" | "striker";
+}) {
+  const { currentNonStrikerId, currentStrikerId, nextPlayerId, role } = params;
+
+  if (role === "striker") {
+    if (nextPlayerId === null) {
+      return {
+        strikerId: null,
+        nonStrikerId: currentNonStrikerId,
+      };
+    }
+
+    if (nextPlayerId === currentNonStrikerId) {
+      return {
+        strikerId: currentNonStrikerId,
+        nonStrikerId: currentStrikerId,
+      };
+    }
+
+    return {
+      strikerId: nextPlayerId,
+      nonStrikerId:
+        currentNonStrikerId === nextPlayerId ? null : currentNonStrikerId,
+    };
+  }
+
+  if (nextPlayerId === null) {
+    return {
+      strikerId: currentStrikerId,
+      nonStrikerId: null,
+    };
+  }
+
+  if (nextPlayerId === currentStrikerId) {
+    return {
+      strikerId: currentNonStrikerId,
+      nonStrikerId: currentStrikerId,
+    };
+  }
+
+  return {
+    strikerId: currentStrikerId === nextPlayerId ? null : currentStrikerId,
+    nonStrikerId: nextPlayerId,
+  };
+}
+
+const ALL_DISMISSAL_TYPES = [
+  "bowled",
+  "caught",
+  "caught and bowled",
+  "lbw",
+  "run out",
+  "stumped",
+  "hit wicket",
+  "boundary out",
+  "handled the ball",
+  "obstructing the field",
+  "timed out",
+  "retired hurt",
+  "retired out",
+  "others",
+] as const satisfies readonly WicketType[];
+
+const COMMON_DISMISSAL_TYPES = [
+  "bowled",
+  "caught",
+  "lbw",
+  "run out",
+  "stumped",
+] as const satisfies readonly WicketType[];
+
+const DISMISSAL_LABELS: Record<WicketType, string> = {
+  bowled: "Bowled",
+  bold: "Bowled",
+  caught: "Caught",
+  "caught and bowled": "Caught & bowled",
+  lbw: "LBW",
+  "run out": "Run out",
+  stumped: "Stumped",
+  "hit wicket": "Hit wicket",
+  "boundary out": "Boundary out",
+  "handled the ball": "Handled the ball",
+  "obstructing the field": "Obstructing the field",
+  "timed out": "Timed out",
+  "retired hurt": "Retired hurt",
+  "retired out": "Retired out",
+  others: "Others",
+};
+
+const NO_BALL_ALLOWED_DISMISSALS = new Set<WicketType>(["run out"]);
+
+const WIDE_ALLOWED_DISMISSALS = new Set<WicketType>([
+  "run out",
+  "stumped",
+  "hit wicket",
+  "obstructing the field",
+]);
+
+const BATTER_RUN_ALLOWED_DISMISSALS = new Set<WicketType>([
+  "run out",
+  "obstructing the field",
+]);
+
+export function normalizeDismissalTypeForUI(
+  wicketType: "" | WicketType | null | undefined
+): "" | Exclude<WicketType, "bold"> {
+  if (!wicketType) {
+    return "";
+  }
+
+  return wicketType === "bold" ? "bowled" : wicketType;
+}
+
+export function getVisibleExtras(matchFlags: MatchFlags) {
+  const visibleExtras: ExtraField[] = [];
+
+  if (matchFlags.hasWides) {
+    visibleExtras.push("wideRuns");
+  }
+
+  if (matchFlags.hasNoBalls) {
+    visibleExtras.push("noBallRuns");
+  }
+
+  if (matchFlags.hasBye) {
+    visibleExtras.push("byeRuns");
+  }
+
+  if (matchFlags.hasLegBye) {
+    visibleExtras.push("legByeRuns");
+  }
+
+  if (matchFlags.hasPenaltyRuns) {
+    visibleExtras.push("penaltyRuns");
+  }
+
+  return visibleExtras;
+}
+
+export function getVisibleDismissals(matchFlags: MatchFlags) {
+  return ALL_DISMISSAL_TYPES.filter((type) => {
+    if (type === "lbw") {
+      return matchFlags.hasLBW;
+    }
+
+    if (type === "boundary out") {
+      return matchFlags.hasBoundaryOut;
+    }
+
+    return true;
+  });
+}
+
+export function dismissalAllowsBatterRuns(
+  wicketType: "" | WicketType | null | undefined
+) {
+  const normalizedWicketType = normalizeDismissalTypeForUI(wicketType);
+  if (!normalizedWicketType) {
+    return true;
+  }
+
+  return BATTER_RUN_ALLOWED_DISMISSALS.has(normalizedWicketType);
+}
+
+export function getAllowedDismissals(params: {
+  draft: Pick<DeliveryDraft, "noBallRuns" | "wideRuns">;
+  matchFlags: MatchFlags;
+}) {
+  const visibleDismissals = getVisibleDismissals(params.matchFlags);
+
+  if (params.draft.noBallRuns > 0) {
+    return visibleDismissals.filter((dismissalType) =>
+      NO_BALL_ALLOWED_DISMISSALS.has(dismissalType)
+    );
+  }
+
+  if (params.draft.wideRuns > 0) {
+    return visibleDismissals.filter((dismissalType) =>
+      WIDE_ALLOWED_DISMISSALS.has(dismissalType)
+    );
+  }
+
+  return visibleDismissals;
+}
+
+function getDismissalLabel(wicketType: WicketType) {
+  return DISMISSAL_LABELS[wicketType] ?? wicketType;
+}
+
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: The delivery editor intentionally groups the scorer controls into one focused surface.
 function ScoreABall({
-  ball,
-  otherBalls,
+  draft,
+  battingPlayers,
   bowlingPlayers,
-  hasLBW,
-  hasBoundaryOut,
-  hasBye,
-  hasLegBye,
+  fieldingOptions,
+  matchFlags,
+  requiredSelections,
+  isEditing,
   isSubmitting,
-  onSubmitBall,
+  onChange,
+  onDiscardEdit,
+  onDelete,
+  onReset,
+  onSubmit,
 }: ScoreABallProps) {
-  const [runsScored, setRunsScored] = useState(0);
-  const [isWide, setIsWide] = useState(false);
-  const [isNoBall, setIsNoBall] = useState(false);
-  const [isBye, setIsBye] = useState(false);
-  const [isLegBye, setIsLegBye] = useState(false);
-  const [selectedStrikerId, setSelectedStrikerId] = useState(ball.strikerId);
-  const [dismissal, setDismissal] = useState<DismissalState | null>(null);
-  const [sheetDismissalType, setSheetDismissalType] = useState<
-    "caught" | "run out" | "stumped" | null
-  >(null);
-  const [sheetAssistPlayerId, setSheetAssistPlayerId] = useState<number | null>(
-    null
+  const dismissalTypesWithAssist = new Set<WicketType>([
+    "boundary out",
+    "caught",
+    "run out",
+    "stumped",
+  ]);
+  const strikerOnlyDismissalTypes = new Set<WicketType>([
+    "bowled",
+    "lbw",
+    "caught",
+    "hit wicket",
+    "caught and bowled",
+    "stumped",
+    "handled the ball",
+  ]);
+  const visibleExtras = getVisibleExtras(matchFlags);
+  const visibleDismissals = getAllowedDismissals({
+    draft,
+    matchFlags,
+  });
+  const commonDismissals = COMMON_DISMISSAL_TYPES.filter((type) =>
+    visibleDismissals.includes(type)
   );
-  const [sheetDismissedPlayerId, setSheetDismissedPlayerId] = useState<
-    number | null
-  >(null);
+  const commonDismissalSet = new Set<WicketType>(commonDismissals);
+  const moreDismissals = visibleDismissals.filter(
+    (type) => !commonDismissalSet.has(type)
+  );
+  const normalizedWicketType = normalizeDismissalTypeForUI(draft.wicketType);
+  const dismissalRequiresAssist = normalizedWicketType
+    ? dismissalTypesWithAssist.has(normalizedWicketType)
+    : false;
+  const isWicketActive = normalizedWicketType.length > 0;
+  const moreDismissalPlaceholder = "__more__";
+
+  const hasExtras =
+    draft.wideRuns > 0 ||
+    draft.noBallRuns > 0 ||
+    draft.byeRuns > 0 ||
+    draft.legByeRuns > 0 ||
+    draft.penaltyRuns > 0;
+  const [showExtras, setShowExtras] = useState(false);
+  const extrasVisible = showExtras || hasExtras;
+  const hasWide = draft.wideRuns > 0;
+  const hasNoBall = draft.noBallRuns > 0;
+  const hasBye = draft.byeRuns > 0;
+  const hasLegBye = draft.legByeRuns > 0;
+  const hasBatRuns = draft.batterRuns > 0;
+  const canScoreBatterRuns = dismissalAllowsBatterRuns(normalizedWicketType);
+  const selectedMoreDismissalValue = moreDismissals.some(
+    (type) => type === normalizedWicketType
+  )
+    ? normalizedWicketType
+    : moreDismissalPlaceholder;
 
   useEffect(() => {
-    setRunsScored(ball.batterRuns + ball.byeRuns + ball.legByeRuns);
-    setIsWide(ball.wideRuns > 0);
-    setIsNoBall(ball.noBallRuns > 0);
-    setIsBye(ball.byeRuns > 0);
-    setIsLegBye(ball.legByeRuns > 0);
-    setSelectedStrikerId(ball.strikerId);
-    setDismissal(
-      ball.isWicket
-        ? {
-            type: (ball.wicketType as WicketType | null) ?? "bowled",
-            dismissedPlayerId: ball.dismissedPlayerId ?? ball.strikerId,
-            assistPlayerId: ball.assistedById ?? undefined,
-          }
-        : null
-    );
-    setSheetDismissalType(null);
-    setSheetAssistPlayerId(null);
-    setSheetDismissedPlayerId(null);
-  }, [ball]);
+    if (hasExtras) {
+      setShowExtras(true);
+    }
+  }, [hasExtras]);
 
-  const selectedNonStrikerId =
-    selectedStrikerId === ball.strikerId ? ball.nonStrikerId : ball.strikerId;
+  useEffect(() => {
+    const patch: Partial<DeliveryDraft> = {};
 
-  const displayTotalRuns = runsScored + (isWide || isNoBall ? 1 : 0);
-
-  const dismissalLabel = useMemo(() => {
-    if (!dismissal) {
-      return "None";
+    if (
+      normalizedWicketType &&
+      !visibleDismissals.includes(normalizedWicketType)
+    ) {
+      patch.wicketType = "";
+      patch.dismissedPlayerId = null;
+      patch.assistedById = null;
     }
 
-    let dismissedName = "Batter";
-    if (dismissal.dismissedPlayerId === ball.strikerId) {
-      dismissedName = ball.striker.name;
-    } else if (dismissal.dismissedPlayerId === ball.nonStrikerId) {
-      dismissedName = ball.nonStriker.name;
-    }
-    const assistName = dismissal.assistPlayerId
-      ? bowlingPlayers.find((row) => row.id === dismissal.assistPlayerId)?.name
-      : null;
-
-    if (assistName) {
-      return `${dismissal.type} • ${dismissedName} • ${assistName}`;
+    if (draft.batterRuns > 0 && !canScoreBatterRuns) {
+      patch.batterRuns = 0;
     }
 
-    return `${dismissal.type} • ${dismissedName}`;
-  }, [dismissal, ball, bowlingPlayers]);
+    if (Object.keys(patch).length > 0) {
+      onChange(patch);
+    }
+  }, [
+    canScoreBatterRuns,
+    draft.batterRuns,
+    normalizedWicketType,
+    onChange,
+    visibleDismissals,
+  ]);
 
-  const clearBall = () => {
-    setRunsScored(0);
-    setIsWide(false);
-    setIsNoBall(false);
-    setIsBye(false);
-    setIsLegBye(false);
-    setSelectedStrikerId(ball.strikerId);
-    setDismissal(null);
-  };
+  let submitLabel = "Record delivery";
+  if (isSubmitting) {
+    submitLabel = isEditing ? "Updating delivery..." : "Recording delivery...";
+  } else if (isEditing) {
+    submitLabel = "Update delivery";
+  }
 
-  const submitBall = () => {
-    onSubmitBall({
-      id: ball.id,
-      inningsId: ball.inningsId,
-      strikerId: selectedStrikerId,
-      nonStrikerId: selectedNonStrikerId,
-      bowlerId: ball.bowlerId,
-      runsScored,
-      isWide,
-      isNoBall,
-      isBye,
-      isLegBye,
-      isWicket: Boolean(dismissal),
-      wicketType: dismissal?.type,
-      assistPlayerId: dismissal?.assistPlayerId,
-      dismissedPlayerId: dismissal?.dismissedPlayerId,
-    });
-  };
-
-  const setSimpleDismissal = (type: WicketType) => {
-    setDismissal({
-      type,
-      dismissedPlayerId: selectedStrikerId,
-    });
-  };
-
-  const saveSheetDismissal = () => {
-    if (!(sheetDismissalType && sheetDismissedPlayerId)) {
+  const applyDismissalType = (nextWicketType: "" | WicketType) => {
+    if (!nextWicketType) {
+      onChange({
+        wicketType: "",
+        dismissedPlayerId: null,
+        assistedById: null,
+      });
       return;
     }
 
-    setDismissal({
-      type: sheetDismissalType,
-      dismissedPlayerId: sheetDismissedPlayerId,
-      assistPlayerId: sheetAssistPlayerId ?? undefined,
+    onChange({
+      wicketType: nextWicketType,
+      batterRuns: dismissalAllowsBatterRuns(nextWicketType)
+        ? draft.batterRuns
+        : 0,
+      dismissedPlayerId: strikerOnlyDismissalTypes.has(nextWicketType)
+        ? draft.strikerId
+        : null,
+      assistedById: dismissalTypesWithAssist.has(nextWicketType)
+        ? draft.assistedById
+        : null,
     });
-    setSheetDismissalType(null);
+  };
+
+  const setBatterRuns = (value: number) => {
+    onChange({
+      batterRuns: value,
+      byeRuns: value > 0 ? 0 : draft.byeRuns,
+      legByeRuns: value > 0 ? 0 : draft.legByeRuns,
+      wideRuns: value > 0 ? 0 : draft.wideRuns,
+    });
+  };
+
+  const setByeRuns = (value: number) => {
+    onChange({
+      batterRuns: value > 0 ? 0 : draft.batterRuns,
+      byeRuns: value,
+      legByeRuns: value > 0 ? 0 : draft.legByeRuns,
+    });
+  };
+
+  const setLegByeRuns = (value: number) => {
+    onChange({
+      batterRuns: value > 0 ? 0 : draft.batterRuns,
+      byeRuns: value > 0 ? 0 : draft.byeRuns,
+      legByeRuns: value,
+      wideRuns: value > 0 ? 0 : draft.wideRuns,
+    });
+  };
+
+  const toggleWideRuns = () => {
+    if (hasWide) {
+      onChange({ wideRuns: 0 });
+      return;
+    }
+
+    onChange({
+      batterRuns: 0,
+      legByeRuns: 0,
+      noBallRuns: 0,
+      wideRuns: 1,
+    });
+  };
+
+  const toggleNoBallRuns = () => {
+    if (hasNoBall) {
+      onChange({ noBallRuns: 0 });
+      return;
+    }
+
+    onChange({
+      noBallRuns: 1,
+      wideRuns: 0,
+    });
   };
 
   return (
-    <section className="space-y-4 rounded-xl border bg-card p-4 shadow-sm sm:p-5">
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="font-semibold text-base">Current Ball</h2>
-          <span className="text-muted-foreground text-sm">
-            Over {ball.overNumber}.{ball.ballInOver}
-          </span>
-        </div>
-        <div className="overflow-x-auto">
-          <div className="flex min-w-full gap-2 pb-1">
-            {otherBalls.map((row) => {
-              const label = row.isWicket ? "W" : String(row.totalRuns);
-              return (
-                <div
-                  className={cn(
-                    "rounded-md border px-2 py-1 text-sm",
-                    row.id === ball.id && "border-primary bg-primary/10",
-                    row.isWicket && "text-destructive"
-                  )}
-                  key={row.id}
-                >
-                  {label}
-                  {row.wideRuns > 0 ? " wd" : ""}
-                  {row.noBallRuns > 0 ? " nb" : ""}
-                </div>
-              );
-            })}
-          </div>
+    <section className="space-y-2">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 space-y-1">
+          <h2 className="text-xl uppercase tracking-wide">
+            {isEditing ? "Edit delivery" : "Record next delivery"}
+          </h2>
         </div>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2">
-        <Button
-          className="h-12 justify-start px-3"
-          onClick={() => setSelectedStrikerId(ball.strikerId)}
-          variant={selectedStrikerId === ball.strikerId ? "default" : "outline"}
-        >
-          {ball.striker.name}
-        </Button>
-        <Button
-          className="h-12 justify-start px-3"
-          onClick={() => setSelectedStrikerId(ball.nonStrikerId)}
-          variant={
-            selectedStrikerId === ball.nonStrikerId ? "default" : "outline"
-          }
-        >
-          {ball.nonStriker.name}
-        </Button>
-      </div>
-
-      <div className="space-y-2">
-        <p className="font-medium text-sm">Bowler: {ball.bowler.name}</p>
-        <div className="flex items-center gap-3">
-          <Input
-            className="h-14 text-center font-semibold text-2xl"
-            max={7}
-            min={0}
-            onChange={(event) =>
-              setRunsScored(Number.parseInt(event.target.value || "0", 10) || 0)
+      {/* Players on the ball */}
+      <fieldset className="space-y-2.5 border-border/50 border-t pt-5">
+        <legend className="sr-only">Players for this delivery</legend>
+        <p className="text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em]">
+          Players for this delivery
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+          <PlayerSelect
+            label={
+              requiredSelections.striker ? "Striker (required)" : "Striker"
             }
-            type="number"
-            value={displayTotalRuns}
+            onValueChange={(value) => {
+              const nextStrikerId =
+                value && value.length > 0 ? Number.parseInt(value, 10) : null;
+
+              onChange(
+                resolveBattingPairSelection({
+                  currentNonStrikerId: draft.nonStrikerId,
+                  currentStrikerId: draft.strikerId,
+                  nextPlayerId: nextStrikerId,
+                  role: "striker",
+                })
+              );
+            }}
+            options={battingPlayers}
+            value={draft.strikerId ? String(draft.strikerId) : ""}
           />
-          <div className="flex flex-col gap-2">
-            <Button
-              onClick={() => setRunsScored(Math.max(0, runsScored - 1))}
-              size="lg"
-              type="button"
-              variant="outline"
-            >
-              <MinusIcon />
-            </Button>
-            <Button
-              onClick={() => setRunsScored(Math.min(7, runsScored + 1))}
-              size="lg"
-              type="button"
-              variant="outline"
-            >
-              <PlusIcon />
-            </Button>
-          </div>
+          <PlayerSelect
+            label={
+              requiredSelections.nonStriker
+                ? "Non-striker (required)"
+                : "Non-striker"
+            }
+            onValueChange={(value) => {
+              const nextNonStrikerId =
+                value && value.length > 0 ? Number.parseInt(value, 10) : null;
+
+              onChange(
+                resolveBattingPairSelection({
+                  currentNonStrikerId: draft.nonStrikerId,
+                  currentStrikerId: draft.strikerId,
+                  nextPlayerId: nextNonStrikerId,
+                  role: "nonStriker",
+                })
+              );
+            }}
+            options={battingPlayers.filter(
+              (player) => player.id !== draft.strikerId
+            )}
+            value={draft.nonStrikerId ? String(draft.nonStrikerId) : ""}
+          />
+          <PlayerSelect
+            label={requiredSelections.bowler ? "Bowler (required)" : "Bowler"}
+            onValueChange={(value) =>
+              onChange({
+                bowlerId:
+                  value && value.length > 0 ? Number.parseInt(value, 10) : null,
+              })
+            }
+            options={bowlingPlayers}
+            value={draft.bowlerId ? String(draft.bowlerId) : ""}
+          />
         </div>
-        <div className="grid grid-cols-4 gap-2">
-          {[0, 1, 2, 4, 6].map((runs) => (
-            <Button
+      </fieldset>
+
+      {/* Bat runs */}
+      <fieldset className="space-y-2.5 border-border/50 border-t pt-5">
+        <legend className="sr-only">Bat runs</legend>
+        <p className="text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em]">
+          Bat runs
+        </p>
+        <div className="grid grid-cols-6 gap-2">
+          {[0, 1, 2, 3, 4, 6].map((runs) => (
+            <button
+              aria-pressed={draft.batterRuns === runs}
+              className={cn(
+                "flex h-14 w-full items-center justify-center border font-semibold text-sm tabular-nums transition-colors",
+                draft.batterRuns === runs
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border/60 bg-background hover:border-primary/50",
+                hasWide || hasBye || hasLegBye
+                  ? "cursor-not-allowed opacity-50"
+                  : null
+              )}
+              disabled={hasWide || hasBye || hasLegBye || !canScoreBatterRuns}
               key={runs}
-              onClick={() => setRunsScored(runs)}
-              size="lg"
+              onClick={() => setBatterRuns(runs)}
               type="button"
-              variant={runsScored === runs ? "default" : "secondary"}
             >
               {runs}
-            </Button>
+            </button>
           ))}
         </div>
-      </div>
+        <NumberField
+          disabled={hasWide || hasBye || hasLegBye || !canScoreBatterRuns}
+          label="Other bat runs"
+          onChange={setBatterRuns}
+          value={draft.batterRuns}
+        />
+      </fieldset>
 
-      <Separator />
-
-      <div className="space-y-2">
-        <h3 className="font-medium text-sm">Extras</h3>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Button
-            className="h-12"
-            onClick={() => {
-              setIsWide((value) => !value);
-              setIsNoBall(false);
-            }}
-            type="button"
-            variant={isWide ? "default" : "outline"}
-          >
-            Wide
-          </Button>
-          <Button
-            className="h-12"
-            onClick={() => {
-              setIsNoBall((value) => !value);
-              setIsWide(false);
-            }}
-            type="button"
-            variant={isNoBall ? "default" : "outline"}
-          >
-            No Ball
-          </Button>
-          {hasBye ? (
-            <Button
-              className="h-12"
-              onClick={() => {
-                setIsBye((value) => !value);
-                setIsLegBye(false);
-              }}
-              type="button"
-              variant={isBye ? "default" : "outline"}
-            >
-              Bye
-            </Button>
-          ) : null}
-          {hasLegBye ? (
-            <Button
-              className="h-12"
-              onClick={() => {
-                setIsLegBye((value) => !value);
-                setIsBye(false);
-              }}
-              type="button"
-              variant={isLegBye ? "default" : "outline"}
-            >
-              Leg Bye
-            </Button>
-          ) : null}
-        </div>
-      </div>
-
-      <Separator />
-
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h3 className="font-medium text-sm">Dismissal</h3>
-          <span className="text-muted-foreground text-xs capitalize">
-            {dismissalLabel}
+      {/* Extras */}
+      <div className="space-y-3 border-border/50 border-t pt-5">
+        <button
+          className="flex w-full items-center justify-between py-1 text-left text-sm transition-colors"
+          onClick={() => setShowExtras((prev) => !prev)}
+          type="button"
+        >
+          <span className="text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em]">
+            Extras
           </span>
-        </div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <Button
-            className="h-12"
-            onClick={() => setSimpleDismissal("bowled")}
-            type="button"
-            variant={dismissal?.type === "bowled" ? "destructive" : "outline"}
-          >
-            Bowled
-          </Button>
-          <Button
-            className="h-12"
-            onClick={() => {
-              setSheetDismissalType("caught");
-              setSheetDismissedPlayerId(selectedStrikerId);
-            }}
-            type="button"
-            variant={dismissal?.type === "caught" ? "destructive" : "outline"}
-          >
-            Caught
-          </Button>
-          <Button
-            className="h-12"
-            onClick={() => {
-              setSheetDismissalType("run out");
-              setSheetDismissedPlayerId(selectedStrikerId);
-            }}
-            type="button"
-            variant={dismissal?.type === "run out" ? "destructive" : "outline"}
-          >
-            Run Out
-          </Button>
-          <Button
-            className="h-12"
-            onClick={() => {
-              setSheetDismissalType("stumped");
-              setSheetDismissedPlayerId(selectedStrikerId);
-            }}
-            type="button"
-            variant={dismissal?.type === "stumped" ? "destructive" : "outline"}
-          >
-            Stumped
-          </Button>
-          {hasLBW ? (
-            <Button
-              className="h-12"
-              onClick={() => setSimpleDismissal("lbw")}
-              type="button"
-              variant={dismissal?.type === "lbw" ? "destructive" : "outline"}
-            >
-              LBW
-            </Button>
-          ) : null}
-          {hasBoundaryOut ? (
-            <Button
-              className="h-12"
-              onClick={() => setSimpleDismissal("boundary out")}
-              type="button"
-              variant={
-                dismissal?.type === "boundary out" ? "destructive" : "outline"
-              }
-            >
-              Boundary Out
-            </Button>
-          ) : null}
-        </div>
-      </div>
+          {extrasVisible && !hasExtras ? (
+            <ChevronUpIcon className="size-3.5 text-muted-foreground" />
+          ) : (
+            <ChevronDownIcon className="size-3.5 text-muted-foreground" />
+          )}
+        </button>
 
-      <Separator />
-
-      <div className="flex gap-2">
-        <Button
-          className="h-12"
-          onClick={clearBall}
-          type="button"
-          variant="destructive"
-        >
-          Clear
-        </Button>
-        <Button
-          className="h-12 flex-1"
-          disabled={isSubmitting}
-          onClick={submitBall}
-          type="button"
-        >
-          {isSubmitting ? "Saving..." : "Next Ball"}
-        </Button>
-      </div>
-
-      <Sheet
-        onOpenChange={(open) => {
-          if (!open) {
-            setSheetDismissalType(null);
-          }
-        }}
-        open={sheetDismissalType !== null}
-      >
-        <SheetContent side="bottom">
-          <SheetTitle className="pb-4">
-            {sheetDismissalType === "caught" && "Caught details"}
-            {sheetDismissalType === "run out" && "Run out details"}
-            {sheetDismissalType === "stumped" && "Stumped details"}
-          </SheetTitle>
+        {extrasVisible ? (
           <div className="space-y-3">
-            {sheetDismissalType === "run out" ? (
-              <Select
-                onValueChange={(value) => {
-                  if (!value) {
-                    return;
-                  }
-                  setSheetDismissedPlayerId(Number.parseInt(value, 10));
-                }}
-                value={
-                  sheetDismissedPlayerId ? String(sheetDismissedPlayerId) : ""
-                }
-              >
-                <SelectTrigger className="h-12">
-                  <SelectValue placeholder="Dismissed batter" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={String(ball.strikerId)}>
-                    {ball.striker.name}
-                  </SelectItem>
-                  <SelectItem value={String(ball.nonStrikerId)}>
-                    {ball.nonStriker.name}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+            {visibleExtras.includes("wideRuns") ||
+            visibleExtras.includes("noBallRuns") ? (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {visibleExtras.includes("wideRuns") ? (
+                  <ToggleField
+                    active={hasWide}
+                    description="Adds 1 run and marks the ball as a wide"
+                    label="Wide"
+                    onClick={toggleWideRuns}
+                  />
+                ) : null}
+                {visibleExtras.includes("noBallRuns") ? (
+                  <ToggleField
+                    active={hasNoBall}
+                    description="Adds 1 run and marks the ball as a no-ball"
+                    label="No-ball"
+                    onClick={toggleNoBallRuns}
+                  />
+                ) : null}
+              </div>
             ) : null}
 
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {visibleExtras.includes("byeRuns") ? (
+                <NumberField
+                  disabled={hasBatRuns || hasLegBye}
+                  label="Bye runs"
+                  onChange={setByeRuns}
+                  value={draft.byeRuns}
+                />
+              ) : null}
+              {visibleExtras.includes("legByeRuns") ? (
+                <NumberField
+                  disabled={hasBatRuns || hasBye || hasWide}
+                  label="Leg-bye runs"
+                  onChange={setLegByeRuns}
+                  value={draft.legByeRuns}
+                />
+              ) : null}
+              {visibleExtras.includes("penaltyRuns") ? (
+                <NumberField
+                  label="Penalty runs"
+                  onChange={(value) => onChange({ penaltyRuns: value })}
+                  value={draft.penaltyRuns}
+                />
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {/* Dismissal */}
+      <div
+        className={cn(
+          "space-y-4 border-border/50 border-t pt-5",
+          isWicketActive ? "text-destructive" : null
+        )}
+      >
+        <div className="space-y-1">
+          <p
+            className={cn(
+              "text-[0.65rem] uppercase tracking-[0.18em]",
+              isWicketActive ? "text-destructive" : "text-muted-foreground"
+            )}
+          >
+            Dismissal
+          </p>
+          <p className="text-muted-foreground text-xs">
+            Keep common wickets one tap away and hide invalid options for this
+            match.
+          </p>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-6">
+          <DismissalQuickButton
+            active={!isWicketActive}
+            label="No wicket"
+            onClick={() => applyDismissalType("")}
+            tone="default"
+          />
+          {commonDismissals.map((dismissalType) => (
+            <DismissalQuickButton
+              active={normalizedWicketType === dismissalType}
+              key={dismissalType}
+              label={getDismissalLabel(dismissalType)}
+              onClick={() => applyDismissalType(dismissalType)}
+              tone="destructive"
+            />
+          ))}
+        </div>
+
+        {moreDismissals.length > 0 ? (
+          <div className="space-y-1.5">
+            <span className="truncate text-muted-foreground text-xs">
+              More dismissals
+            </span>
             <Select
               onValueChange={(value) => {
-                if (!value) {
+                if (value === moreDismissalPlaceholder) {
                   return;
                 }
-                setSheetAssistPlayerId(Number.parseInt(value, 10));
+
+                applyDismissalType(value as WicketType);
               }}
-              value={sheetAssistPlayerId ? String(sheetAssistPlayerId) : ""}
+              value={selectedMoreDismissalValue}
             >
-              <SelectTrigger className="h-12">
-                <SelectValue placeholder="Fielder" />
+              <SelectTrigger className="h-10 w-full [&>span]:min-w-0 [&>span]:truncate">
+                <SelectValue placeholder="More dismissal types" />
               </SelectTrigger>
               <SelectContent>
-                {bowlingPlayers.map((player) => (
-                  <SelectItem key={player.id} value={String(player.id)}>
-                    {player.name}
+                <SelectItem value={moreDismissalPlaceholder}>
+                  More dismissal types
+                </SelectItem>
+                {moreDismissals.map((dismissalType) => (
+                  <SelectItem key={dismissalType} value={dismissalType}>
+                    <span className="block truncate">
+                      {getDismissalLabel(dismissalType)}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <SheetFooter className="pt-6">
-            <SheetClose>
-              <Button
-                className="h-12 w-full"
-                onClick={saveSheetDismissal}
-                type="button"
-              >
-                Save dismissal
-              </Button>
-            </SheetClose>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+        ) : null}
+
+        {isWicketActive ? (
+          <div className="space-y-3 border border-destructive/30 bg-destructive/5 p-4">
+            <PlayerSelect
+              label="Dismissed batter"
+              onValueChange={(value) =>
+                onChange({
+                  dismissedPlayerId:
+                    value && value.length > 0
+                      ? Number.parseInt(value, 10)
+                      : null,
+                })
+              }
+              options={battingPlayers.filter(
+                (player) =>
+                  player.id === draft.strikerId ||
+                  player.id === draft.nonStrikerId
+              )}
+              value={
+                draft.dismissedPlayerId ? String(draft.dismissedPlayerId) : ""
+              }
+            />
+
+            <PlayerSelect
+              label={
+                dismissalRequiresAssist
+                  ? "Fielder (required)"
+                  : "Fielder (optional)"
+              }
+              onValueChange={(value) =>
+                onChange({
+                  assistedById:
+                    value && value.length > 0
+                      ? Number.parseInt(value, 10)
+                      : null,
+                })
+              }
+              options={fieldingOptions}
+              value={draft.assistedById ? String(draft.assistedById) : ""}
+            />
+          </div>
+        ) : null}
+      </div>
+
+      {/* Actions */}
+      <div className="space-y-3 border-border/50 border-t">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Button
+            className="h-14 flex-1 px-8 font-semibold text-base uppercase tracking-wide"
+            disabled={isSubmitting}
+            onClick={onSubmit}
+            size={"lg"}
+            type="button"
+          >
+            {submitLabel}
+          </Button>
+
+          {isEditing && onDiscardEdit ? (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    className="h-10"
+                    disabled={isSubmitting}
+                    onClick={onDiscardEdit}
+                    title="Back to Latest Delivery"
+                    type="button"
+                    variant="destructive"
+                  >
+                    Discard edit
+                  </Button>
+                }
+              />
+              <TooltipContent side="top">
+                Back to Latest Delivery
+              </TooltipContent>
+            </Tooltip>
+          ) : null}
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            className="h-10 w-full truncate [&_svg]:shrink-0"
+            onClick={onReset}
+            type="button"
+            variant="outline"
+          >
+            <RotateCcwIcon className="mr-2 size-3.5" />
+            <span className="truncate">Reset</span>
+          </Button>
+          <Button
+            className="h-10 w-full truncate [&_svg]:shrink-0"
+            disabled={!(isEditing && onDelete) || isSubmitting}
+            onClick={onDelete}
+            type="button"
+            variant="destructive"
+          >
+            <Trash2Icon className="mr-2 size-3.5" />
+            <span className="truncate">Delete</span>
+          </Button>
+        </div>
+      </div>
     </section>
+  );
+}
+
+function NumberField({
+  disabled,
+  label,
+  onChange,
+  value,
+}: {
+  disabled?: boolean;
+  label: string;
+  onChange: (value: number) => void;
+  value: number;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col space-y-1">
+      <span className="truncate text-muted-foreground text-xs" title={label}>
+        {label}
+      </span>
+      <Input
+        className="h-10 w-full text-sm"
+        disabled={disabled}
+        min={0}
+        onChange={(event) =>
+          onChange(Number.parseInt(event.target.value || "0", 10) || 0)
+        }
+        type="number"
+        value={value}
+      />
+    </div>
+  );
+}
+
+function ToggleField({
+  active,
+  description,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  description: string;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      aria-pressed={active}
+      className={cn(
+        "flex w-full flex-col items-start justify-center border px-3 py-2.5 text-left transition-colors",
+        active
+          ? "border-primary bg-primary text-primary-foreground"
+          : "border-border/60 bg-background hover:border-primary/40"
+      )}
+      onClick={onClick}
+      type="button"
+    >
+      <span className="font-medium text-sm">{label}</span>
+      <span
+        className={cn(
+          "mt-0.5 text-xs",
+          active ? "text-primary-foreground/80" : "text-muted-foreground"
+        )}
+      >
+        {description}
+      </span>
+    </button>
+  );
+}
+
+function DismissalQuickButton({
+  active,
+  label,
+  onClick,
+  tone,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+  tone: "default" | "destructive";
+}) {
+  let toneClasses =
+    "border-border/60 bg-background text-foreground hover:border-primary/40";
+
+  if (tone === "destructive") {
+    toneClasses = active
+      ? "border-destructive bg-destructive text-destructive-foreground"
+      : "border-destructive/30 bg-background text-foreground hover:border-destructive/60";
+  } else if (active) {
+    toneClasses = "border-primary bg-primary text-primary-foreground";
+  }
+
+  return (
+    <button
+      aria-pressed={active}
+      className={cn(
+        "flex h-10 items-center justify-center border px-3 py-2 font-medium text-sm transition-colors",
+        toneClasses
+      )}
+      onClick={onClick}
+      type="button"
+    >
+      {label}
+    </button>
+  );
+}
+
+function PlayerSelect({
+  label,
+  onValueChange,
+  options,
+  value,
+}: {
+  label: string;
+  onValueChange: (value: string | null) => void;
+  options: ScoringPlayerOption[];
+  value: string;
+}) {
+  const selectedPlayerName =
+    options.find((player) => String(player.id) === value)?.name ?? "";
+
+  return (
+    <div className="flex min-w-0 flex-col space-y-1">
+      <span className="truncate text-muted-foreground text-xs" title={label}>
+        {label}
+      </span>
+      <Select onValueChange={onValueChange} value={value}>
+        <SelectTrigger className="h-10 w-full [&>span]:min-w-0 [&>span]:truncate">
+          <SelectValue placeholder="Select player">
+            {selectedPlayerName}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((player) => (
+            <SelectItem
+              key={player.id}
+              label={player.name}
+              value={String(player.id)}
+            >
+              <span className="block truncate">{player.name}</span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }
 
