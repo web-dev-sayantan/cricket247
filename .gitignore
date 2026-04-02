@@ -7,3 +7,4 @@ package-lock.json
 .alchemy
 .env
 .env.*
+local-test.db

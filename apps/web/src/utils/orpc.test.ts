@@ -2,18 +2,26 @@ import { describe, expect, it, mock } from "bun:test";
 
 const toastError = mock(() => undefined);
 
-mock.module("sonner", () => ({
-  Toaster: () => null,
-  toast: {
-    error: toastError,
-  },
-}));
+function registerSonnerMock() {
+  mock.module("sonner", () => ({
+    Toaster: () => null,
+    toast: {
+      error: toastError,
+    },
+  }));
+}
 
-const orpcModulePromise = import("./orpc");
+let orpcImportNonce = 0;
+
+async function importOrpcModule() {
+  registerSonnerMock();
+  orpcImportNonce += 1;
+  return await import(`./orpc?orpcTest=${orpcImportNonce}`);
+}
 
 describe("orpc client helpers", () => {
   it("does not retry rate-limited requests", async () => {
-    const { shouldRetryOrpcRequest } = await orpcModulePromise;
+    const { shouldRetryOrpcRequest } = await importOrpcModule();
 
     expect(
       shouldRetryOrpcRequest(
@@ -27,7 +35,7 @@ describe("orpc client helpers", () => {
   });
 
   it("formats a helpful rate-limit toast message", async () => {
-    const { getOrpcErrorToastMessage } = await orpcModulePromise;
+    const { getOrpcErrorToastMessage } = await importOrpcModule();
 
     expect(
       getOrpcErrorToastMessage(
@@ -40,7 +48,7 @@ describe("orpc client helpers", () => {
   });
 
   it("keeps retrying non-rate-limited query errors within the default budget", async () => {
-    const { shouldRetryOrpcRequest } = await orpcModulePromise;
+    const { shouldRetryOrpcRequest } = await importOrpcModule();
 
     expect(shouldRetryOrpcRequest(0, new Error("Network error"))).toBe(true);
     expect(shouldRetryOrpcRequest(3, new Error("Network error"))).toBe(false);

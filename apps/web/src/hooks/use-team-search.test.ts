@@ -4,6 +4,14 @@ import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { createElement } from "react";
 
+const mockedOrpcQueryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
+
 const queryOptionsMock = mock(
   ({
     input,
@@ -44,11 +52,13 @@ function createWrapper() {
 
 function loadUseTeamSearchModule() {
   mock.module("@/utils/orpc", () => ({
+    client: {},
     orpc: {
       searchTeamsByName: {
         queryOptions: queryOptionsMock,
       },
     },
+    queryClient: mockedOrpcQueryClient,
   }));
 
   useTeamSearchImportNonce += 1;

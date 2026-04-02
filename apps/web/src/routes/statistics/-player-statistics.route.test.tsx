@@ -10,12 +10,9 @@ import {
   fireEvent,
   type RenderResult,
   render,
+  waitFor,
 } from "@testing-library/react";
 import type { ReactNode } from "react";
-
-mock.module("@/components/header", () => ({
-  default: () => null,
-}));
 
 const PLAYER_ROW_NAME_PATTERN = /Aarav Rao/i;
 const LANDING_SEARCH_RESULT_PATTERN = /Meera Das/i;
@@ -29,39 +26,45 @@ const sessionState = {
   isPending: false,
 };
 
-mock.module("@/lib/auth-client", () => ({
-  authClient: {
-    useSession: () => sessionState,
-  },
-}));
+function registerBaseMocks() {
+  mock.module("@/components/header", () => ({
+    default: () => null,
+  }));
 
-mock.module("@/lib/profile-image-upload", () => ({
-  uploadProfileImage: async () => "uploaded-image-key",
-}));
+  mock.module("@/lib/auth-client", () => ({
+    authClient: {
+      useSession: () => sessionState,
+    },
+  }));
 
-mock.module("@tanstack/react-devtools", () => ({
-  TanStackDevtools: () => null,
-}));
+  mock.module("@/lib/profile-image-upload", () => ({
+    uploadProfileImage: async () => "uploaded-image-key",
+  }));
 
-mock.module("@tanstack/react-query-devtools", () => ({
-  ReactQueryDevtoolsPanel: () => null,
-}));
+  mock.module("@tanstack/react-devtools", () => ({
+    TanStackDevtools: () => null,
+  }));
 
-mock.module("@tanstack/react-router-devtools", () => ({
-  TanStackRouterDevtoolsPanel: () => null,
-}));
+  mock.module("@tanstack/react-query-devtools", () => ({
+    ReactQueryDevtoolsPanel: () => null,
+  }));
 
-mock.module("@tanstack/react-form-devtools", () => ({
-  FormDevtoolsPanel: () => null,
-}));
+  mock.module("@tanstack/react-router-devtools", () => ({
+    TanStackRouterDevtoolsPanel: () => null,
+  }));
 
-mock.module("sonner", () => ({
-  Toaster: () => null,
-  toast: {
-    error: () => undefined,
-    success: () => undefined,
-  },
-}));
+  mock.module("@tanstack/react-form-devtools", () => ({
+    FormDevtoolsPanel: () => null,
+  }));
+
+  mock.module("sonner", () => ({
+    Toaster: () => null,
+    toast: {
+      error: () => undefined,
+      success: () => undefined,
+    },
+  }));
+}
 
 interface MockPlayerStatistics {
   formats: Array<{
@@ -194,6 +197,7 @@ let statisticsRouteImportNonce = 0;
 async function renderRoute(
   initialEntry: string
 ): Promise<RenderResult & { router: ReturnType<typeof createRouter> }> {
+  registerBaseMocks();
   registerOrpcMock();
   statisticsRouteImportNonce += 1;
 
@@ -383,6 +387,7 @@ function createLandingFixture(): MockStatisticsLandingView {
 }
 
 beforeEach(() => {
+  registerBaseMocks();
   sessionState.data = {
     user: {
       role: "user",
@@ -461,7 +466,9 @@ describe("player statistics route", () => {
     });
     fireEvent.click(meeraLinks[0]);
 
-    expect(router.state.location.pathname).toBe("/statistics/11");
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/statistics/11");
+    });
   });
 
   it("renders exact format tabs, hides empty sections, and shows overview-only empty states", async () => {
@@ -530,6 +537,8 @@ describe("players route statistics entrypoint", () => {
     );
 
     expect(await findByRole("heading", { name: "Aarav Rao" })).toBeTruthy();
-    expect(router.state.location.pathname).toBe("/statistics/7");
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/statistics/7");
+    });
   });
 });
