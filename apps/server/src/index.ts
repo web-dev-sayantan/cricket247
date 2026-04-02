@@ -12,7 +12,11 @@ import { stringify as toYaml } from "yaml";
 import { corsConfig } from "./config/cors";
 import { auth } from "./lib/auth";
 import { createContext } from "./lib/context";
-import { errorHandler } from "./middleware";
+import {
+  apiRateLimitMiddleware,
+  errorHandler,
+  securityHeadersMiddleware,
+} from "./middleware";
 import {
   generateOpenApiSpec,
   OPENAPI_DOCS_PATH,
@@ -28,7 +32,12 @@ export const app = new Hono();
 // Global middleware
 app.use(logger());
 app.use("/*", cors(corsConfig));
+app.use("/*", securityHeadersMiddleware);
 app.use("*", errorHandler);
+
+// REST/auth API rate limiting (fail-open while rate limiter reliability is tuned).
+app.use("/api/auth/*", apiRateLimitMiddleware);
+app.use("/api/v1/*", apiRateLimitMiddleware);
 
 // Health check endpoint
 app.get("/", (c) =>

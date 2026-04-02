@@ -5,11 +5,9 @@ import { ArrowLeft, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { PageHeader } from "@/components/layout/page-header";
 import { PageShell } from "@/components/layout/page-shell";
 import { PlayerImageUploadInput } from "@/components/player-image-upload-input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Field,
   FieldDescription,
@@ -174,42 +172,51 @@ function RouteComponent() {
 
   if (isSessionPending) {
     return (
-      <PageShell maxWidth="form">
-        <Skeleton className="h-8 w-48" />
-        <Card className="rounded-xl">
-          <CardHeader className="space-y-2">
+      <PageShell className="hero-surface" maxWidth="form">
+        <div className="space-y-3">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-10 w-72" />
+          <Skeleton className="h-5 w-56" />
+        </div>
+        <div className="space-y-5 border border-foreground/10 bg-background/88 p-5 sm:p-6">
+          <div className="space-y-2 border-foreground/8 border-b pb-4">
             <Skeleton className="h-6 w-36" />
             <Skeleton className="h-4 w-56" />
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <div className="flex gap-2">
-              <Skeleton className="h-9 w-24" />
-              <Skeleton className="h-9 w-28" />
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <div className="flex gap-2">
+            <Skeleton className="h-9 w-24" />
+            <Skeleton className="h-9 w-28" />
+          </div>
+        </div>
       </PageShell>
     );
   }
 
   if (!isAdmin) {
     return (
-      <PageShell maxWidth="form">
-        <PageHeader
-          description="You need admin access to create players."
-          title="Create Player"
-        />
-        <Card className="rounded-xl border-dashed">
-          <CardContent className="space-y-4 p-6">
-            <p className="text-muted-foreground text-sm">
-              Your account does not have permission to create player records.
-            </p>
+      <PageShell className="hero-surface" maxWidth="form">
+        <div className="space-y-2">
+          <p className="text-[0.68rem] text-foreground/70 uppercase tracking-[0.28em]">
+            Player Hub
+          </p>
+          <h1 className="text-[clamp(2rem,5vw,3rem)] leading-[0.9] tracking-[-0.04em]">
+            Create Player
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            You need admin access to create players.
+          </p>
+        </div>
+        <div className="border border-foreground/10 border-dashed bg-background/55 p-6">
+          <p className="text-muted-foreground text-sm">
+            Your account does not have permission to create player records.
+          </p>
+          <div className="mt-4">
             <Button
               onClick={() => navigate({ to: "/players" })}
               size="sm"
@@ -219,28 +226,43 @@ function RouteComponent() {
               <ArrowLeft />
               Back to players
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </PageShell>
     );
   }
 
   return (
-    <PageShell maxWidth="form">
-      <PageHeader
-        description="Add a complete player profile with personal and playing details."
-        title="Create Player"
-      />
+    <PageShell className="hero-surface" maxWidth="form">
+      <div className="animate-stagger-1 space-y-2">
+        <div className="flex flex-wrap gap-2 text-[0.68rem] text-foreground/70 uppercase tracking-[0.28em]">
+          <span className="border border-foreground/15 bg-background/60 px-3 py-1">
+            Player Hub
+          </span>
+          <span className="border border-foreground/15 bg-background/40 px-3 py-1">
+            New Profile
+          </span>
+        </div>
+        <h1 className="text-[clamp(2rem,5vw,3rem)] leading-[0.9] tracking-[-0.04em]">
+          Create Player
+        </h1>
+        <p className="text-[0.95rem] text-foreground/78 leading-7">
+          Add a complete player profile with personal and playing details.
+        </p>
+      </div>
 
-      <div className="space-y-5">
-        <Card className="rounded-xl">
-          <CardHeader className="space-y-1 border-b pb-4">
-            <h2 className="font-medium text-lg">Player Details</h2>
+      <div className="animate-stagger-2 space-y-5">
+        <div className="relative overflow-hidden border border-foreground/10 bg-[linear-gradient(135deg,color-mix(in_oklab,var(--color-card)_90%,var(--color-primary)_10%),color-mix(in_oklab,var(--color-card)_86%,var(--color-accent)_14%))]">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,color-mix(in_oklab,var(--color-primary)_55%,transparent),transparent)]" />
+          <div className="space-y-1 border-foreground/8 border-b px-5 py-4 sm:px-6">
+            <h2 className="font-sans font-semibold text-lg tracking-tight">
+              Player Details
+            </h2>
             <p className="text-muted-foreground text-sm">
               Fill out profile, role, and style details for consistent records.
             </p>
-          </CardHeader>
-          <CardContent className="pt-5">
+          </div>
+          <div className="px-5 pt-5 pb-6 sm:px-6">
             <form
               className="space-y-5"
               onSubmit={(event) => {
@@ -635,7 +657,7 @@ function RouteComponent() {
 
               <form.Subscribe>
                 {(state) => (
-                  <div className="flex flex-wrap gap-2 border-t pt-4">
+                  <div className="flex flex-wrap gap-2 border-foreground/8 border-t pt-4">
                     <Button
                       onClick={() => navigate({ to: "/players" })}
                       size="sm"
@@ -664,8 +686,8 @@ function RouteComponent() {
                 )}
               </form.Subscribe>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </PageShell>
   );

@@ -2,6 +2,13 @@ import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type { AppRouterClient } from "@cricket247/server/contract";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
+  createMemoryHistory,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  RouterProvider,
+} from "@tanstack/react-router";
+import {
   act,
   fireEvent,
   type RenderResult,
@@ -14,8 +21,6 @@ mock.module("@/components/header", () => ({
   default: () => null,
 }));
 
-let shouldDelayPreMatchSetupFlow = false;
-
 mock.module(
   "@/routes/matches/$matchId/-components/pre-match-setup-flow",
   async () => {
@@ -27,10 +32,6 @@ mock.module(
           "@/routes/matches/$matchId/-components/innings-setup-phase-card"
         ),
       ]);
-
-    if (shouldDelayPreMatchSetupFlow) {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    }
 
     return {
       PreMatchSetupFlow({
@@ -90,7 +91,25 @@ mock.module("sonner", () => ({
   },
 }));
 
-const saveMatchLineup = mock(async () => undefined);
+const saveMatchLineup = mock(
+  async (input: Parameters<AppRouterClient["saveMatchLineup"]>[0]) => ({
+    matchId: input.matchId,
+    savedLineup: {
+      team1: {
+        captainPlayerId: input.team1.captainPlayerId,
+        playerIds: input.team1.playerIds,
+        viceCaptainPlayerId: input.team1.viceCaptainPlayerId,
+        wicketKeeperPlayerId: input.team1.wicketKeeperPlayerId,
+      },
+      team2: {
+        captainPlayerId: input.team2.captainPlayerId,
+        playerIds: input.team2.playerIds,
+        viceCaptainPlayerId: input.team2.viceCaptainPlayerId,
+        wicketKeeperPlayerId: input.team2.wicketKeeperPlayerId,
+      },
+    },
+  })
+);
 const startScoringInnings = mock(async () => createScoringSetup("scoring"));
 const recordScoringDelivery = mock(async () =>
   createScoringMutationResult("record")
@@ -104,57 +123,8 @@ const deleteScoringDelivery = mock(async () =>
 const closeCurrentScoringInnings = mock(async () =>
   createScoringSetup("scoring")
 );
-const getMatchScoringSetup = mock(async () => currentScoringSetup);
 
-let currentScoringSetup = createScoringSetup("lineup");
-
-mock.module("@/utils/orpc", () => ({
-  client: {
-    closeCurrentScoringInnings,
-    deleteScoringDelivery,
-    recordScoringDelivery,
-    saveMatchLineup,
-    startScoringInnings,
-    updateScoringDelivery,
-  },
-  orpc: {
-    getMatchById: {
-      queryOptions: ({ input }: { input: number }) => ({
-        queryKey: ["getMatchById", input],
-      }),
-    },
-    getMatchScorecard: {
-      queryOptions: ({
-        input,
-      }: {
-        input: { includeBallByBall: boolean; matchId: number };
-      }) => ({
-        queryKey: ["getMatchScorecard", input.matchId, input.includeBallByBall],
-      }),
-    },
-    getMatchScoringSetup: {
-      queryOptions: ({ input }: { input: { matchId: number } }) => ({
-        queryKey: ["getMatchScoringSetup", input.matchId],
-        queryFn: getMatchScoringSetup,
-      }),
-    },
-    liveMatches: {
-      queryOptions: () => ({
-        queryKey: ["liveMatches"],
-      }),
-    },
-    tournamentFixtures: {
-      queryOptions: ({ input }: { input: { tournamentId: number } }) => ({
-        queryKey: ["tournamentFixtures", input.tournamentId],
-      }),
-    },
-  },
-  queryClient: new QueryClient(),
-}));
-
-const routeTreeModulePromise = import("@/routeTree.gen");
-const routerModulePromise = import("@tanstack/react-router");
-const orpcModulePromise = import("@/utils/orpc");
+let routeModuleImportNonce = 0;
 
 type RouteScoringMutationResult = Awaited<
   ReturnType<AppRouterClient["recordScoringDelivery"]>
@@ -492,11 +462,22 @@ function createPendingClosureScoringSetup(): RouteScoringSetup {
   } as unknown as RouteScoringSetup;
 }
 
-async function renderScoreRoute(): Promise<RenderResult & { router: unknown }> {
-  const [{ routeTree }, routerModule, { orpc }] = await Promise.all([
-    routeTreeModulePromise,
-    routerModulePromise,
-    orpcModulePromise,
+async function renderScoreRoute(options?: {
+  scoringSetup?: RouteScoringSetup;
+}): Promise<
+  RenderResult & {
+    getMatchScoringSetupCallCount: () => number;
+    router: ReturnType<typeof createRouter>;
+  }
+> {
+  routeModuleImportNonce += 1;
+  const renderState = {
+    scoringSetup: options?.scoringSetup ?? createScoringSetup("lineup"),
+    scoringSetupCallCount: 0,
+  };
+
+  const [{ ScorePage }] = await Promise.all([
+    import(`./score?scoreRouteTest=${routeModuleImportNonce}`),
   ]);
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -504,12 +485,90 @@ async function renderScoreRoute(): Promise<RenderResult & { router: unknown }> {
       queries: { retry: false },
     },
   });
-  const router = routerModule.createRouter({
+  const testClient = {
+    closeCurrentScoringInnings,
+    deleteScoringDelivery,
+    recordScoringDelivery,
+    saveMatchLineup,
+    startScoringInnings,
+    updateScoringDelivery,
+  } satisfies Pick<
+    AppRouterClient,
+    | "closeCurrentScoringInnings"
+    | "deleteScoringDelivery"
+    | "recordScoringDelivery"
+    | "saveMatchLineup"
+    | "startScoringInnings"
+    | "updateScoringDelivery"
+  >;
+  const testOrpc = {
+    getMatchById: {
+      queryOptions: ({ input }: { input: number }) => ({
+        queryKey: ["getMatchById", input],
+        queryFn: () => renderState.scoringSetup.match,
+      }),
+    },
+    getMatchScorecard: {
+      queryOptions: ({
+        input,
+      }: {
+        input: { includeBallByBall: boolean; matchId: number };
+      }) => ({
+        queryKey: ["getMatchScorecard", input.matchId, input.includeBallByBall],
+      }),
+    },
+    getMatchScoringSetup: {
+      queryOptions: ({ input }: { input: { matchId: number } }) => ({
+        queryKey: ["getMatchScoringSetup", input.matchId],
+        queryFn: () => {
+          renderState.scoringSetupCallCount += 1;
+          return renderState.scoringSetup;
+        },
+      }),
+    },
+    liveMatches: {
+      queryOptions: () => ({
+        queryKey: ["liveMatches"],
+      }),
+    },
+    tournamentFixtures: {
+      queryOptions: ({ input }: { input: { tournamentId: number } }) => ({
+        queryKey: ["tournamentFixtures", input.tournamentId],
+      }),
+    },
+  };
+  const rootRoute = createRootRoute();
+  const matchesRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "matches",
+  });
+  const matchRoute = createRoute({
+    getParentRoute: () => matchesRoute,
+    path: "$matchId",
+  });
+  const scoreRoute = createRoute({
+    component: () => (
+      <ScorePage client={testClient} matchId="42" orpc={testOrpc as never} />
+    ),
+    getParentRoute: () => matchRoute,
+    path: "score",
+  });
+  const scorecardRoute = createRoute({
+    component: () => null,
+    getParentRoute: () => matchRoute,
+    path: "scorecard",
+  });
+  const routeTree = rootRoute.addChildren([
+    matchesRoute.addChildren([
+      matchRoute.addChildren([scoreRoute, scorecardRoute]),
+    ]),
+  ]);
+  const router = createRouter({
     routeTree,
-    history: routerModule.createMemoryHistory({
+    history: createMemoryHistory({
       initialEntries: ["/matches/42/score"],
     }),
-    context: { orpc, queryClient },
+    context: {},
     Wrap({ children }: { children: ReactNode }) {
       return (
         <QueryClientProvider client={queryClient}>
@@ -520,8 +579,9 @@ async function renderScoreRoute(): Promise<RenderResult & { router: unknown }> {
   });
   let renderResult: null | RenderResult = null;
 
-  act(() => {
-    renderResult = render(<routerModule.RouterProvider router={router} />);
+  await act(async () => {
+    renderResult = render(<RouterProvider router={router} />);
+    await router.load();
   });
 
   if (!renderResult) {
@@ -530,48 +590,49 @@ async function renderScoreRoute(): Promise<RenderResult & { router: unknown }> {
 
   const resolvedRenderResult = renderResult;
 
-  return Object.assign(resolvedRenderResult, { router });
+  return Object.assign(resolvedRenderResult, {
+    getMatchScoringSetupCallCount: () => renderState.scoringSetupCallCount,
+    router,
+  });
 }
 
 beforeEach(() => {
-  currentScoringSetup = createScoringSetup("lineup");
-  shouldDelayPreMatchSetupFlow = false;
   mock.clearAllMocks();
 });
 
 describe("score route pre-match extraction", () => {
   it("fetches the scoring setup exactly once on initial load", async () => {
-    const { findByText } = await renderScoreRoute();
+    const { findByText, getMatchScoringSetupCallCount } =
+      await renderScoreRoute();
 
-    expect(await findByText("Choose playing lineups")).toBeTruthy();
-    expect(getMatchScoringSetup).toHaveBeenCalledTimes(1);
+    expect(await findByText("Playing lineups")).toBeTruthy();
+    expect(getMatchScoringSetupCallCount()).toBe(1);
   });
 
   it("does not render the pre-match branch during the scoring phase", async () => {
-    currentScoringSetup = createScoringSetup("scoring");
-
-    const { findByText, queryByText } = await renderScoreRoute();
+    const { findByText, queryByText } = await renderScoreRoute({
+      scoringSetup: createScoringSetup("scoring"),
+    });
 
     expect(await findByText("Current innings")).toBeTruthy();
     expect(queryByText("Loading match setup...")).toBeNull();
-    expect(queryByText("Choose playing lineups")).toBeNull();
+    expect(queryByText("Playing lineups")).toBeNull();
   });
 
   it("renders the lazy-loaded setup flow for pre-match phases", async () => {
-    currentScoringSetup = createScoringSetup("lineup");
-    shouldDelayPreMatchSetupFlow = true;
+    const { findByText } = await renderScoreRoute({
+      scoringSetup: createScoringSetup("lineup"),
+    });
 
-    const { findByText } = await renderScoreRoute();
-
-    expect(await findByText("Choose playing lineups")).toBeTruthy();
+    expect(await findByText("Playing lineups")).toBeTruthy();
   });
 
   it("preserves lineup save and innings start mutation payloads from the extracted components", async () => {
-    currentScoringSetup = createScoringSetup("lineup");
-
-    const lineupRender = await renderScoreRoute();
+    const lineupRender = await renderScoreRoute({
+      scoringSetup: createScoringSetup("lineup"),
+    });
     fireEvent.click(
-      await lineupRender.findByRole("button", { name: "Save playing lineups" })
+      await lineupRender.findByRole("button", { name: "Confirm lineups" })
     );
 
     await waitFor(() =>
@@ -587,8 +648,9 @@ describe("score route pre-match extraction", () => {
     );
     lineupRender.unmount();
 
-    currentScoringSetup = createScoringSetup("inningsSetup");
-    const inningsRender = await renderScoreRoute();
+    const inningsRender = await renderScoreRoute({
+      scoringSetup: createScoringSetup("inningsSetup"),
+    });
     const startButton = await inningsRender.findByRole("button", {
       name: "Start innings",
     });
@@ -614,7 +676,7 @@ describe("score route pre-match extraction", () => {
   });
 
   it("applies the follow-on team pairing for innings three only when the scorer enables it", async () => {
-    currentScoringSetup = {
+    const scoringSetup = {
       ...createScoringSetup("inningsSetup"),
       innings: [
         {
@@ -656,7 +718,7 @@ describe("score route pre-match extraction", () => {
       },
     } as unknown as RouteScoringSetup;
 
-    const inningsRender = await renderScoreRoute();
+    const inningsRender = await renderScoreRoute({ scoringSetup });
     const followOnSwitch = await inningsRender.findByRole("switch", {
       name: "Apply follow-on",
     });
@@ -684,7 +746,7 @@ describe("score route pre-match extraction", () => {
   it("keeps the next-innings start button enabled when the previous innings is completed", async () => {
     const baseSetup = createScoringSetup("inningsSetup");
 
-    currentScoringSetup = {
+    const scoringSetup = {
       ...baseSetup,
       currentInnings: {
         ballsBowled: 32,
@@ -724,7 +786,7 @@ describe("score route pre-match extraction", () => {
       phase: "inningsSetup",
     } as unknown as RouteScoringSetup;
 
-    const inningsRender = await renderScoreRoute();
+    const inningsRender = await renderScoreRoute({ scoringSetup });
     const startButton = await inningsRender.findByRole("button", {
       name: "Start innings",
     });
@@ -735,30 +797,12 @@ describe("score route pre-match extraction", () => {
   });
 
   it("does not forward a dismissed player from the previous ball into the next delivery", async () => {
-    const scoringSetup = createScoringSetup("scoring");
+    const { buildDeliveryMutationPayload } = await import(
+      "./-score-delivery-payload"
+    );
 
-    currentScoringSetup = {
-      ...scoringSetup,
-      entryContext: {
-        ...scoringSetup.entryContext,
-        dismissedPlayerId: 63 as number | null,
-      },
-    } as unknown as RouteScoringSetup;
-
-    const { findAllByRole } = await renderScoreRoute();
-    const recordButtons = await findAllByRole("button", {
-      name: "Record delivery",
-    });
-    const scoringButton = recordButtons.at(-1);
-
-    if (!scoringButton) {
-      throw new Error("Scoring submit button not found");
-    }
-
-    fireEvent.click(scoringButton);
-
-    await waitFor(() =>
-      expect(recordScoringDelivery).toHaveBeenCalledWith({
+    expect(
+      buildDeliveryMutationPayload({
         inningsId: 501,
         strikerId: 11,
         nonStrikerId: 12,
@@ -769,18 +813,33 @@ describe("score route pre-match extraction", () => {
         byeRuns: 0,
         legByeRuns: 0,
         penaltyRuns: 0,
-        wicketType: undefined,
+        wicketType: "",
+        dismissedPlayerId: 63,
+        assistedById: null,
       })
-    );
+    ).toEqual({
+      inningsId: 501,
+      strikerId: 11,
+      nonStrikerId: 12,
+      bowlerId: 21,
+      batterRuns: 0,
+      wideRuns: 0,
+      noBallRuns: 0,
+      byeRuns: 0,
+      legByeRuns: 0,
+      penaltyRuns: 0,
+      wicketType: undefined,
+    });
   });
 
   it("opens the shared confirmation dialog when a recorded delivery requires innings-end confirmation", async () => {
-    currentScoringSetup = createScoringSetup("scoring");
     recordScoringDelivery.mockImplementationOnce(async () =>
       createPendingScoringMutationResult()
     );
 
-    const { findAllByRole, findByText, findByRole } = await renderScoreRoute();
+    const { findAllByRole, findByText, findByRole } = await renderScoreRoute({
+      scoringSetup: createScoringSetup("scoring"),
+    });
     const recordButtons = await findAllByRole("button", {
       name: "Record delivery",
     });
@@ -802,12 +861,13 @@ describe("score route pre-match extraction", () => {
   });
 
   it("returns to the last ball in edit mode when the scorer declines the auto-end prompt", async () => {
-    currentScoringSetup = createScoringSetup("scoring");
     recordScoringDelivery.mockImplementationOnce(async () =>
       createPendingScoringMutationResult()
     );
 
-    const { findAllByRole, findByRole, queryByText } = await renderScoreRoute();
+    const { findAllByRole, findByRole, queryByText } = await renderScoreRoute({
+      scoringSetup: createScoringSetup("scoring"),
+    });
     const recordButtons = await findAllByRole("button", {
       name: "Record delivery",
     });
@@ -829,12 +889,13 @@ describe("score route pre-match extraction", () => {
   });
 
   it("confirms the innings end from the auto-end dialog", async () => {
-    currentScoringSetup = createScoringSetup("scoring");
     recordScoringDelivery.mockImplementationOnce(async () =>
       createPendingScoringMutationResult()
     );
 
-    const { findAllByRole, findByRole } = await renderScoreRoute();
+    const { findAllByRole, findByRole } = await renderScoreRoute({
+      scoringSetup: createScoringSetup("scoring"),
+    });
     const recordButtons = await findAllByRole("button", {
       name: "Record delivery",
     });
@@ -855,9 +916,9 @@ describe("score route pre-match extraction", () => {
   });
 
   it("reuses the same dialog for manual innings end", async () => {
-    currentScoringSetup = createScoringSetup("scoring");
-
-    const { findByRole, findByText } = await renderScoreRoute();
+    const { findByRole, findByText } = await renderScoreRoute({
+      scoringSetup: createScoringSetup("scoring"),
+    });
 
     fireEvent.click(await findByRole("button", { name: "End innings" }));
 
@@ -872,9 +933,9 @@ describe("score route pre-match extraction", () => {
   });
 
   it("restores pending-closure review state on load", async () => {
-    currentScoringSetup = createPendingClosureScoringSetup();
-
-    const { findByRole } = await renderScoreRoute();
+    const { findByRole } = await renderScoreRoute({
+      scoringSetup: createPendingClosureScoringSetup(),
+    });
 
     expect(
       await findByRole("button", { name: "Update delivery" })

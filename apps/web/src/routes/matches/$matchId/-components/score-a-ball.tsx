@@ -65,7 +65,6 @@ type ExtraField =
 interface ScoreABallProps {
   battingPlayers: ScoringPlayerOption[];
   bowlingPlayers: ScoringPlayerOption[];
-  currentBallLabel: string;
   draft: DeliveryDraft;
   fieldingOptions: ScoringPlayerOption[];
   isEditing: boolean;
@@ -281,7 +280,6 @@ function ScoreABall({
   draft,
   battingPlayers,
   bowlingPlayers,
-  currentBallLabel,
   fieldingOptions,
   matchFlags,
   requiredSelections,
@@ -464,366 +462,360 @@ function ScoreABall({
   };
 
   return (
-    <section className="space-y-5 rounded-[1.75rem] border border-border/70 bg-card px-4 py-5 shadow-sm sm:px-5">
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-start justify-between gap-3 sm:flex-nowrap">
-          <div className="min-w-0 flex-1 space-y-1">
-            <p className="truncate font-medium text-muted-foreground text-xs uppercase tracking-[0.22em]">
-              Live scoring
-            </p>
-            <h2 className="truncate font-semibold text-xl">
-              {isEditing ? "Edit delivery" : "Record next delivery"}
-            </h2>
-          </div>
-          <div className="max-w-full shrink-0 truncate rounded-full border border-border/70 bg-muted/30 px-3 py-1 text-sm">
-            {currentBallLabel}
-          </div>
+    <section className="space-y-2">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 space-y-1">
+          <h2 className="text-xl uppercase tracking-wide">
+            {isEditing ? "Edit delivery" : "Record next delivery"}
+          </h2>
         </div>
       </div>
 
-      <div className="space-y-6">
-        {/* Players on the ball */}
-        <fieldset className="space-y-3">
-          <legend className="font-medium text-sm">
-            Players for this delivery
-          </legend>
-          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-            <PlayerSelect
-              label={
-                requiredSelections.striker ? "Striker (required)" : "Striker"
-              }
-              onValueChange={(value) => {
-                const nextStrikerId =
-                  value && value.length > 0 ? Number.parseInt(value, 10) : null;
+      {/* Players on the ball */}
+      <fieldset className="space-y-2.5 border-border/50 border-t pt-5">
+        <legend className="sr-only">Players for this delivery</legend>
+        <p className="text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em]">
+          Players for this delivery
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+          <PlayerSelect
+            label={
+              requiredSelections.striker ? "Striker (required)" : "Striker"
+            }
+            onValueChange={(value) => {
+              const nextStrikerId =
+                value && value.length > 0 ? Number.parseInt(value, 10) : null;
 
-                onChange(
-                  resolveBattingPairSelection({
-                    currentNonStrikerId: draft.nonStrikerId,
-                    currentStrikerId: draft.strikerId,
-                    nextPlayerId: nextStrikerId,
-                    role: "striker",
-                  })
-                );
-              }}
-              options={battingPlayers}
-              value={draft.strikerId ? String(draft.strikerId) : ""}
-            />
-            <PlayerSelect
-              label={
-                requiredSelections.nonStriker
-                  ? "Non-striker (required)"
-                  : "Non-striker"
-              }
-              onValueChange={(value) => {
-                const nextNonStrikerId =
-                  value && value.length > 0 ? Number.parseInt(value, 10) : null;
+              onChange(
+                resolveBattingPairSelection({
+                  currentNonStrikerId: draft.nonStrikerId,
+                  currentStrikerId: draft.strikerId,
+                  nextPlayerId: nextStrikerId,
+                  role: "striker",
+                })
+              );
+            }}
+            options={battingPlayers}
+            value={draft.strikerId ? String(draft.strikerId) : ""}
+          />
+          <PlayerSelect
+            label={
+              requiredSelections.nonStriker
+                ? "Non-striker (required)"
+                : "Non-striker"
+            }
+            onValueChange={(value) => {
+              const nextNonStrikerId =
+                value && value.length > 0 ? Number.parseInt(value, 10) : null;
 
-                onChange(
-                  resolveBattingPairSelection({
-                    currentNonStrikerId: draft.nonStrikerId,
-                    currentStrikerId: draft.strikerId,
-                    nextPlayerId: nextNonStrikerId,
-                    role: "nonStriker",
-                  })
-                );
-              }}
-              options={battingPlayers.filter(
-                (player) => player.id !== draft.strikerId
+              onChange(
+                resolveBattingPairSelection({
+                  currentNonStrikerId: draft.nonStrikerId,
+                  currentStrikerId: draft.strikerId,
+                  nextPlayerId: nextNonStrikerId,
+                  role: "nonStriker",
+                })
+              );
+            }}
+            options={battingPlayers.filter(
+              (player) => player.id !== draft.strikerId
+            )}
+            value={draft.nonStrikerId ? String(draft.nonStrikerId) : ""}
+          />
+          <PlayerSelect
+            label={requiredSelections.bowler ? "Bowler (required)" : "Bowler"}
+            onValueChange={(value) =>
+              onChange({
+                bowlerId:
+                  value && value.length > 0 ? Number.parseInt(value, 10) : null,
+              })
+            }
+            options={bowlingPlayers}
+            value={draft.bowlerId ? String(draft.bowlerId) : ""}
+          />
+        </div>
+      </fieldset>
+
+      {/* Bat runs */}
+      <fieldset className="space-y-2.5 border-border/50 border-t pt-5">
+        <legend className="sr-only">Bat runs</legend>
+        <p className="text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em]">
+          Bat runs
+        </p>
+        <div className="grid grid-cols-6 gap-2">
+          {[0, 1, 2, 3, 4, 6].map((runs) => (
+            <button
+              aria-pressed={draft.batterRuns === runs}
+              className={cn(
+                "flex h-14 w-full items-center justify-center border font-semibold text-sm tabular-nums transition-colors",
+                draft.batterRuns === runs
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border/60 bg-background hover:border-primary/50",
+                hasWide || hasBye || hasLegBye
+                  ? "cursor-not-allowed opacity-50"
+                  : null
               )}
-              value={draft.nonStrikerId ? String(draft.nonStrikerId) : ""}
+              disabled={hasWide || hasBye || hasLegBye || !canScoreBatterRuns}
+              key={runs}
+              onClick={() => setBatterRuns(runs)}
+              type="button"
+            >
+              {runs}
+            </button>
+          ))}
+        </div>
+        <NumberField
+          disabled={hasWide || hasBye || hasLegBye || !canScoreBatterRuns}
+          label="Other bat runs"
+          onChange={setBatterRuns}
+          value={draft.batterRuns}
+        />
+      </fieldset>
+
+      {/* Extras */}
+      <div className="space-y-3 border-border/50 border-t pt-5">
+        <button
+          className="flex w-full items-center justify-between py-1 text-left text-sm transition-colors"
+          onClick={() => setShowExtras((prev) => !prev)}
+          type="button"
+        >
+          <span className="text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em]">
+            Extras
+          </span>
+          {extrasVisible && !hasExtras ? (
+            <ChevronUpIcon className="size-3.5 text-muted-foreground" />
+          ) : (
+            <ChevronDownIcon className="size-3.5 text-muted-foreground" />
+          )}
+        </button>
+
+        {extrasVisible ? (
+          <div className="space-y-3">
+            {visibleExtras.includes("wideRuns") ||
+            visibleExtras.includes("noBallRuns") ? (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {visibleExtras.includes("wideRuns") ? (
+                  <ToggleField
+                    active={hasWide}
+                    description="Adds 1 run and marks the ball as a wide"
+                    label="Wide"
+                    onClick={toggleWideRuns}
+                  />
+                ) : null}
+                {visibleExtras.includes("noBallRuns") ? (
+                  <ToggleField
+                    active={hasNoBall}
+                    description="Adds 1 run and marks the ball as a no-ball"
+                    label="No-ball"
+                    onClick={toggleNoBallRuns}
+                  />
+                ) : null}
+              </div>
+            ) : null}
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {visibleExtras.includes("byeRuns") ? (
+                <NumberField
+                  disabled={hasBatRuns || hasLegBye}
+                  label="Bye runs"
+                  onChange={setByeRuns}
+                  value={draft.byeRuns}
+                />
+              ) : null}
+              {visibleExtras.includes("legByeRuns") ? (
+                <NumberField
+                  disabled={hasBatRuns || hasBye || hasWide}
+                  label="Leg-bye runs"
+                  onChange={setLegByeRuns}
+                  value={draft.legByeRuns}
+                />
+              ) : null}
+              {visibleExtras.includes("penaltyRuns") ? (
+                <NumberField
+                  label="Penalty runs"
+                  onChange={(value) => onChange({ penaltyRuns: value })}
+                  value={draft.penaltyRuns}
+                />
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {/* Dismissal */}
+      <div
+        className={cn(
+          "space-y-4 border-border/50 border-t pt-5",
+          isWicketActive ? "text-destructive" : null
+        )}
+      >
+        <div className="space-y-1">
+          <p
+            className={cn(
+              "text-[0.65rem] uppercase tracking-[0.18em]",
+              isWicketActive ? "text-destructive" : "text-muted-foreground"
+            )}
+          >
+            Dismissal
+          </p>
+          <p className="text-muted-foreground text-xs">
+            Keep common wickets one tap away and hide invalid options for this
+            match.
+          </p>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-6">
+          <DismissalQuickButton
+            active={!isWicketActive}
+            label="No wicket"
+            onClick={() => applyDismissalType("")}
+            tone="default"
+          />
+          {commonDismissals.map((dismissalType) => (
+            <DismissalQuickButton
+              active={normalizedWicketType === dismissalType}
+              key={dismissalType}
+              label={getDismissalLabel(dismissalType)}
+              onClick={() => applyDismissalType(dismissalType)}
+              tone="destructive"
             />
+          ))}
+        </div>
+
+        {moreDismissals.length > 0 ? (
+          <div className="space-y-1.5">
+            <span className="truncate text-muted-foreground text-xs">
+              More dismissals
+            </span>
+            <Select
+              onValueChange={(value) => {
+                if (value === moreDismissalPlaceholder) {
+                  return;
+                }
+
+                applyDismissalType(value as WicketType);
+              }}
+              value={selectedMoreDismissalValue}
+            >
+              <SelectTrigger className="h-10 w-full [&>span]:min-w-0 [&>span]:truncate">
+                <SelectValue placeholder="More dismissal types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={moreDismissalPlaceholder}>
+                  More dismissal types
+                </SelectItem>
+                {moreDismissals.map((dismissalType) => (
+                  <SelectItem key={dismissalType} value={dismissalType}>
+                    <span className="block truncate">
+                      {getDismissalLabel(dismissalType)}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
+
+        {isWicketActive ? (
+          <div className="space-y-3 border border-destructive/30 bg-destructive/5 p-4">
             <PlayerSelect
-              label={requiredSelections.bowler ? "Bowler (required)" : "Bowler"}
+              label="Dismissed batter"
               onValueChange={(value) =>
                 onChange({
-                  bowlerId:
+                  dismissedPlayerId:
                     value && value.length > 0
                       ? Number.parseInt(value, 10)
                       : null,
                 })
               }
-              options={bowlingPlayers}
-              value={draft.bowlerId ? String(draft.bowlerId) : ""}
+              options={battingPlayers.filter(
+                (player) =>
+                  player.id === draft.strikerId ||
+                  player.id === draft.nonStrikerId
+              )}
+              value={
+                draft.dismissedPlayerId ? String(draft.dismissedPlayerId) : ""
+              }
+            />
+
+            <PlayerSelect
+              label={
+                dismissalRequiresAssist
+                  ? "Fielder (required)"
+                  : "Fielder (optional)"
+              }
+              onValueChange={(value) =>
+                onChange({
+                  assistedById:
+                    value && value.length > 0
+                      ? Number.parseInt(value, 10)
+                      : null,
+                })
+              }
+              options={fieldingOptions}
+              value={draft.assistedById ? String(draft.assistedById) : ""}
             />
           </div>
-        </fieldset>
+        ) : null}
+      </div>
 
-        {/* Bat runs quick-pick */}
-        <fieldset className="space-y-3">
-          <legend className="font-medium text-sm">Bat runs</legend>
-          <div className="grid grid-cols-6 gap-2 sm:gap-3">
-            {[0, 1, 2, 3, 4, 6].map((runs) => (
-              <button
-                aria-pressed={draft.batterRuns === runs}
-                className={cn(
-                  "flex aspect-square w-full items-center justify-center rounded-2xl border font-semibold text-base transition-colors",
-                  draft.batterRuns === runs
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border/70 bg-background hover:border-primary/50",
-                  hasWide || hasBye || hasLegBye
-                    ? "cursor-not-allowed opacity-60"
-                    : null
-                )}
-                disabled={hasWide || hasBye || hasLegBye || !canScoreBatterRuns}
-                key={runs}
-                onClick={() => setBatterRuns(runs)}
-                type="button"
-              >
-                {runs}
-              </button>
-            ))}
-          </div>
-          <NumberField
-            disabled={hasWide || hasBye || hasLegBye || !canScoreBatterRuns}
-            label="Other bat runs"
-            onChange={setBatterRuns}
-            value={draft.batterRuns}
-          />
-        </fieldset>
-
-        {/* Extras (collapsible) */}
-        <div className="space-y-3">
-          <button
-            className="flex w-full items-center justify-between rounded-2xl border border-border/60 bg-muted/20 px-4 py-3 font-medium text-sm transition-colors hover:bg-muted/40"
-            onClick={() => setShowExtras((prev) => !prev)}
+      {/* Actions */}
+      <div className="space-y-3 border-border/50 border-t">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Button
+            className="h-14 flex-1 px-8 font-semibold text-base uppercase tracking-wide"
+            disabled={isSubmitting}
+            onClick={onSubmit}
+            size={"lg"}
             type="button"
           >
-            <span>Extras</span>
-            {extrasVisible && !hasExtras ? (
-              <ChevronUpIcon className="size-4 text-muted-foreground" />
-            ) : (
-              <ChevronDownIcon className="size-4 text-muted-foreground" />
-            )}
-          </button>
+            {submitLabel}
+          </Button>
 
-          {extrasVisible ? (
-            <div className="space-y-4 rounded-[1.5rem] border border-border/60 bg-muted/10 p-4">
-              {visibleExtras.includes("wideRuns") ||
-              visibleExtras.includes("noBallRuns") ? (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {visibleExtras.includes("wideRuns") ? (
-                    <ToggleField
-                      active={hasWide}
-                      description="Adds 1 run and marks the ball as a wide"
-                      label="Wide"
-                      onClick={toggleWideRuns}
-                    />
-                  ) : null}
-                  {visibleExtras.includes("noBallRuns") ? (
-                    <ToggleField
-                      active={hasNoBall}
-                      description="Adds 1 run and marks the ball as a no-ball"
-                      label="No-ball"
-                      onClick={toggleNoBallRuns}
-                    />
-                  ) : null}
-                </div>
-              ) : null}
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {visibleExtras.includes("byeRuns") ? (
-                  <NumberField
-                    disabled={hasBatRuns || hasLegBye}
-                    label="Bye runs"
-                    onChange={setByeRuns}
-                    value={draft.byeRuns}
-                  />
-                ) : null}
-                {visibleExtras.includes("legByeRuns") ? (
-                  <NumberField
-                    disabled={hasBatRuns || hasBye || hasWide}
-                    label="Leg-bye runs"
-                    onChange={setLegByeRuns}
-                    value={draft.legByeRuns}
-                  />
-                ) : null}
-                {visibleExtras.includes("penaltyRuns") ? (
-                  <NumberField
-                    label="Penalty runs"
-                    onChange={(value) => onChange({ penaltyRuns: value })}
-                    value={draft.penaltyRuns}
-                  />
-                ) : null}
-              </div>
-            </div>
+          {isEditing && onDiscardEdit ? (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    className="h-10"
+                    disabled={isSubmitting}
+                    onClick={onDiscardEdit}
+                    title="Back to Latest Delivery"
+                    type="button"
+                    variant="destructive"
+                  >
+                    Discard edit
+                  </Button>
+                }
+              />
+              <TooltipContent side="top">
+                Back to Latest Delivery
+              </TooltipContent>
+            </Tooltip>
           ) : null}
         </div>
 
-        {/* Dismissal */}
-        <div
-          className={cn(
-            "space-y-4 rounded-[1.5rem] border p-4 sm:p-5",
-            isWicketActive
-              ? "border-destructive/40 bg-destructive/10"
-              : "border-border/60 bg-muted/15"
-          )}
-        >
-          <div className="space-y-1">
-            <p
-              className={cn(
-                "font-medium text-sm",
-                isWicketActive ? "text-destructive" : null
-              )}
-            >
-              Dismissal
-            </p>
-            <p className="text-muted-foreground text-xs">
-              Keep common wickets one tap away and hide invalid options for this
-              match.
-            </p>
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-6">
-            <DismissalQuickButton
-              active={!isWicketActive}
-              label="No wicket"
-              onClick={() => applyDismissalType("")}
-              tone="default"
-            />
-            {commonDismissals.map((dismissalType) => (
-              <DismissalQuickButton
-                active={normalizedWicketType === dismissalType}
-                key={dismissalType}
-                label={getDismissalLabel(dismissalType)}
-                onClick={() => applyDismissalType(dismissalType)}
-                tone="destructive"
-              />
-            ))}
-          </div>
-
-          {moreDismissals.length > 0 ? (
-            <div className="space-y-1.5">
-              <span className="truncate text-muted-foreground text-xs">
-                More dismissals
-              </span>
-              <Select
-                onValueChange={(value) => {
-                  if (value === moreDismissalPlaceholder) {
-                    return;
-                  }
-
-                  applyDismissalType(value as WicketType);
-                }}
-                value={selectedMoreDismissalValue}
-              >
-                <SelectTrigger className="h-14 w-full rounded-2xl [&>span]:min-w-0 [&>span]:truncate">
-                  <SelectValue placeholder="More dismissal types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={moreDismissalPlaceholder}>
-                    More dismissal types
-                  </SelectItem>
-                  {moreDismissals.map((dismissalType) => (
-                    <SelectItem key={dismissalType} value={dismissalType}>
-                      <span className="block truncate">
-                        {getDismissalLabel(dismissalType)}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : null}
-
-          {isWicketActive ? (
-            <div className="space-y-3">
-              <PlayerSelect
-                label="Dismissed batter"
-                onValueChange={(value) =>
-                  onChange({
-                    dismissedPlayerId:
-                      value && value.length > 0
-                        ? Number.parseInt(value, 10)
-                        : null,
-                  })
-                }
-                options={battingPlayers.filter(
-                  (player) =>
-                    player.id === draft.strikerId ||
-                    player.id === draft.nonStrikerId
-                )}
-                value={
-                  draft.dismissedPlayerId ? String(draft.dismissedPlayerId) : ""
-                }
-              />
-
-              <PlayerSelect
-                label={
-                  dismissalRequiresAssist
-                    ? "Fielder (required)"
-                    : "Fielder (optional)"
-                }
-                onValueChange={(value) =>
-                  onChange({
-                    assistedById:
-                      value && value.length > 0
-                        ? Number.parseInt(value, 10)
-                        : null,
-                  })
-                }
-                options={fieldingOptions}
-                value={draft.assistedById ? String(draft.assistedById) : ""}
-              />
-            </div>
-          ) : null}
-        </div>
-
-        {/* Action buttons */}
-        <div className="space-y-2">
-          <div className="md:flex md:items-center md:justify-between md:gap-2">
-            <Button
-              className="h-14 flex-1 rounded-2xl font-semibold text-base [&_svg]:shrink-0"
-              disabled={isSubmitting}
-              onClick={onSubmit}
-              type="button"
-            >
-              {submitLabel}
-            </Button>
-
-            {isEditing && onDiscardEdit ? (
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      className="h-12 rounded-2xl"
-                      disabled={isSubmitting}
-                      onClick={onDiscardEdit}
-                      title="Back to Latest Delivery"
-                      type="button"
-                      variant="destructive"
-                    >
-                      Discard edit
-                    </Button>
-                  }
-                />
-                <TooltipContent side="top">
-                  Back to Latest Delivery
-                </TooltipContent>
-              </Tooltip>
-            ) : null}
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              className="h-12 w-full truncate rounded-2xl [&_svg]:shrink-0"
-              onClick={onReset}
-              type="button"
-              variant="outline"
-            >
-              <RotateCcwIcon className="mr-2 size-4" />
-              <span className="truncate">Reset</span>
-            </Button>
-            <Button
-              className="h-12 w-full truncate rounded-2xl [&_svg]:shrink-0"
-              disabled={!(isEditing && onDelete) || isSubmitting}
-              onClick={onDelete}
-              type="button"
-              variant="destructive"
-            >
-              <Trash2Icon className="mr-2 size-4" />
-              <span className="truncate">Delete</span>
-            </Button>
-          </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            className="h-10 w-full truncate [&_svg]:shrink-0"
+            onClick={onReset}
+            type="button"
+            variant="outline"
+          >
+            <RotateCcwIcon className="mr-2 size-3.5" />
+            <span className="truncate">Reset</span>
+          </Button>
+          <Button
+            className="h-10 w-full truncate [&_svg]:shrink-0"
+            disabled={!(isEditing && onDelete) || isSubmitting}
+            onClick={onDelete}
+            type="button"
+            variant="destructive"
+          >
+            <Trash2Icon className="mr-2 size-3.5" />
+            <span className="truncate">Delete</span>
+          </Button>
         </div>
       </div>
     </section>
@@ -842,12 +834,12 @@ function NumberField({
   value: number;
 }) {
   return (
-    <div className="flex min-w-0 flex-col space-y-1.5">
+    <div className="flex min-w-0 flex-col space-y-1">
       <span className="truncate text-muted-foreground text-xs" title={label}>
         {label}
       </span>
       <Input
-        className="h-14 w-full rounded-2xl text-base"
+        className="h-10 w-full text-sm"
         disabled={disabled}
         min={0}
         onChange={(event) =>
@@ -875,7 +867,7 @@ function ToggleField({
     <button
       aria-pressed={active}
       className={cn(
-        "flex min-h-14 w-full flex-col items-start justify-center rounded-2xl border px-4 py-3 text-left transition-colors",
+        "flex w-full flex-col items-start justify-center border px-3 py-2.5 text-left transition-colors",
         active
           ? "border-primary bg-primary text-primary-foreground"
           : "border-border/60 bg-background hover:border-primary/40"
@@ -886,7 +878,7 @@ function ToggleField({
       <span className="font-medium text-sm">{label}</span>
       <span
         className={cn(
-          "mt-1 text-xs",
+          "mt-0.5 text-xs",
           active ? "text-primary-foreground/80" : "text-muted-foreground"
         )}
       >
@@ -907,7 +899,8 @@ function DismissalQuickButton({
   onClick: () => void;
   tone: "default" | "destructive";
 }) {
-  let toneClasses = "border-border/60 bg-background hover:border-primary/40";
+  let toneClasses =
+    "border-border/60 bg-background text-foreground hover:border-primary/40";
 
   if (tone === "destructive") {
     toneClasses = active
@@ -921,7 +914,7 @@ function DismissalQuickButton({
     <button
       aria-pressed={active}
       className={cn(
-        "flex min-h-12 items-center justify-center rounded-2xl border px-3 py-2 font-medium text-sm transition-colors",
+        "flex h-10 items-center justify-center border px-3 py-2 font-medium text-sm transition-colors",
         toneClasses
       )}
       onClick={onClick}
@@ -947,12 +940,12 @@ function PlayerSelect({
     options.find((player) => String(player.id) === value)?.name ?? "";
 
   return (
-    <div className="flex min-w-0 flex-col space-y-1.5">
+    <div className="flex min-w-0 flex-col space-y-1">
       <span className="truncate text-muted-foreground text-xs" title={label}>
         {label}
       </span>
       <Select onValueChange={onValueChange} value={value}>
-        <SelectTrigger className="h-14 w-full rounded-2xl [&>span]:min-w-0 [&>span]:truncate">
+        <SelectTrigger className="h-10 w-full [&>span]:min-w-0 [&>span]:truncate">
           <SelectValue placeholder="Select player">
             {selectedPlayerName}
           </SelectValue>

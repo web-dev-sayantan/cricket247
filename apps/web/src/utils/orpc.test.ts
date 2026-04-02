@@ -3,6 +3,7 @@ import { describe, expect, it, mock } from "bun:test";
 const toastError = mock(() => undefined);
 
 mock.module("sonner", () => ({
+  Toaster: () => null,
   toast: {
     error: toastError,
   },

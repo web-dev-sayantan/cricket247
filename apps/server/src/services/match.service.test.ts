@@ -55,7 +55,12 @@ mock.module("@/utils", () => ({
   getCurrentDate: () => new Date("2026-03-20T10:00:00.000Z"),
 }));
 
-const serviceModulePromise = import("./match.service");
+let serviceImportCounter = 0;
+
+function loadServiceModule() {
+  serviceImportCounter += 1;
+  return import(`./match.service?test=${serviceImportCounter}`);
+}
 
 describe("match.service createMatchAction", () => {
   beforeEach(() => {
@@ -75,7 +80,7 @@ describe("match.service createMatchAction", () => {
       noOfOvers: 90,
     };
 
-    const { createMatchAction } = await serviceModulePromise;
+    const { createMatchAction } = await loadServiceModule();
 
     await createMatchAction({
       tournamentId: 1,

@@ -45,6 +45,8 @@ const team2Roster: LineupPhaseCardProps["team2Roster"] = [
   },
 ];
 
+const WARRIORS_TAB_PATTERN = /WAR 0/;
+
 function StatefulLineupPhaseCard() {
   const [team1Selection, setTeam1Selection] = useState({
     playerIds: [] as number[],
@@ -75,27 +77,23 @@ function StatefulLineupPhaseCard() {
 }
 
 describe("LineupPhaseCard", () => {
-  it("renders roster selections, optional roles, and toggles save state messaging", () => {
-    const { getAllByLabelText, getByRole, getByText } = renderWithProviders(
+  it("renders roster selections and toggles save state messaging", () => {
+    const { getByRole, getByText } = renderWithProviders(
       <StatefulLineupPhaseCard />
     );
-    const saveButton = getByRole("button", { name: "Save playing lineups" });
+    const saveButton = getByRole("button", { name: "Confirm lineups" });
 
-    expect(
-      getByText("Select a full playing lineup for both teams.")
-    ).toBeTruthy();
+    expect(getByText("Select 2 players per team to continue.")).toBeTruthy();
     expect((saveButton as HTMLButtonElement).disabled).toBe(true);
 
     fireEvent.click(getByText("A One"));
     fireEvent.click(getByText("A Two"));
+    fireEvent.click(getByRole("tab", { name: WARRIORS_TAB_PATTERN }));
     fireEvent.click(getByText("B One"));
     fireEvent.click(getByText("B Two"));
 
-    const captainSelect = getAllByLabelText("Captain")[0] as HTMLSelectElement;
-    fireEvent.change(captainSelect, { target: { value: "11" } });
-
-    expect(captainSelect.value).toBe("11");
-    expect(getByText("Both teams have full playing lineups.")).toBeTruthy();
+    expect(getByText("Assign roles")).toBeTruthy();
+    expect(getByText("Both squads are set.")).toBeTruthy();
     expect((saveButton as HTMLButtonElement).disabled).toBe(false);
   });
 });

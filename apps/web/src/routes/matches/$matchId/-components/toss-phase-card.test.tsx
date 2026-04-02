@@ -3,21 +3,6 @@ import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "@/test/render";
 import { TossPhaseCard } from "./toss-phase-card";
 
-async function selectOption(
-  user: ReturnType<typeof userEvent.setup>,
-  selectIndex: number,
-  optionText: string
-) {
-  const triggers = document.querySelectorAll('[data-slot="select-trigger"]');
-
-  await user.click(triggers[selectIndex] ?? document.body);
-  await user.click(
-    [...document.querySelectorAll('[data-slot="select-item"]')].find(
-      (element) => element.textContent === optionText
-    ) ?? document.body
-  );
-}
-
 describe("TossPhaseCard", () => {
   it("updates toss winner and decision controls before continuing", async () => {
     const user = userEvent.setup();
@@ -38,8 +23,8 @@ describe("TossPhaseCard", () => {
       />
     );
 
-    await selectOption(user, 0, "Warriors");
-    await selectOption(user, 1, "Field first");
+    await user.click(getByRole("button", { name: "Warriors" }));
+    await user.click(getByRole("button", { name: "Field first" }));
     await user.click(
       getByRole("button", { name: "Continue to innings setup" })
     );

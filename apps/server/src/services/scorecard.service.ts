@@ -46,6 +46,12 @@ interface ScorecardFallOfWicket {
   wicketType: string | null;
 }
 
+interface ScorecardCurrentParticipants {
+  bowlerId: number | null;
+  nonStrikerId: number | null;
+  strikerId: number | null;
+}
+
 interface ScorecardDelivery {
   assistedBy: ScorecardPlayerRef | null;
   ballInOver: number;
@@ -80,6 +86,12 @@ interface ScorecardSummaryDeliveryQueryRow {
   wicketType: string | null;
 }
 
+interface ScorecardLatestDeliveryParticipantsRow {
+  bowlerId: number;
+  nonStrikerId: number;
+  strikerId: number;
+}
+
 export interface InningsScorecard {
   batting: ScorecardBattingRow[];
   battingTeam: {
@@ -94,6 +106,7 @@ export interface InningsScorecard {
     shortName: string;
   };
   currentInningsOrdinal: number;
+  currentParticipants: ScorecardCurrentParticipants;
   deliveries?: ScorecardDelivery[];
   extras: {
     byes: number;
@@ -255,6 +268,64 @@ function getDetailedDeliveries(inningsId: number) {
   });
 }
 
+function getLatestDeliveryParticipants(inningsId: number) {
+  return db.query.deliveries.findFirst({
+    where: {
+      inningsId,
+    },
+    columns: {
+      bowlerId: true,
+      nonStrikerId: true,
+      strikerId: true,
+    },
+    orderBy: {
+      sequenceNo: "desc",
+    },
+  });
+}
+
+function getCurrentParticipants({
+  inningsRow,
+  latestDelivery,
+  matchIsLive,
+}: {
+  inningsRow: {
+    isCompleted: boolean;
+    openingBowlerId: number | null;
+    openingNonStrikerId: number | null;
+    openingStrikerId: number | null;
+    status: string;
+  };
+  latestDelivery: ScorecardLatestDeliveryParticipantsRow | null | undefined;
+  matchIsLive: boolean;
+}): ScorecardCurrentParticipants {
+  if (
+    !matchIsLive ||
+    inningsRow.status !== "in_progress" ||
+    inningsRow.isCompleted
+  ) {
+    return {
+      strikerId: null,
+      nonStrikerId: null,
+      bowlerId: null,
+    };
+  }
+
+  if (latestDelivery) {
+    return {
+      strikerId: latestDelivery.strikerId,
+      nonStrikerId: latestDelivery.nonStrikerId,
+      bowlerId: latestDelivery.bowlerId,
+    };
+  }
+
+  return {
+    strikerId: inningsRow.openingStrikerId,
+    nonStrikerId: inningsRow.openingNonStrikerId,
+    bowlerId: inningsRow.openingBowlerId,
+  };
+}
+
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Scorecard assembly intentionally consolidates API shaping.
 export async function getMatchScorecard(
   matchId: number,
@@ -337,27 +408,35 @@ export async function getMatchScorecard(
   const inningsPayload: InningsScorecard[] = [];
 
   for (const [inningsIndex, inningsRow] of inningsToRender.entries()) {
-    const [statsRows, deliveryQueryResult] = await Promise.all([
-      db.query.playerInningsStats.findMany({
-        where: {
-          inningsId: inningsRow.id,
-        },
-        with: {
-          player: true,
-          dismissedBy: true,
-          assistedBy: true,
-        },
-      }),
-      includeBallByBall
-        ? getDetailedDeliveries(inningsRow.id).then((deliveries) => ({
-            deliveries,
-            kind: "detailed" as const,
-          }))
-        : getSummaryDeliveries(inningsRow.id).then((deliveries) => ({
-            deliveries,
-            kind: "summary" as const,
-          })),
-    ]);
+    const shouldResolveCurrentParticipants =
+      match.isLive &&
+      inningsRow.status === "in_progress" &&
+      !inningsRow.isCompleted;
+    const [statsRows, deliveryQueryResult, latestDeliveryParticipants] =
+      await Promise.all([
+        db.query.playerInningsStats.findMany({
+          where: {
+            inningsId: inningsRow.id,
+          },
+          with: {
+            player: true,
+            dismissedBy: true,
+            assistedBy: true,
+          },
+        }),
+        includeBallByBall
+          ? getDetailedDeliveries(inningsRow.id).then((deliveries) => ({
+              deliveries,
+              kind: "detailed" as const,
+            }))
+          : getSummaryDeliveries(inningsRow.id).then((deliveries) => ({
+              deliveries,
+              kind: "summary" as const,
+            })),
+        shouldResolveCurrentParticipants
+          ? getLatestDeliveryParticipants(inningsRow.id)
+          : Promise.resolve(null),
+      ]);
     const deliveries: ScorecardSummaryDeliveryQueryRow[] =
       deliveryQueryResult.deliveries;
 
@@ -514,6 +593,17 @@ export async function getMatchScorecard(
         status: inningsRow.status,
         isCompleted: Boolean(inningsRow.isCompleted),
       },
+      currentParticipants: getCurrentParticipants({
+        inningsRow: {
+          isCompleted: Boolean(inningsRow.isCompleted),
+          openingBowlerId: inningsRow.openingBowlerId,
+          openingNonStrikerId: inningsRow.openingNonStrikerId,
+          openingStrikerId: inningsRow.openingStrikerId,
+          status: inningsRow.status,
+        },
+        latestDelivery: latestDeliveryParticipants,
+        matchIsLive: Boolean(match.isLive),
+      }),
       extras: {
         wides: inningsRow.wides,
         noBalls: inningsRow.noBalls,

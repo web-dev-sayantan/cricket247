@@ -1,8 +1,8 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/figtree";
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap");
 
 @custom-variant dark (&:is(.dark *));
 
@@ -23,6 +23,7 @@
   --accent: oklch(0.7 0.14 75); /* Warm Amber */
   --accent-foreground: oklch(0.15 0.03 155);
   --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(96.322% 0.01084 9.762);
   --border: oklch(0.89 0.015 100);
   --input: oklch(0.89 0.015 100);
   --ring: oklch(0.42 0.12 155);
@@ -44,9 +45,9 @@
 
 .dark {
   /* Deep Forest Night */
-  --background: oklch(0.14 0.025 155);
+  --background: oklch(17.1% 0.01002 158.916);
   --foreground: oklch(0.94 0.01 100);
-  --card: oklch(0.18 0.03 155);
+  --card: oklch(22.069% 0.02312 154.954);
   --card-foreground: oklch(0.94 0.01 100);
   --popover: oklch(0.18 0.03 155);
   --popover-foreground: oklch(0.94 0.01 100);
@@ -59,6 +60,7 @@
   --accent: oklch(0.75 0.14 75); /* Warm Amber */
   --accent-foreground: oklch(0.14 0.025 155);
   --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(96.243% 0.00976 8.9);
   --border: oklch(0.26 0.04 155);
   --input: oklch(0.26 0.04 155);
   --ring: oklch(0.58 0.14 155);
@@ -97,6 +99,7 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);

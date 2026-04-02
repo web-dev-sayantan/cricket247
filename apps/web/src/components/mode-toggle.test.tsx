@@ -8,6 +8,7 @@ const themeState: { theme: string } = {
 };
 
 mock.module("next-themes", () => ({
+  ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
   useTheme: () => ({
     setTheme,
     theme: themeState.theme,

@@ -1,2 +1,7 @@
 [install]
 linker = "isolated"
+
+[test]
+maxConcurrency = 1
+pathIgnorePatterns = ["**/dist/**"]
+preload = ["./apps/server/src/test/setup.ts", "./apps/web/src/test/setup.ts"]

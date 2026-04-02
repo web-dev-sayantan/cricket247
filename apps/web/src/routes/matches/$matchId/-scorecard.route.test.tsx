@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   createMemoryHistory,
+  createRootRoute,
+  createRoute,
   createRouter,
   RouterProvider,
 } from "@tanstack/react-router";
@@ -10,6 +12,7 @@ import {
   fireEvent,
   type RenderResult,
   render,
+  waitFor,
 } from "@testing-library/react";
 import type { ReactNode } from "react";
 
@@ -72,6 +75,11 @@ interface MockScorecard {
       runsConceded: number;
       wicketsTaken: number;
     }>;
+    currentParticipants: {
+      bowlerId: number | null;
+      nonStrikerId: number | null;
+      strikerId: number | null;
+    };
     extras: {
       byes: number;
       legByes: number;
@@ -121,31 +129,7 @@ const getMatchScorecard = mock(
   }
 );
 
-mock.module("@/utils/orpc", () => ({
-  client: {},
-  orpc: {
-    liveMatches: {
-      queryOptions: () => ({
-        queryFn: async () => [],
-        queryKey: ["liveMatches"],
-      }),
-    },
-    getMatchScorecard: {
-      queryOptions: ({
-        input,
-      }: {
-        input: { includeBallByBall: boolean; matchId: number };
-      }) => ({
-        queryFn: () => getMatchScorecard(input),
-        queryKey: ["getMatchScorecard", input.matchId, input.includeBallByBall],
-      }),
-    },
-  },
-  queryClient: new QueryClient(),
-}));
-
-const routeTreeModulePromise = import("@/routeTree.gen");
-const orpcModulePromise = import("@/utils/orpc");
+let scorecardRouteImportNonce = 0;
 
 function createScorecard(matchId: number, teamShortNames: [string, string]) {
   return {
@@ -165,6 +149,18 @@ function createScorecard(matchId: number, teamShortNames: [string, string]) {
             status: "not_out" as const,
             strikeRate: 150,
           },
+          {
+            assistedBy: null,
+            ballsFaced: 5,
+            dismissalType: null,
+            dismissedBy: null,
+            fours: 1,
+            player: { id: matchId * 10 + 7, name: "Beta Partner" },
+            runs: 6,
+            sixes: 0,
+            status: "not_out" as const,
+            strikeRate: 120,
+          },
         ],
         battingTeam: {
           id: matchId * 100 + 1,
@@ -181,6 +177,11 @@ function createScorecard(matchId: number, teamShortNames: [string, string]) {
             wicketsTaken: 1,
           },
         ],
+        currentParticipants: {
+          bowlerId: matchId * 10 + 2,
+          nonStrikerId: matchId * 10 + 7,
+          strikerId: matchId * 10 + 1,
+        },
         extras: {
           byes: 0,
           legByes: 0,
@@ -229,6 +230,11 @@ function createScorecard(matchId: number, teamShortNames: [string, string]) {
             wicketsTaken: 1,
           },
         ],
+        currentParticipants: {
+          bowlerId: null,
+          nonStrikerId: null,
+          strikerId: null,
+        },
         extras: {
           byes: 0,
           legByes: 0,
@@ -269,9 +275,11 @@ function createScorecard(matchId: number, teamShortNames: [string, string]) {
 async function renderScorecardRoute(
   initialEntry = "/matches/42/scorecard"
 ): Promise<RenderResult & { router: ReturnType<typeof createRouter> }> {
-  const [{ routeTree }, { orpc }] = await Promise.all([
-    routeTreeModulePromise,
-    orpcModulePromise,
+  scorecardRouteImportNonce += 1;
+
+  const [{ ScorecardPage }, { ScorecardLoadingSkeleton }] = await Promise.all([
+    import(`./scorecard?scorecardRouteTest=${scorecardRouteImportNonce}`),
+    import("@/routes/matches/$matchId/-components/scorecard-loading-skeleton"),
   ]);
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -279,12 +287,74 @@ async function renderScorecardRoute(
       queries: { retry: false },
     },
   });
+  const testOrpc = {
+    getMatchScorecard: {
+      queryOptions: ({
+        input,
+      }: {
+        input: { includeBallByBall: boolean; matchId: number };
+      }) => ({
+        queryFn: () => getMatchScorecard(input),
+        queryKey: ["getMatchScorecard", input.matchId, input.includeBallByBall],
+      }),
+    },
+    liveMatches: {
+      queryOptions: () => ({
+        queryFn: async () => [],
+        queryKey: ["liveMatches"],
+      }),
+    },
+  };
+  const rootRoute = createRootRoute();
+  const matchesRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "matches",
+  });
+  const matchRoute = createRoute({
+    getParentRoute: () => matchesRoute,
+    path: "$matchId",
+  });
+  const scoreRoute = createRoute({
+    component: () => null,
+    getParentRoute: () => matchRoute,
+    path: "score",
+  });
+  const scorecardRoute = createRoute({
+    component: () => {
+      const { scorecard } = scorecardRoute.useLoaderData();
+      const { matchId } = scorecardRoute.useParams();
+
+      return <ScorecardPage matchId={matchId} scorecard={scorecard} />;
+    },
+    getParentRoute: () => matchRoute,
+    loader: async ({ params }) => {
+      const matchId = Number(params.matchId);
+      const scorecard = await queryClient.ensureQueryData({
+        ...testOrpc.getMatchScorecard.queryOptions({
+          input: {
+            includeBallByBall: false,
+            matchId,
+          },
+        }),
+        staleTime: 10_000,
+      });
+
+      return { scorecard };
+    },
+    path: "scorecard",
+    pendingComponent: ScorecardLoadingSkeleton,
+  });
+  const routeTree = rootRoute.addChildren([
+    matchesRoute.addChildren([
+      matchRoute.addChildren([scoreRoute, scorecardRoute]),
+    ]),
+  ]);
   const router = createRouter({
     routeTree,
     history: createMemoryHistory({
       initialEntries: [initialEntry],
     }),
-    context: { orpc, queryClient },
+    context: {},
     Wrap({ children }: { children: ReactNode }) {
       return (
         <QueryClientProvider client={queryClient}>
@@ -295,8 +365,9 @@ async function renderScorecardRoute(
   });
   let renderResult: null | RenderResult = null;
 
-  act(() => {
+  await act(async () => {
     renderResult = render(<RouterProvider router={router} />);
+    await router.load();
   });
 
   if (!renderResult) {
@@ -319,21 +390,21 @@ describe("scorecard route", () => {
   it("renders the dedicated pending skeleton while the loader is unresolved", async () => {
     scorecardDelayState.milliseconds = 1500;
 
-    const { findByRole, findByText, router } =
+    const { container, findByRole, router } =
       await renderScorecardRoute("/matches");
 
-    const navigation = act(() =>
-      router.navigate({
-        params: { matchId: "42" },
-        to: "/matches/$matchId/scorecard",
-      })
-    );
+    const navigation = router.navigate({
+      params: { matchId: "42" },
+      to: "/matches/$matchId/scorecard",
+    });
 
-    expect(
-      await findByText("Loading match scorecard...", undefined, {
+    await waitFor(
+      () =>
+        expect(container.querySelector("main[aria-busy='true']")).toBeTruthy(),
+      {
         timeout: 2000,
-      })
-    ).toBeTruthy();
+      }
+    );
     await navigation;
     expect(await findByRole("heading", { name: "KNI vs WAR" })).toBeTruthy();
   });
@@ -377,6 +448,31 @@ describe("scorecard route", () => {
     expect(
       await findByRole("tab", { name: "NEX Innings", selected: true })
     ).toBeTruthy();
+  });
+
+  it("highlights live batters and the current bowler only on the active innings", async () => {
+    const { container, findByRole } = await renderScorecardRoute();
+
+    await findByRole("heading", { name: "KNI vs WAR" });
+
+    const liveRows = Array.from(container.querySelectorAll("[data-live-role]"));
+    expect(liveRows).toHaveLength(3);
+    expect(
+      container.querySelector('[data-live-role="striker"]')?.textContent
+    ).toContain("Alpha B.");
+    expect(
+      container.querySelector('[data-live-role="non-striker"]')?.textContent
+    ).toContain("Beta P.");
+    expect(
+      container.querySelector('[data-live-role="bowler"]')?.textContent
+    ).toContain("Bravo B.");
+    expect(
+      container.querySelector('[data-live-role="striker"]')?.className
+    ).toContain("bg-primary/5");
+
+    fireEvent.click(await findByRole("tab", { name: "WAR Innings" }));
+
+    expect(container.querySelectorAll("[data-live-role]")).toHaveLength(0);
   });
 
   it("renders an accessible recovery link when the match does not exist", async () => {

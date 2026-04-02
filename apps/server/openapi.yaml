@@ -7616,6 +7616,84 @@ paths:
             Retry-After:
               schema:
                 type: string
+  /updateMatchSchedule:
+    post:
+      operationId: updateMatchSchedule
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                matchId:
+                  exclusiveMinimum: 0
+                  maximum: 9007199254740991
+                  minimum: -9007199254740991
+                  type: integer
+                scheduledEndAt:
+                  format: date-time
+                  type: string
+                  x-native-type: date
+                scheduledStartAt:
+                  format: date-time
+                  type: string
+                  x-native-type: date
+              required:
+                - matchId
+                - scheduledStartAt
+              type: object
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - {}
+                  - not: {}
+          description: OK
+        "429":
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    enum:
+                      - TOO_MANY_REQUESTS
+                    type: string
+                  data:
+                    properties:
+                      retryAfter:
+                        minimum: 0
+                        type: integer
+                    required:
+                      - retryAfter
+                    type: object
+                  message:
+                    type: string
+                  status:
+                    enum:
+                      - 429
+                    type: integer
+                required:
+                  - code
+                  - data
+                  - message
+                  - status
+                type: object
+          description: Too Many Requests
+          headers:
+            RateLimit-Limit:
+              schema:
+                type: string
+            RateLimit-Remaining:
+              schema:
+                type: string
+            RateLimit-Reset:
+              schema:
+                type: string
+            Retry-After:
+              schema:
+                type: string
   /updatePlayer:
     post:
       operationId: updatePlayer

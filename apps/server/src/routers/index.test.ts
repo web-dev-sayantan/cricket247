@@ -65,6 +65,7 @@ const EXPECTED_PROCEDURE_NAMES = [
   "publishFixtureVersion",
   "validateFixtureConflicts",
   "players",
+  "playerStatistics",
   "playersWithCurrentTeams",
   "onboardingStatus",
   "markOnboardingSeen",
@@ -80,6 +81,7 @@ const EXPECTED_PROCEDURE_NAMES = [
   "searchTeamsByName",
   "getTeamById",
   "teamTournaments",
+  "tournamentPlayers",
   "getTournamentTeamRoster",
   "listTeamStats",
   "getTeamStatsById",
@@ -103,7 +105,9 @@ const EXPECTED_PROCEDURE_NAMES = [
   "createNextScoringDelivery",
   "endScoringInnings",
   "getMatchScorecard",
+  "statisticsLanding",
   "getBallsOfSameOver",
+  "updateMatchSchedule",
 ] as const;
 
 describe("appRouter", () => {

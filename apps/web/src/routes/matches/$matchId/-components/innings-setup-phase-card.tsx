@@ -1,4 +1,4 @@
-import { PlayIcon } from "lucide-react";
+import { ListIcon, PenLineIcon, PlayIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -7,6 +7,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import type { ScoringPlayerOption } from "@/routes/matches/$matchId/-components/score-a-ball";
 
@@ -63,26 +71,23 @@ export function InningsSetupPhaseCard({
   team2ShortName,
 }: InningsSetupPhaseCardProps) {
   return (
-    <section className="space-y-5 rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
+    <section className="space-y-6">
       <div className="space-y-1">
-        <h2 className="font-medium text-xl">{inningsTitle}</h2>
+        <h2 className="font-serif text-2xl tracking-tight sm:text-3xl">
+          {inningsTitle}
+        </h2>
         <p className="text-muted-foreground text-sm">
-          The batting and bowling sides are derived automatically. Set the
-          opening pair and opening bowler to begin the innings.
+          Set the opening pair and bowler to begin.
         </p>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <TeamSummary label="Batting team" value={battingTeamName} />
-        <TeamSummary label="Bowling team" value={bowlingTeamName} />
-      </div>
-
+      {/* Follow-on */}
       {followOn ? (
-        <section className="flex flex-col gap-3 rounded-[1.5rem] border border-border/60 bg-muted/10 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <h3 className="font-medium text-sm">Apply follow-on</h3>
-            <p className="text-muted-foreground text-sm">
-              Keep the batting and bowling teams the same as innings 2.
+        <div className="flex items-center justify-between gap-4 border-border/60 border-t border-b py-4">
+          <div className="space-y-0.5">
+            <p className="font-medium text-sm">Apply follow-on</p>
+            <p className="text-muted-foreground text-xs">
+              Keep batting &amp; bowling sides from innings 2.
             </p>
           </div>
           <Switch
@@ -90,44 +95,92 @@ export function InningsSetupPhaseCard({
             checked={followOn.isApplied}
             onCheckedChange={followOn.onToggle}
           />
-        </section>
+        </div>
       ) : null}
 
-      <div className="grid gap-3 lg:grid-cols-3">
-        <PlayerPicker
-          label="Striker"
-          onValueChange={(value) =>
-            onStrikerChange(value ? Number.parseInt(value, 10) : null)
-          }
-          players={strikerOptions}
-          value={strikerId ? String(strikerId) : ""}
-        />
-        <PlayerPicker
-          label="Non-striker"
-          onValueChange={(value) =>
-            onNonStrikerChange(value ? Number.parseInt(value, 10) : null)
-          }
-          players={nonStrikerOptions}
-          value={nonStrikerId ? String(nonStrikerId) : ""}
-        />
-        <PlayerPicker
-          label="Opening bowler"
-          onValueChange={(value) =>
-            onOpeningBowlerChange(value ? Number.parseInt(value, 10) : null)
-          }
-          players={openingBowlerOptions}
-          value={openingBowlerId ? String(openingBowlerId) : ""}
-        />
+      {/* Team cards with pickers */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        {/* Batting side */}
+        <div className="space-y-4 border border-border/50 p-4">
+          <div className="flex items-center gap-2.5">
+            <img
+              alt=""
+              className="size-4 opacity-50 dark:invert"
+              height={16}
+              src="/bat.svg"
+              width={16}
+            />
+            <div className="flex-1">
+              <p className="text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em]">
+                Batting
+              </p>
+              <p className="font-medium text-sm leading-tight">
+                {battingTeamName}
+              </p>
+            </div>
+            <LineupSheet
+              players={team1LineupNames}
+              teamLabel={team1ShortName}
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <PlayerPicker
+              label="Striker"
+              onValueChange={(value) =>
+                onStrikerChange(value ? Number.parseInt(value, 10) : null)
+              }
+              players={strikerOptions}
+              value={strikerId ? String(strikerId) : ""}
+            />
+            <PlayerPicker
+              label="Non-striker"
+              onValueChange={(value) =>
+                onNonStrikerChange(value ? Number.parseInt(value, 10) : null)
+              }
+              players={nonStrikerOptions}
+              value={nonStrikerId ? String(nonStrikerId) : ""}
+            />
+          </div>
+        </div>
+
+        {/* Bowling side */}
+        <div className="space-y-4 border border-border/50 p-4">
+          <div className="flex items-center gap-2.5">
+            <img
+              alt=""
+              className="size-4 opacity-50 dark:invert"
+              height={16}
+              src="/bowl.svg"
+              width={16}
+            />
+            <div className="flex-1">
+              <p className="text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em]">
+                Bowling
+              </p>
+              <p className="font-medium text-sm leading-tight">
+                {bowlingTeamName}
+              </p>
+            </div>
+            <LineupSheet
+              players={team2LineupNames}
+              teamLabel={team2ShortName}
+            />
+          </div>
+          <PlayerPicker
+            label="Opening bowler"
+            onValueChange={(value) =>
+              onOpeningBowlerChange(value ? Number.parseInt(value, 10) : null)
+            }
+            players={openingBowlerOptions}
+            value={openingBowlerId ? String(openingBowlerId) : ""}
+          />
+        </div>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-2">
-        <LineupSummary players={team1LineupNames} teamLabel={team1ShortName} />
-        <LineupSummary players={team2LineupNames} teamLabel={team2ShortName} />
-      </div>
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      {/* Actions */}
+      <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center">
         <Button
-          className="h-12 rounded-2xl"
+          className="angled-cut h-11 px-6"
           disabled={!inningsSetupAvailable || isStarting}
           onClick={onStartInnings}
           type="button"
@@ -137,11 +190,12 @@ export function InningsSetupPhaseCard({
         </Button>
         {canEditToss ? (
           <Button
-            className="h-12 rounded-2xl"
+            className="h-11 px-5"
             onClick={onEditToss}
             type="button"
             variant="outline"
           >
+            <PenLineIcon className="mr-2 size-3.5" />
             Edit toss
           </Button>
         ) : null}
@@ -150,18 +204,7 @@ export function InningsSetupPhaseCard({
   );
 }
 
-function TeamSummary({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="space-y-1">
-      <p className="text-muted-foreground text-xs">{label}</p>
-      <div className="flex h-12 items-center rounded-2xl border border-border/60 bg-muted/10 px-4 text-sm">
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function LineupSummary({
+function LineupSheet({
   players,
   teamLabel,
 }: {
@@ -169,12 +212,38 @@ function LineupSummary({
   teamLabel: string;
 }) {
   return (
-    <section className="space-y-2 rounded-[1.5rem] border border-border/60 bg-muted/10 p-4">
-      <h3 className="font-medium text-sm sm:text-base">{teamLabel} lineup</h3>
-      <p className="text-muted-foreground text-sm leading-relaxed">
-        {players.join(", ")}
-      </p>
-    </section>
+    <Sheet>
+      <SheetTrigger className="flex cursor-pointer items-center gap-1.5 text-muted-foreground text-xs transition-colors hover:text-foreground">
+        <ListIcon className="size-3.5" />
+        <span>Lineup</span>
+      </SheetTrigger>
+      <SheetContent side="bottom">
+        <SheetHeader className="border-border/50 border-b px-5 pt-5 pb-4">
+          <p className="text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em]">
+            Confirmed squad
+          </p>
+          <SheetTitle className="font-serif text-2xl tracking-tight">
+            {teamLabel} lineup
+          </SheetTitle>
+          <SheetDescription className="text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em]">
+            {players.length} players selected
+          </SheetDescription>
+        </SheetHeader>
+        <ol className="px-5 pb-8">
+          {players.map((name, i) => (
+            <li
+              className="flex items-baseline gap-4 border-border/30 border-b py-3 last:border-0"
+              key={name}
+            >
+              <span className="w-5 shrink-0 text-[0.65rem] text-muted-foreground tabular-nums">
+                {i + 1}
+              </span>
+              <span className="text-sm">{name}</span>
+            </li>
+          ))}
+        </ol>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -196,7 +265,7 @@ function PlayerPicker({
     <div className="space-y-1">
       <p className="text-muted-foreground text-xs">{label}</p>
       <Select onValueChange={onValueChange} value={value}>
-        <SelectTrigger className="h-12 rounded-2xl">
+        <SelectTrigger className="h-10 w-full">
           <SelectValue placeholder={`Select ${label.toLowerCase()}`}>
             {selectedPlayerName}
           </SelectValue>

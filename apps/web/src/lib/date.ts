@@ -98,6 +98,10 @@ export function formatMonthDay(date: Date): string {
   return format(date, "MMM d");
 }
 
+export function formatMonthDayYear(date: Date): string {
+  return format(date, "MMM d, yyyy");
+}
+
 export function formatWeekdayMonthDayYear(date: Date): string {
   return format(date, "EEE, MMM d, yyyy");
 }

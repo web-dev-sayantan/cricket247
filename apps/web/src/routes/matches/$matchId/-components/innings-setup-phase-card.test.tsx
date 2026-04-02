@@ -5,37 +5,38 @@ import { InningsSetupPhaseCard } from "./innings-setup-phase-card";
 
 describe("InningsSetupPhaseCard", () => {
   it("renders locked team summaries and lineup summaries while keeping start disabled when setup is incomplete", () => {
-    const { getByRole, getByText, queryByRole } = renderWithProviders(
-      <InningsSetupPhaseCard
-        battingTeamName="Knights"
-        bowlingTeamName="Warriors"
-        canEditToss={true}
-        followOn={null}
-        inningsSetupAvailable={false}
-        inningsTitle="Start innings 1"
-        isStarting={false}
-        nonStrikerId={null}
-        nonStrikerOptions={[{ id: 12, name: "A Two", teamId: 1 }]}
-        onEditToss={() => undefined}
-        onNonStrikerChange={() => undefined}
-        onOpeningBowlerChange={() => undefined}
-        onStartInnings={() => undefined}
-        onStrikerChange={() => undefined}
-        openingBowlerId={null}
-        openingBowlerOptions={[{ id: 21, name: "B One", teamId: 2 }]}
-        strikerId={null}
-        strikerOptions={[{ id: 11, name: "A One", teamId: 1 }]}
-        team1LineupNames={["A One", "A Two"]}
-        team1ShortName="KNI"
-        team2LineupNames={["B One", "B Two"]}
-        team2ShortName="WAR"
-      />
-    );
+    const { getAllByText, getByRole, getByText, queryByRole } =
+      renderWithProviders(
+        <InningsSetupPhaseCard
+          battingTeamName="Knights"
+          bowlingTeamName="Warriors"
+          canEditToss={true}
+          followOn={null}
+          inningsSetupAvailable={false}
+          inningsTitle="Start innings 1"
+          isStarting={false}
+          nonStrikerId={null}
+          nonStrikerOptions={[{ id: 12, name: "A Two", teamId: 1 }]}
+          onEditToss={() => undefined}
+          onNonStrikerChange={() => undefined}
+          onOpeningBowlerChange={() => undefined}
+          onStartInnings={() => undefined}
+          onStrikerChange={() => undefined}
+          openingBowlerId={null}
+          openingBowlerOptions={[{ id: 21, name: "B One", teamId: 2 }]}
+          strikerId={null}
+          strikerOptions={[{ id: 11, name: "A One", teamId: 1 }]}
+          team1LineupNames={["A One", "A Two"]}
+          team1ShortName="KNI"
+          team2LineupNames={["B One", "B Two"]}
+          team2ShortName="WAR"
+        />
+      );
 
     expect(getByText("Knights")).toBeTruthy();
     expect(getByText("Warriors")).toBeTruthy();
-    expect(getByText("KNI lineup")).toBeTruthy();
-    expect(getByText("WAR lineup")).toBeTruthy();
+    const lineupButtons = getAllByText("Lineup");
+    expect(lineupButtons).toHaveLength(2);
     expect(queryByRole("switch", { name: "Apply follow-on" })).toBeNull();
     expect(
       (getByRole("button", { name: "Start innings" }) as HTMLButtonElement)

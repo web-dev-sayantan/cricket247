@@ -14,7 +14,6 @@ import {
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { PageHeader } from "@/components/layout/page-header";
 import { PageShell } from "@/components/layout/page-shell";
 import { PlayerImageUploadInput } from "@/components/player-image-upload-input";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -443,34 +442,45 @@ function RouteComponent() {
   const hasFilteredPlayers = filteredPlayers.length > 0;
 
   return (
-    <PageShell>
-      <PageHeader
-        actions={
-          isAdmin ? (
-            <Link className={buttonVariants()} to="/players/create">
+    <PageShell className="hero-surface" maxWidth="wide">
+      {/* ── HEADER + FILTERS ── */}
+      <div className="animate-stagger-1 space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-3xl tracking-tight sm:text-4xl">Players</h1>
+            {isLoading ? null : (
+              <p className="mt-0.5 text-muted-foreground text-sm">
+                {hasActiveFilters
+                  ? `${String(filteredPlayers.length)} of ${String(players.length)}`
+                  : `${String(players.length)} registered`}
+              </p>
+            )}
+          </div>
+          {isAdmin ? (
+            <Link
+              className={buttonVariants({ size: "sm" })}
+              to="/players/create"
+            >
               <Plus />
-              Add Player
+              Add player
             </Link>
-          ) : null
-        }
-        description="Browse, search, and manage player profiles."
-        title="Players"
-      />
+          ) : null}
+        </div>
 
-      <div className="space-y-6">
-        <section className="space-y-4 rounded-xl border bg-card p-4 shadow-sm md:p-5">
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_210px_200px_190px_auto]">
-            <div className="relative">
-              <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                aria-label="Search players"
-                className="pl-8"
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search by name or style..."
-                value={searchQuery}
-              />
-            </div>
-
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              aria-label="Search players"
+              autoComplete="off"
+              className="pl-9"
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search name, role, or style…"
+              type="search"
+              value={searchQuery}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
             <Select
               onValueChange={(value) => {
                 if (value) {
@@ -481,7 +491,7 @@ function RouteComponent() {
             >
               <SelectTrigger
                 aria-label="Filter by batting stance"
-                className="w-full"
+                className="w-35"
               >
                 <SelectValue />
               </SelectTrigger>
@@ -507,7 +517,7 @@ function RouteComponent() {
             >
               <SelectTrigger
                 aria-label="Filter by wicket keeper"
-                className="w-full"
+                className="w-32.5"
               >
                 <SelectValue />
               </SelectTrigger>
@@ -515,7 +525,7 @@ function RouteComponent() {
                 <SelectItem value={DEFAULT_WICKET_KEEPER_FILTER}>
                   All roles
                 </SelectItem>
-                <SelectItem value="yes">Wicket keepers</SelectItem>
+                <SelectItem value="yes">Keepers</SelectItem>
                 <SelectItem value="no">Non keepers</SelectItem>
               </SelectContent>
             </Select>
@@ -528,124 +538,122 @@ function RouteComponent() {
               }}
               value={sortBy}
             >
-              <SelectTrigger aria-label="Sort players" className="w-full">
+              <SelectTrigger aria-label="Sort players" className="w-32.5">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="name-asc">Name A-Z</SelectItem>
-                <SelectItem value="name-desc">Name Z-A</SelectItem>
-                <SelectItem value="age-asc">Age low-high</SelectItem>
-                <SelectItem value="age-desc">Age high-low</SelectItem>
+                <SelectItem value="name-asc">Name A–Z</SelectItem>
+                <SelectItem value="name-desc">Name Z–A</SelectItem>
+                <SelectItem value="age-asc">Age ↑</SelectItem>
+                <SelectItem value="age-desc">Age ↓</SelectItem>
               </SelectContent>
             </Select>
 
-            <Button
-              className="justify-start md:justify-center"
-              disabled={!hasActiveFilters}
-              onClick={handleResetFilters}
-              size="sm"
-              type="button"
-              variant="ghost"
+            {hasActiveFilters ? (
+              <Button
+                onClick={handleResetFilters}
+                size="icon-sm"
+                type="button"
+                variant="ghost"
+              >
+                <FilterX />
+                <span className="sr-only">Reset filters</span>
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      {/* ── PLAYER LIST ── */}
+      {isLoading ? <AccordionSkeletonList /> : null}
+
+      {isLoading || hasPlayers ? null : (
+        <section className="animate-stagger-2 border border-foreground/10 border-dashed px-6 py-12 text-center">
+          <h2 className="text-xl tracking-tight">No players yet.</h2>
+          <p className="mt-2 text-muted-foreground text-sm">
+            <Link
+              className="text-primary underline underline-offset-4"
+              to={createPlayerRoute.to}
             >
-              <FilterX />
-              Reset
+              Add your first player
+            </Link>{" "}
+            to get started.
+          </p>
+        </section>
+      )}
+
+      {!isLoading && hasPlayers && !hasFilteredPlayers ? (
+        <section className="animate-stagger-2 border border-foreground/10 border-dashed px-6 py-12 text-center">
+          <h2 className="text-xl tracking-tight">No matches.</h2>
+          <p className="mt-2 text-muted-foreground text-sm">
+            Try a different search or filter.
+          </p>
+          <div className="mt-4">
+            <Button onClick={handleResetFilters} size="sm" variant="outline">
+              <X />
+              Clear filters
             </Button>
           </div>
-
-          <div className="flex min-h-6 items-center justify-between text-muted-foreground text-sm">
-            <span>
-              Showing {filteredPlayers.length} of {players.length} players
-            </span>
-            {isAdmin ? <span>Admin mode</span> : null}
-          </div>
         </section>
+      ) : null}
 
-        {isLoading ? <AccordionSkeletonList /> : null}
+      {!isLoading && hasFilteredPlayers ? (
+        <div className="animate-stagger-2 overflow-hidden border border-foreground/10">
+          <div className="hidden grid-cols-[minmax(0,1.8fr)_150px_90px_minmax(0,1.3fr)_minmax(0,2fr)_36px] items-center gap-4 border-foreground/8 border-b bg-muted/40 px-5 py-2.5 md:grid">
+            <span className="text-[0.66rem] text-muted-foreground uppercase tracking-[0.24em]">
+              Name
+            </span>
+            <span className="text-[0.66rem] text-muted-foreground uppercase tracking-[0.24em]">
+              Role
+            </span>
+            <span className="text-[0.66rem] text-muted-foreground uppercase tracking-[0.24em]">
+              Age
+            </span>
+            <span className="text-[0.66rem] text-muted-foreground uppercase tracking-[0.24em]">
+              Nationality
+            </span>
+            <span className="text-[0.66rem] text-muted-foreground uppercase tracking-[0.24em]">
+              Teams
+            </span>
+            <span className="sr-only">Toggle details</span>
+          </div>
 
-        {isLoading || hasPlayers ? null : (
-          <section className="rounded-xl border border-dashed bg-card p-10 text-center">
-            <h2 className="font-medium text-lg">No players found</h2>
-            <p className="mt-1 text-muted-foreground text-sm">
-              <Link to={createPlayerRoute.to}>Add players</Link> to start
-              building your squad.
-            </p>
-          </section>
-        )}
-
-        {!isLoading && hasPlayers && !hasFilteredPlayers ? (
-          <section className="rounded-xl border border-dashed bg-card p-10 text-center">
-            <h2 className="font-medium text-lg">No results</h2>
-            <p className="mt-1 text-muted-foreground text-sm">
-              No players matched the current search and filters.
-            </p>
-            <div className="mt-5">
-              <Button onClick={handleResetFilters} size="sm" variant="outline">
-                <X />
-                Clear filters
-              </Button>
-            </div>
-          </section>
-        ) : null}
-
-        {!isLoading && hasFilteredPlayers ? (
-          <section className="overflow-hidden rounded-xl border bg-card">
-            <div className="hidden grid-cols-[minmax(0,1.8fr)_150px_90px_minmax(0,1.3fr)_minmax(0,2fr)_36px] items-center gap-4 border-b bg-muted/30 px-5 py-2.5 md:grid">
-              <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                Name
-              </span>
-              <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                Role
-              </span>
-              <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                Age
-              </span>
-              <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                Nationality
-              </span>
-              <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                Current Teams
-              </span>
-              <span className="sr-only">Toggle details</span>
-            </div>
-
-            {filteredPlayers.map((player, index) => (
-              <PlayerAccordionRow
-                draft={editingPlayerId === player.id ? editingDraft : null}
-                hasBottomBorder={index < filteredPlayers.length - 1}
-                isAdmin={isAdmin}
-                isExpanded={expandedPlayerId === player.id}
-                isPending={
-                  activeDeleteId === player.id ||
-                  activeUpdateId === player.id ||
-                  (uploadImageMutation.isPending &&
-                    editingPlayerId === player.id)
-                }
-                key={player.id}
-                onCancelEdit={handleEditCancel}
-                onDelete={() => handleDelete(player)}
-                onDraftChange={handleDraftChange}
-                onEditImageSelect={handleEditImageSelect}
-                onEditStart={() => handleEditStart(player)}
-                onSaveEdit={handleSaveEdit}
-                onToggleExpand={() => handleToggleExpand(player.id)}
-                onViewStatistics={() =>
-                  navigate({
-                    params: {
-                      playerId: String(player.id),
-                    },
-                    to: "/statistics/$playerId",
-                  })
-                }
-                player={player}
-                uploadedImageName={uploadedEditImageName}
-                uploadImagePending={
-                  uploadImageMutation.isPending && editingPlayerId === player.id
-                }
-              />
-            ))}
-          </section>
-        ) : null}
-      </div>
+          {filteredPlayers.map((player, index) => (
+            <PlayerAccordionRow
+              draft={editingPlayerId === player.id ? editingDraft : null}
+              hasBottomBorder={index < filteredPlayers.length - 1}
+              isAdmin={isAdmin}
+              isExpanded={expandedPlayerId === player.id}
+              isPending={
+                activeDeleteId === player.id ||
+                activeUpdateId === player.id ||
+                (uploadImageMutation.isPending && editingPlayerId === player.id)
+              }
+              key={player.id}
+              onCancelEdit={handleEditCancel}
+              onDelete={() => handleDelete(player)}
+              onDraftChange={handleDraftChange}
+              onEditImageSelect={handleEditImageSelect}
+              onEditStart={() => handleEditStart(player)}
+              onSaveEdit={handleSaveEdit}
+              onToggleExpand={() => handleToggleExpand(player.id)}
+              onViewStatistics={() =>
+                navigate({
+                  params: {
+                    playerId: String(player.id),
+                  },
+                  to: "/statistics/$playerId",
+                })
+              }
+              player={player}
+              uploadedImageName={uploadedEditImageName}
+              uploadImagePending={
+                uploadImageMutation.isPending && editingPlayerId === player.id
+              }
+            />
+          ))}
+        </div>
+      ) : null}
 
       <Dialog
         onOpenChange={(open) => {
@@ -740,14 +748,16 @@ function PlayerAccordionRow({
   const playerImageUrl = getProfileImageUrl(player.image);
 
   return (
-    <article className={cn(hasBottomBorder ? "border-b" : null)}>
+    <article
+      className={cn(hasBottomBorder ? "border-foreground/8 border-b" : null)}
+    >
       <button
         aria-controls={`player-panel-${String(player.id)}`}
         aria-expanded={isExpanded}
         className={cn(
-          "w-full px-4 py-3 text-left transition-colors md:px-5",
+          "w-full px-4 py-3.5 text-left transition-colors md:px-5",
           isPending ? "opacity-60" : null,
-          isExpanded ? "bg-muted/20" : "hover:bg-muted/10"
+          isExpanded ? "bg-muted/40" : "hover:bg-muted/30"
         )}
         onClick={onToggleExpand}
         type="button"
@@ -757,91 +767,72 @@ function PlayerAccordionRow({
             {playerImageUrl ? (
               <img
                 alt={player.name}
-                className="size-8 shrink-0 rounded-full object-cover"
-                height={32}
+                className="size-9 shrink-0 border border-foreground/10 object-cover"
+                height={36}
                 src={playerImageUrl}
-                width={32}
+                width={36}
               />
             ) : (
-              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 font-medium text-primary text-xs">
+              <div className="flex size-9 shrink-0 items-center justify-center border border-foreground/10 bg-muted font-semibold text-primary text-xs">
                 {getInitials(player.name)}
               </div>
             )}
-            <span className="truncate font-medium">{player.name}</span>
+            <span className="truncate font-semibold tracking-tight">
+              {player.name}
+            </span>
           </div>
-          <span className="truncate">{normalizeRole(player.role)}</span>
-          <span>{player.age}</span>
-          <span className="truncate">
+          <span className="truncate text-sm">{normalizeRole(player.role)}</span>
+          <span className="text-sm">{player.age}</span>
+          <span className="truncate text-sm">
             {getNationalityLabel(player.nationality)}
           </span>
-          <span className="truncate text-muted-foreground text-sm">
+          <span className="truncate text-muted-foreground text-xs uppercase tracking-[0.14em]">
             {getCurrentTeamsSummary(player.currentTeams)}
           </span>
           <ChevronDown
             className={cn(
-              "ml-auto size-4 transition-transform",
+              "ml-auto size-4 transition-transform duration-300",
               isExpanded ? "rotate-180" : null
             )}
           />
         </div>
 
-        <div className="space-y-2 md:hidden">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-3 overflow-hidden">
-              {playerImageUrl ? (
-                <img
-                  alt={player.name}
-                  className="size-8 shrink-0 rounded-full object-cover"
-                  height={32}
-                  src={playerImageUrl}
-                  width={32}
-                />
-              ) : (
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 font-medium text-primary text-xs">
-                  {getInitials(player.name)}
-                </div>
-              )}
-              <span className="truncate font-medium text-base">
+        <div className="flex items-center justify-between gap-2 md:hidden">
+          <div className="flex items-center gap-3 overflow-hidden">
+            {playerImageUrl ? (
+              <img
+                alt={player.name}
+                className="size-9 shrink-0 border border-foreground/10 object-cover"
+                height={36}
+                src={playerImageUrl}
+                width={36}
+              />
+            ) : (
+              <div className="flex size-9 shrink-0 items-center justify-center border border-foreground/10 bg-muted font-semibold text-primary text-xs">
+                {getInitials(player.name)}
+              </div>
+            )}
+            <div className="min-w-0">
+              <span className="block truncate font-semibold text-sm tracking-tight">
                 {player.name}
               </span>
-            </div>
-            <ChevronDown
-              className={cn(
-                "size-4 shrink-0 transition-transform",
-                isExpanded ? "rotate-180" : null
-              )}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div>
-              <span className="text-muted-foreground text-xs">Role</span>
-              <p className="truncate">{normalizeRole(player.role)}</p>
-            </div>
-            <div>
-              <span className="text-muted-foreground text-xs">Age</span>
-              <p>{player.age}</p>
-            </div>
-            <div className="col-span-2">
-              <span className="text-muted-foreground text-xs">Nationality</span>
-              <p className="truncate">
-                {getNationalityLabel(player.nationality)}
-              </p>
-            </div>
-            <div className="col-span-2">
-              <span className="text-muted-foreground text-xs">
-                Current Teams
+              <span className="block truncate text-muted-foreground text-xs">
+                {normalizeRole(player.role)} · {player.age}
               </span>
-              <p className="truncate">
-                {getCurrentTeamsSummary(player.currentTeams)}
-              </p>
             </div>
           </div>
+          <ChevronDown
+            className={cn(
+              "size-4 shrink-0 transition-transform duration-300",
+              isExpanded ? "rotate-180" : null
+            )}
+          />
         </div>
       </button>
 
       {isExpanded ? (
         <div
-          className="border-t bg-muted/10 px-4 py-4 md:px-5"
+          className="border-foreground/8 border-t bg-muted/30 px-4 py-4 md:px-5"
           id={`player-panel-${String(player.id)}`}
         >
           {draft ? (
@@ -881,56 +872,43 @@ function PlayerDetailsPanel({
 }: PlayerDetailsPanelProps) {
   return (
     <div className="space-y-4">
-      <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
-        <DetailItem label="Batting Style" value={player.battingStance} />
+      <dl className="grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+        <DetailItem label="Batting" value={player.battingStance} />
         <DetailItem
-          label="Bowling Style"
+          label="Bowling"
           value={player.bowlingStance ?? "Not specified"}
+        />
+        <DetailItem
+          label="Teams"
+          value={
+            player.currentTeams.length > 0
+              ? player.currentTeams
+                  .map((t) => `${t.teamShortName} · ${t.tournamentName}`)
+                  .join(", ")
+              : "No active teams"
+          }
         />
       </dl>
 
-      <section className="space-y-2">
-        <h3 className="font-medium text-sm">
-          Current Teams (Live Tournaments)
-        </h3>
-        {player.currentTeams.length > 0 ? (
-          <ul className="flex flex-wrap gap-2">
-            {player.currentTeams.map((currentTeam) => (
-              <li
-                className="rounded-full border bg-background px-3 py-1 text-xs"
-                key={`${String(currentTeam.tournamentId)}-${String(currentTeam.teamId)}`}
-              >
-                {currentTeam.teamShortName} • {currentTeam.tournamentName}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-muted-foreground text-sm">
-            Unregistered in live tournaments
-          </p>
-        )}
-      </section>
-
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">
+      <div className="flex flex-wrap items-center gap-2 border-foreground/8 border-t pt-3">
         <Button
           aria-label={`View statistics for ${player.name}`}
           disabled={isPending}
           onClick={onViewStatistics}
-          size="icon-sm"
-          title="View statistics"
+          size="sm"
           type="button"
           variant="outline"
         >
           <BarChart3 />
-          <span className="sr-only">View statistics</span>
+          Stats
         </Button>
 
         {isAdmin ? (
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <>
             <Button
-              className="flex-1 md:flex-none"
               disabled={isPending}
               onClick={onEdit}
+              size="sm"
               type="button"
               variant="outline"
             >
@@ -940,13 +918,14 @@ function PlayerDetailsPanel({
             <Button
               disabled={isPending}
               onClick={onDelete}
+              size="sm"
               type="button"
               variant="destructive"
             >
               <Trash2 />
               Delete
             </Button>
-          </div>
+          </>
         ) : null}
       </div>
     </div>
@@ -960,9 +939,11 @@ interface DetailItemProps {
 
 function DetailItem({ label, value }: DetailItemProps) {
   return (
-    <div className="space-y-1 rounded-md border bg-background p-3">
-      <dt className="text-muted-foreground text-xs">{label}</dt>
-      <dd className="wrap-break-word font-medium text-sm">{value}</dd>
+    <div>
+      <dt className="text-[0.64rem] text-muted-foreground uppercase tracking-[0.22em]">
+        {label}
+      </dt>
+      <dd className="mt-0.5 text-sm">{value}</dd>
     </div>
   );
 }
@@ -1219,7 +1200,7 @@ function PlayerEditPanel({
         </Field>
       </FieldGroup>
 
-      <div className="justify-end-safe flex flex-wrap items-center gap-2 border-t pt-4">
+      <div className="justify-end-safe flex flex-wrap items-center gap-2 border-foreground/8 border-t pt-4">
         <Button
           disabled={isPending}
           onClick={onCancel}
@@ -1246,36 +1227,43 @@ function AccordionSkeletonList() {
   const rows = Array.from({ length: EXPANDED_SKELETON_ROWS });
 
   return (
-    <section className="overflow-hidden rounded-xl border bg-card">
-      <div className="hidden grid-cols-[minmax(0,2.2fr)_170px_160px_minmax(0,1.8fr)_36px] items-center gap-4 border-b bg-muted/30 px-5 py-2.5 md:grid">
+    <div className="animate-stagger-2 overflow-hidden border border-foreground/10">
+      <div className="hidden grid-cols-[minmax(0,1.8fr)_150px_90px_minmax(0,1.3fr)_minmax(0,2fr)_36px] items-center gap-4 border-foreground/8 border-b bg-muted/40 px-5 py-2.5 md:grid">
         <Skeleton className="h-3 w-20" />
         <Skeleton className="h-3 w-16" />
-        <Skeleton className="h-3 w-14" />
+        <Skeleton className="h-3 w-10" />
         <Skeleton className="h-3 w-20" />
-        <Skeleton className="ml-auto size-3 rounded-full" />
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="ml-auto size-3" />
       </div>
       {rows.map((_, index) => (
         <div
           className={cn(
-            "space-y-3 px-4 py-4 md:px-5",
-            index < rows.length - 1 ? "border-b" : null
+            "px-4 py-4 md:px-5",
+            index < rows.length - 1 ? "border-foreground/8 border-b" : null
           )}
-          key={`accordion-skeleton-row-${String(index)}`}
+          key={`skeleton-${String(index)}`}
         >
-          <div className="hidden grid-cols-[minmax(0,2.2fr)_170px_160px_minmax(0,1.8fr)_36px] items-center gap-4 md:grid">
-            <Skeleton className="h-4 w-3/4" />
+          <div className="hidden grid-cols-[minmax(0,1.8fr)_150px_90px_minmax(0,1.3fr)_minmax(0,2fr)_36px] items-center gap-4 md:grid">
+            <div className="flex items-center gap-3">
+              <Skeleton className="size-9" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
             <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-10" />
             <Skeleton className="h-4 w-28" />
-            <Skeleton className="ml-auto size-4 rounded-full" />
+            <Skeleton className="h-3 w-32" />
+            <Skeleton className="ml-auto size-4" />
           </div>
           <div className="space-y-2 md:hidden">
-            <Skeleton className="h-4 w-3/4" />
+            <div className="flex items-center gap-3">
+              <Skeleton className="size-9" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
             <Skeleton className="h-3 w-full" />
-            <Skeleton className="h-3 w-4/5" />
           </div>
         </div>
       ))}
-    </section>
+    </div>
   );
 }

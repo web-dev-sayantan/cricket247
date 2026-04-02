@@ -1,6 +1,6 @@
 import type { AppRouterClient } from "@cricket247/server/contract";
 import type { QueryClient } from "@tanstack/react-query";
-import { orpc } from "@/utils/orpc";
+import type { RouterAppContext } from "@/routes/__root";
 
 interface QueryReference {
   queryKey: readonly unknown[];
@@ -184,6 +184,7 @@ export function applyScoringSessionMutationResult(
 
 interface BuildBackgroundScoreRefreshQueriesParams {
   matchId: number;
+  orpc: RouterAppContext["orpc"];
   tournamentId?: number;
 }
 
@@ -191,11 +192,11 @@ export function buildBackgroundScoreRefreshQueries(
   params: BuildBackgroundScoreRefreshQueriesParams
 ) {
   const queries: QueryReference[] = [
-    orpc.getMatchById.queryOptions({
+    params.orpc.getMatchById.queryOptions({
       input: params.matchId,
     }),
-    orpc.liveMatches.queryOptions(),
-    orpc.getMatchScorecard.queryOptions({
+    params.orpc.liveMatches.queryOptions(),
+    params.orpc.getMatchScorecard.queryOptions({
       input: {
         matchId: params.matchId,
         includeBallByBall: false,
@@ -205,7 +206,7 @@ export function buildBackgroundScoreRefreshQueries(
 
   if (typeof params.tournamentId === "number") {
     queries.push(
-      orpc.tournamentFixtures.queryOptions({
+      params.orpc.tournamentFixtures.queryOptions({
         input: {
           tournamentId: params.tournamentId,
         },

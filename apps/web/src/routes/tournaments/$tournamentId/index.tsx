@@ -11,13 +11,21 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
+import { PageShell } from "@/components/layout/page-shell";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
-import { formatWeekdayMonthDayYear } from "@/lib/date";
+import { formatMonthDay, formatMonthDayYear } from "@/lib/date";
+import { cn } from "@/lib/utils";
 import { client, orpc } from "@/utils/orpc";
 
 type PageTab = "fixtures" | "overview" | "points";
@@ -30,6 +38,10 @@ const STATUS_FILTERS: FixtureStatusFilter[] = [
   "upcoming",
   "past",
 ];
+
+type TournamentFixtureMatch = Awaited<
+  ReturnType<typeof client.tournamentFixtures>
+>[number];
 
 export const Route = createFileRoute("/tournaments/$tournamentId/")({
   component: TournamentDetailPage,
@@ -264,17 +276,17 @@ function TournamentDetailPage() {
 
   if (isLoadingTournament) {
     return (
-      <div className="min-h-screen px-4 py-8 md:px-8">
+      <PageShell className="hero-surface" maxWidth="wide">
         <p className="text-muted-foreground">Loading tournament...</p>
-      </div>
+      </PageShell>
     );
   }
 
   if (!tournamentView) {
     return (
-      <div className="min-h-screen px-4 py-8 md:px-8">
+      <PageShell className="hero-surface" maxWidth="wide">
         <p className="text-muted-foreground">Tournament not found.</p>
-      </div>
+      </PageShell>
     );
   }
 
@@ -283,25 +295,42 @@ function TournamentDetailPage() {
     ? selectedStage.stageType !== "knockout" &&
       selectedStage.stageType !== "playoff"
     : false;
+  const handleScheduleUpdated = async () => {
+    await invalidateTournamentQueries(queryClient, numericTournamentId);
+  };
 
   return (
-    <div className="min-h-screen bg-background pb-16">
-      <header className="space-y-4 border-b px-4 py-6 md:px-8">
-        <Link className="inline-flex items-center text-sm" to="/tournaments">
-          <ArrowLeft className="mr-1 size-4" />
-          Back to Tournaments
+    <PageShell
+      className="hero-surface"
+      contentClassName="space-y-10"
+      maxWidth="wide"
+    >
+      {/* ── HEADER ── */}
+      <section className="animate-stagger-1 space-y-6">
+        <Link
+          className="inline-flex items-center gap-1.5 text-[0.68rem] text-muted-foreground uppercase tracking-[0.28em] transition-colors hover:text-foreground"
+          to="/tournaments"
+        >
+          <ArrowLeft className="size-3.5" />
+          Tournaments
         </Link>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="font-bold text-3xl tracking-tight">
+
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-2">
+            <h1 className="font-serif text-[clamp(2rem,5vw,3.5rem)] leading-[1.05] tracking-tight">
               {tournamentView.tournament.name}
             </h1>
-            <p className="text-muted-foreground text-sm">
-              {tournamentView.tournament.type} •{" "}
-              {formatWeekdayMonthDayYear(tournamentView.tournament.startDate)}{" "}
-              to {formatWeekdayMonthDayYear(tournamentView.tournament.endDate)}
-            </p>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.8rem] text-muted-foreground">
+              <span className="border border-foreground/15 bg-background/60 px-2.5 py-0.5 text-[0.68rem] uppercase tracking-[0.2em]">
+                {tournamentView.tournament.type}
+              </span>
+              <span>
+                {formatMonthDayYear(tournamentView.tournament.startDate)} —{" "}
+                {formatMonthDayYear(tournamentView.tournament.endDate)}
+              </span>
+            </div>
           </div>
+
           <div className="flex flex-wrap items-center gap-2">
             {isAdmin ? (
               <Link
@@ -310,562 +339,593 @@ function TournamentDetailPage() {
               >
                 <Button size="sm" variant="outline">
                   <Pencil className="mr-1 size-4" />
-                  Edit Tournament
+                  Edit
                 </Button>
               </Link>
             ) : null}
-            <Badge variant="outline">
-              Published: {tournamentView.counts.publishedMatchCount}
-            </Badge>
-            <Badge variant="secondary">
-              Draft: {tournamentView.counts.draftMatchCount}
-            </Badge>
           </div>
         </div>
+
+        {/* Tabs */}
+        <nav className="flex gap-1 border-foreground/10 border-b pb-px">
+          {(["overview", "fixtures", "points"] as const).map((tab) => (
+            <button
+              className={cn(
+                "relative px-4 py-2.5 font-medium text-[0.78rem] uppercase tracking-[0.12em] transition-colors",
+                activeTab === tab
+                  ? "text-foreground after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              type="button"
+            >
+              {tab === "points" ? "Points Table" : tab}
+            </button>
+          ))}
+        </nav>
+      </section>
+
+      {/* ── STAGE SELECTOR ── */}
+      <section className="animate-stagger-2 space-y-3">
+        <p className="text-[0.68rem] text-muted-foreground uppercase tracking-[0.28em]">
+          Stage
+        </p>
         <div className="flex flex-wrap gap-2">
-          <TabButton
-            active={activeTab === "overview"}
-            label="Overview"
-            onClick={() => setActiveTab("overview")}
-          />
-          <TabButton
-            active={activeTab === "fixtures"}
-            label="Fixtures"
-            onClick={() => setActiveTab("fixtures")}
-          />
-          <TabButton
-            active={activeTab === "points"}
-            label="Points Table"
-            onClick={() => setActiveTab("points")}
-          />
+          {stageOptions.map((stage) => (
+            <button
+              className={cn(
+                "border px-4 py-2 text-sm transition-colors",
+                effectiveStageId === stage.id
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-foreground/10 bg-background/55 text-muted-foreground hover:border-foreground/20 hover:text-foreground"
+              )}
+              key={stage.id}
+              onClick={() => {
+                setSelectedStageId(stage.id);
+                setSelectedGroupId(null);
+              }}
+              type="button"
+            >
+              {stage.sequence}. {stage.name}
+            </button>
+          ))}
         </div>
-      </header>
+      </section>
 
-      <main className="space-y-6 px-4 py-6 md:px-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Stage</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            {stageOptions.map((stage) => (
-              <Button
-                key={stage.id}
-                onClick={() => {
-                  setSelectedStageId(stage.id);
-                  setSelectedGroupId(null);
-                }}
-                size="sm"
-                variant={effectiveStageId === stage.id ? "default" : "outline"}
-              >
-                {stage.sequence}. {stage.name}
-              </Button>
-            ))}
-          </CardContent>
-        </Card>
+      {/* ── OVERVIEW TAB ── */}
+      {activeTab === "overview" && (
+        <div className="animate-stagger-3 space-y-10">
+          {/* Match Overview */}
+          <section className="space-y-5">
+            <h2 className="font-semibold text-xl tracking-tight">Fixtures</h2>
 
-        {activeTab === "overview" && (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Match Overview</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {STATUS_FILTERS.map((filter) => (
+                <button
+                  className={cn(
+                    "border px-3 py-1.5 text-xs uppercase tracking-[0.12em] transition-colors",
+                    statusFilter === filter
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-foreground/10 text-muted-foreground hover:border-foreground/20 hover:text-foreground"
+                  )}
+                  key={filter}
+                  onClick={() => setStatusFilter(filter)}
+                  type="button"
+                >
+                  {filter}
+                </button>
+              ))}
+            </div>
+
+            {isLoadingFixtures ? (
+              <p className="text-muted-foreground text-sm">
+                Loading fixtures...
+              </p>
+            ) : null}
+            {!isLoadingFixtures && publishedFixtures.length === 0 ? (
+              <div className="border border-foreground/15 border-dashed bg-background/70 px-5 py-6 text-muted-foreground text-sm">
+                No matches to show.
+              </div>
+            ) : null}
+            {!isLoadingFixtures && publishedFixtures.length > 0 ? (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {publishedFixtures.map((match) => (
+                  <FixtureCard
+                    enableScheduleActions={isAdmin}
+                    enableScoringActions={true}
+                    key={match.id}
+                    match={match}
+                    onScheduleUpdated={handleScheduleUpdated}
+                    onStartScoring={(matchId) =>
+                      navigate({
+                        to: "/matches/$matchId/score",
+                        params: { matchId: String(matchId) },
+                      })
+                    }
+                    showDraftControls={false}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </section>
+
+          {/* Teams */}
+          <section className="space-y-5">
+            <h2 className="font-semibold text-xl tracking-tight">Teams</h2>
+
+            {teamsForTournament.length === 0 ? (
+              <div className="border border-foreground/15 border-dashed bg-background/70 px-5 py-6 text-muted-foreground text-sm">
+                No teams added yet.
+              </div>
+            ) : (
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {teamsForTournament.map((team) => (
+                  <div
+                    className="flex items-center justify-between gap-3 border border-foreground/10 bg-background/55 px-4 py-3 transition-colors hover:border-foreground/20"
+                    key={team.id}
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-sm">
+                        {team.name || `Team #${String(team.id)}`}
+                      </p>
+                      <p className="text-[0.72rem] text-muted-foreground">
+                        {team.shortName || `Team #${String(team.id)}`}
+                      </p>
+                    </div>
+
+                    {isAdmin ? (
+                      <Link
+                        params={{ teamId: String(team.id) }}
+                        search={{
+                          tournamentId: String(numericTournamentId),
+                        }}
+                        to="/teams/$teamId/assign-players"
+                      >
+                        <Button size="sm" variant="outline">
+                          Modify lineup
+                        </Button>
+                      </Link>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+
+      {/* ── FIXTURES TAB ── */}
+      {activeTab === "fixtures" && (
+        <div className="animate-stagger-3 space-y-10">
+          {isAdmin ? (
+            <section className="space-y-5 border border-foreground/10 bg-[color-mix(in_oklab,var(--color-card)_90%,var(--color-primary)_10%)] p-5 sm:p-6">
+              <div className="space-y-1">
+                <p className="text-[0.68rem] text-muted-foreground uppercase tracking-[0.28em]">
+                  Admin
+                </p>
+                <h2 className="font-sans font-semibold text-xl tracking-tight">
+                  Fixture Builder
+                </h2>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  disabled={!effectiveStageId || autoGenerateMutation.isPending}
+                  onClick={() => autoGenerateMutation.mutate()}
+                  size="sm"
+                >
+                  <RefreshCcw className="mr-1 size-4" />
+                  Auto-create Fixtures
+                </Button>
+                {selectedStage?.stageType === "swiss" && (
+                  <Button
+                    disabled={!effectiveStageId}
+                    onClick={async () => {
+                      if (!effectiveStageId) {
+                        return;
+                      }
+                      try {
+                        await client.autoGenerateNextSwissRound({
+                          tournamentId: numericTournamentId,
+                          stageId: effectiveStageId,
+                        });
+                        toast.success("Next Swiss round generated");
+                        await invalidateTournamentQueries(
+                          queryClient,
+                          numericTournamentId
+                        );
+                      } catch (error) {
+                        const message =
+                          error instanceof Error
+                            ? error.message
+                            : "Failed to generate Swiss round";
+                        toast.error(message);
+                      }
+                    }}
+                    size="sm"
+                    variant="outline"
+                  >
+                    Generate Next Swiss Round
+                  </Button>
+                )}
+              </div>
+
+              {currentStageGroups.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {STATUS_FILTERS.map((filter) => (
-                    <Button
-                      key={filter}
-                      onClick={() => setStatusFilter(filter)}
-                      size="sm"
-                      variant={statusFilter === filter ? "default" : "outline"}
+                  <button
+                    className={cn(
+                      "border px-3 py-1.5 text-xs uppercase tracking-[0.12em] transition-colors",
+                      selectedGroupId === null
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-foreground/10 text-muted-foreground hover:text-foreground"
+                    )}
+                    onClick={() => setSelectedGroupId(null)}
+                    type="button"
+                  >
+                    All Groups
+                  </button>
+                  {currentStageGroups.map((group) => (
+                    <button
+                      className={cn(
+                        "border px-3 py-1.5 text-xs uppercase tracking-[0.12em] transition-colors",
+                        selectedGroupId === group.id
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-foreground/10 text-muted-foreground hover:text-foreground"
+                      )}
+                      key={group.id}
+                      onClick={() => setSelectedGroupId(group.id)}
+                      type="button"
                     >
-                      {filter}
-                    </Button>
+                      {group.name}
+                    </button>
                   ))}
                 </div>
-                {isLoadingFixtures ? (
-                  <p className="text-muted-foreground text-sm">
-                    Loading fixtures...
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {publishedFixtures.length === 0 ? (
-                      <p className="text-muted-foreground text-sm">
-                        No published matches in this view.
-                      </p>
-                    ) : (
-                      publishedFixtures.map((match) => (
-                        <FixtureCard
-                          enableScoringActions={true}
-                          key={match.id}
-                          match={match}
-                          onStartScoring={(matchId) =>
-                            navigate({
-                              to: "/matches/$matchId/score",
-                              params: { matchId: String(matchId) },
-                            })
-                          }
-                          showDraftControls={false}
-                        />
-                      ))
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Teams</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {teamsForTournament.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">
-                    No teams registered for this tournament yet.
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {teamsForTournament.map((team) => (
-                      <div
-                        className="flex flex-wrap items-center justify-between gap-3 border p-3"
-                        key={team.id}
-                      >
-                        <div className="space-y-0.5">
-                          <p className="font-medium text-sm">
-                            {team.name || `Team #${String(team.id)}`}
-                          </p>
-                          <p className="text-muted-foreground text-xs">
-                            {team.shortName || `Team #${String(team.id)}`}
-                          </p>
-                        </div>
-
-                        {isAdmin ? (
-                          <Link
-                            params={{ teamId: String(team.id) }}
-                            search={{
-                              tournamentId: String(numericTournamentId),
-                            }}
-                            to="/teams/$teamId/assign-players"
-                          >
-                            <Button size="sm" variant="outline">
-                              Modify lineup
-                            </Button>
-                          </Link>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {activeTab === "fixtures" && (
-          <div className="space-y-6">
-            {isAdmin ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Admin Fixture Builder</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      disabled={
-                        !effectiveStageId || autoGenerateMutation.isPending
-                      }
-                      onClick={() => autoGenerateMutation.mutate()}
-                      size="sm"
-                    >
-                      <RefreshCcw className="mr-1 size-4" />
-                      Auto-create Fixtures
-                    </Button>
-                    {selectedStage?.stageType === "swiss" && (
-                      <Button
-                        disabled={!effectiveStageId}
-                        onClick={async () => {
-                          if (!effectiveStageId) {
-                            return;
-                          }
-                          try {
-                            await client.autoGenerateNextSwissRound({
-                              tournamentId: numericTournamentId,
-                              stageId: effectiveStageId,
-                            });
-                            toast.success("Next Swiss round generated");
-                            await invalidateTournamentQueries(
-                              queryClient,
-                              numericTournamentId
-                            );
-                          } catch (error) {
-                            const message =
-                              error instanceof Error
-                                ? error.message
-                                : "Failed to generate Swiss round";
-                            toast.error(message);
-                          }
-                        }}
-                        size="sm"
-                        variant="outline"
-                      >
-                        Generate Next Swiss Round
-                      </Button>
-                    )}
-                  </div>
-
-                  {currentStageGroups.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        onClick={() => setSelectedGroupId(null)}
-                        size="sm"
-                        variant={
-                          selectedGroupId === null ? "default" : "outline"
-                        }
-                      >
-                        All Groups
-                      </Button>
-                      {currentStageGroups.map((group) => (
-                        <Button
-                          key={group.id}
-                          onClick={() => setSelectedGroupId(group.id)}
-                          size="sm"
-                          variant={
-                            selectedGroupId === group.id ? "default" : "outline"
-                          }
-                        >
-                          {group.name}
-                        </Button>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <label className="space-y-1">
-                      <span className="text-sm">Participant mode</span>
-                      <select
-                        className="h-8 w-full rounded-none border border-input bg-transparent px-2 text-xs"
-                        onChange={(event) =>
-                          setParticipantMode(
-                            event.target.value as ParticipantMode
-                          )
-                        }
-                        value={participantMode}
-                      >
-                        <option value="concrete">Concrete Teams</option>
-                        <option value="source">TBD by Source</option>
-                      </select>
-                    </label>
-
-                    <label className="space-y-1" htmlFor="fixture-notes">
-                      <span className="text-sm">Notes</span>
-                      <Input
-                        id="fixture-notes"
-                        onChange={(event) => setNotes(event.target.value)}
-                        placeholder="Optional notes"
-                        value={notes}
-                      />
-                    </label>
-
-                    {participantMode === "concrete" ? (
-                      <>
-                        <label className="space-y-1">
-                          <span className="text-sm">Team 1</span>
-                          <select
-                            className="h-8 w-full rounded-none border border-input bg-transparent px-2 text-xs"
-                            onChange={(event) => setTeam1Id(event.target.value)}
-                            value={team1Id}
-                          >
-                            <option value="">Select team</option>
-                            {teamsForTournament.map((team) => (
-                              <option key={team.id} value={String(team.id)}>
-                                {team.name}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <label className="space-y-1">
-                          <span className="text-sm">Team 2</span>
-                          <select
-                            className="h-8 w-full rounded-none border border-input bg-transparent px-2 text-xs"
-                            onChange={(event) => setTeam2Id(event.target.value)}
-                            value={team2Id}
-                          >
-                            <option value="">Select team</option>
-                            {teamsForTournament.map((team) => (
-                              <option key={team.id} value={String(team.id)}>
-                                {team.name}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      </>
-                    ) : (
-                      <>
-                        <SourceField
-                          label="Team Slot 1 Source"
-                          matchId={source1MatchId}
-                          onMatchIdChange={setSource1MatchId}
-                          onPositionChange={setSource1Position}
-                          onTypeChange={setSource1Type}
-                          position={source1Position}
-                          sourceType={source1Type}
-                        />
-                        <SourceField
-                          label="Team Slot 2 Source"
-                          matchId={source2MatchId}
-                          onMatchIdChange={setSource2MatchId}
-                          onPositionChange={setSource2Position}
-                          onTypeChange={setSource2Type}
-                          position={source2Position}
-                          sourceType={source2Type}
-                        />
-                      </>
-                    )}
-                  </div>
-
-                  <Button
-                    disabled={
-                      createDraftMutation.isPending || !effectiveStageId
-                    }
-                    onClick={() => createDraftMutation.mutate()}
-                    size="sm"
-                  >
-                    Add Match Draft
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : null}
-
-            <div className="grid gap-6 lg:grid-cols-2">
-              {isAdmin && (
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle>Draft Fixtures</CardTitle>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        disabled={draftFixtures.length === 0}
-                        onClick={() => {
-                          if (areAllDraftFixturesSelected) {
-                            setSelectedDraftMatches(new Set());
-                            return;
-                          }
-                          setSelectedDraftMatches(
-                            new Set(draftFixtures.map((match) => match.id))
-                          );
-                        }}
-                        size="sm"
-                        variant="outline"
-                      >
-                        {areAllDraftFixturesSelected
-                          ? "Clear Selection"
-                          : "Select All"}
-                      </Button>
-                      <Button
-                        disabled={
-                          publishMutation.isPending ||
-                          selectedDraftMatches.size === 0
-                        }
-                        onClick={() => publishMutation.mutate()}
-                        size="sm"
-                      >
-                        <Check className="mr-1 size-4" />
-                        Publish Selected
-                      </Button>
-                      <Button
-                        disabled={
-                          deleteSelectedDraftMutation.isPending ||
-                          selectedDraftMatches.size === 0
-                        }
-                        onClick={() => deleteSelectedDraftMutation.mutate()}
-                        size="sm"
-                        variant="destructive"
-                      >
-                        Delete Selected
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {draftFixtures.length === 0 ? (
-                      <p className="text-muted-foreground text-sm">
-                        No draft fixtures yet.
-                      </p>
-                    ) : (
-                      draftFixtures.map((match) => (
-                        <FixtureCard
-                          key={match.id}
-                          match={match}
-                          onDelete={() => deleteDraftMutation.mutate(match.id)}
-                          onToggleSelect={() => {
-                            setSelectedDraftMatches((previous) => {
-                              const next = new Set(previous);
-                              if (next.has(match.id)) {
-                                next.delete(match.id);
-                              } else {
-                                next.add(match.id);
-                              }
-                              return next;
-                            });
-                          }}
-                          selected={selectedDraftMatches.has(match.id)}
-                          showDraftControls={true}
-                        />
-                      ))
-                    )}
-                  </CardContent>
-                </Card>
               )}
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Published Fixtures</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {publishedFixtures.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">
-                      No published fixtures yet.
-                    </p>
-                  ) : (
-                    publishedFixtures.map((match) => (
+              <div className="grid gap-3 md:grid-cols-2">
+                <label className="space-y-1">
+                  <span className="text-sm">Participant mode</span>
+                  <select
+                    className="h-8 w-full rounded-none border border-input bg-transparent px-2 text-xs"
+                    onChange={(event) =>
+                      setParticipantMode(event.target.value as ParticipantMode)
+                    }
+                    value={participantMode}
+                  >
+                    <option value="concrete">Concrete Teams</option>
+                    <option value="source">TBD by Source</option>
+                  </select>
+                </label>
+
+                <label className="space-y-1" htmlFor="fixture-notes">
+                  <span className="text-sm">Notes</span>
+                  <Input
+                    id="fixture-notes"
+                    onChange={(event) => setNotes(event.target.value)}
+                    placeholder="Optional notes"
+                    value={notes}
+                  />
+                </label>
+
+                {participantMode === "concrete" ? (
+                  <>
+                    <label className="space-y-1">
+                      <span className="text-sm">Team 1</span>
+                      <select
+                        className="h-8 w-full rounded-none border border-input bg-transparent px-2 text-xs"
+                        onChange={(event) => setTeam1Id(event.target.value)}
+                        value={team1Id}
+                      >
+                        <option value="">Select team</option>
+                        {teamsForTournament.map((team) => (
+                          <option key={team.id} value={String(team.id)}>
+                            {team.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="space-y-1">
+                      <span className="text-sm">Team 2</span>
+                      <select
+                        className="h-8 w-full rounded-none border border-input bg-transparent px-2 text-xs"
+                        onChange={(event) => setTeam2Id(event.target.value)}
+                        value={team2Id}
+                      >
+                        <option value="">Select team</option>
+                        {teamsForTournament.map((team) => (
+                          <option key={team.id} value={String(team.id)}>
+                            {team.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </>
+                ) : (
+                  <>
+                    <SourceField
+                      label="Team Slot 1 Source"
+                      matchId={source1MatchId}
+                      onMatchIdChange={setSource1MatchId}
+                      onPositionChange={setSource1Position}
+                      onTypeChange={setSource1Type}
+                      position={source1Position}
+                      sourceType={source1Type}
+                    />
+                    <SourceField
+                      label="Team Slot 2 Source"
+                      matchId={source2MatchId}
+                      onMatchIdChange={setSource2MatchId}
+                      onPositionChange={setSource2Position}
+                      onTypeChange={setSource2Type}
+                      position={source2Position}
+                      sourceType={source2Type}
+                    />
+                  </>
+                )}
+              </div>
+
+              <Button
+                disabled={createDraftMutation.isPending || !effectiveStageId}
+                onClick={() => createDraftMutation.mutate()}
+                size="sm"
+              >
+                Add Match Draft
+              </Button>
+            </section>
+          ) : null}
+
+          <div className="grid gap-10 lg:grid-cols-2">
+            {isAdmin && (
+              <section className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h3 className="font-sans font-semibold text-lg tracking-tight">
+                    Drafts
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      disabled={draftFixtures.length === 0}
+                      onClick={() => {
+                        if (areAllDraftFixturesSelected) {
+                          setSelectedDraftMatches(new Set());
+                          return;
+                        }
+                        setSelectedDraftMatches(
+                          new Set(draftFixtures.map((match) => match.id))
+                        );
+                      }}
+                      size="sm"
+                      variant="outline"
+                    >
+                      {areAllDraftFixturesSelected
+                        ? "Clear Selection"
+                        : "Select All"}
+                    </Button>
+                    <Button
+                      disabled={
+                        publishMutation.isPending ||
+                        selectedDraftMatches.size === 0
+                      }
+                      onClick={() => publishMutation.mutate()}
+                      size="sm"
+                    >
+                      <Check className="mr-1 size-4" />
+                      Publish Selected
+                    </Button>
+                    <Button
+                      disabled={
+                        deleteSelectedDraftMutation.isPending ||
+                        selectedDraftMatches.size === 0
+                      }
+                      onClick={() => deleteSelectedDraftMutation.mutate()}
+                      size="sm"
+                      variant="destructive"
+                    >
+                      Delete Selected
+                    </Button>
+                  </div>
+                </div>
+
+                {draftFixtures.length === 0 ? (
+                  <div className="border border-foreground/15 border-dashed bg-background/70 px-5 py-6 text-muted-foreground text-sm">
+                    No draft fixtures yet.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {draftFixtures.map((match) => (
                       <FixtureCard
                         key={match.id}
                         match={match}
-                        showDraftControls={false}
+                        onDelete={() => deleteDraftMutation.mutate(match.id)}
+                        onToggleSelect={() => {
+                          setSelectedDraftMatches((previous) => {
+                            const next = new Set(previous);
+                            if (next.has(match.id)) {
+                              next.delete(match.id);
+                            } else {
+                              next.add(match.id);
+                            }
+                            return next;
+                          });
+                        }}
+                        selected={selectedDraftMatches.has(match.id)}
+                        showDraftControls={true}
                       />
-                    ))
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        )}
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
 
-        {activeTab === "points" && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Points Table</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {canShowPoints ? (
-                <>
-                  {currentStageGroups.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        onClick={() => setSelectedGroupId(null)}
-                        size="sm"
-                        variant={
-                          selectedGroupId === null ? "default" : "outline"
-                        }
-                      >
-                        All Groups
-                      </Button>
-                      {currentStageGroups.map((group) => (
-                        <Button
-                          key={group.id}
-                          onClick={() => setSelectedGroupId(group.id)}
-                          size="sm"
-                          variant={
-                            selectedGroupId === group.id ? "default" : "outline"
-                          }
-                        >
-                          {group.name}
-                        </Button>
-                      ))}
-                    </div>
-                  )}
+            <section className="space-y-4">
+              <h3 className="font-sans font-semibold text-lg tracking-tight">
+                Published
+              </h3>
 
-                  {isLoadingStandings ? (
-                    <p className="text-muted-foreground text-sm">
-                      Loading points table...
-                    </p>
-                  ) : (
-                    <div className="overflow-x-auto border">
-                      <table className="w-full text-xs">
-                        <thead className="bg-muted/40">
-                          <tr>
-                            <th className="px-2 py-2 text-left">#</th>
-                            <th className="px-2 py-2 text-left">Team</th>
-                            <th className="px-2 py-2 text-right">P</th>
-                            <th className="px-2 py-2 text-right">W</th>
-                            <th className="px-2 py-2 text-right">L</th>
-                            <th className="px-2 py-2 text-right">T</th>
-                            <th className="px-2 py-2 text-right">D</th>
-                            <th className="px-2 py-2 text-right">NR</th>
-                            <th className="px-2 py-2 text-right">Pts</th>
-                            <th className="px-2 py-2 text-right">NRR</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {standingsData?.rows.length ? (
-                            standingsData.rows.map((row) => (
-                              <tr className="border-t" key={row.teamId}>
-                                <td className="px-2 py-2">{row.rank}</td>
-                                <td className="px-2 py-2">{row.teamName}</td>
-                                <td className="px-2 py-2 text-right">
-                                  {row.played}
-                                </td>
-                                <td className="px-2 py-2 text-right">
-                                  {row.won}
-                                </td>
-                                <td className="px-2 py-2 text-right">
-                                  {row.lost}
-                                </td>
-                                <td className="px-2 py-2 text-right">
-                                  {row.tied}
-                                </td>
-                                <td className="px-2 py-2 text-right">
-                                  {row.drawn}
-                                </td>
-                                <td className="px-2 py-2 text-right">
-                                  {row.abandoned}
-                                </td>
-                                <td className="px-2 py-2 text-right">
-                                  {row.points}
-                                </td>
-                                <td className="px-2 py-2 text-right">
-                                  {row.netRunRate.toFixed(2)}
-                                </td>
-                              </tr>
-                            ))
-                          ) : (
-                            <tr>
-                              <td
-                                className="px-2 py-3 text-muted-foreground"
-                                colSpan={10}
-                              >
-                                No standings data available yet.
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </>
+              {publishedFixtures.length === 0 ? (
+                <div className="border border-foreground/15 border-dashed bg-background/70 px-5 py-6 text-muted-foreground text-sm">
+                  No published fixtures yet.
+                </div>
               ) : (
-                <p className="text-muted-foreground text-sm">
-                  Points table is not applicable for this stage.
-                </p>
+                <div className="space-y-2">
+                  {publishedFixtures.map((match) => (
+                    <FixtureCard
+                      enableScheduleActions={isAdmin}
+                      key={match.id}
+                      match={match}
+                      onScheduleUpdated={handleScheduleUpdated}
+                      showDraftControls={false}
+                    />
+                  ))}
+                </div>
               )}
-            </CardContent>
-          </Card>
-        )}
-      </main>
-    </div>
-  );
-}
+            </section>
+          </div>
+        </div>
+      )}
 
-function TabButton(props: {
-  active: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <Button
-      onClick={props.onClick}
-      size="sm"
-      variant={props.active ? "default" : "outline"}
-    >
-      {props.label}
-    </Button>
+      {/* ── POINTS TAB ── */}
+      {activeTab === "points" && (
+        <section className="animate-stagger-3 space-y-5">
+          <h2 className="font-semibold text-xl tracking-tight">Points Table</h2>
+
+          {canShowPoints ? (
+            <>
+              {currentStageGroups.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    className={cn(
+                      "border px-3 py-1.5 text-xs uppercase tracking-[0.12em] transition-colors",
+                      selectedGroupId === null
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-foreground/10 text-muted-foreground hover:text-foreground"
+                    )}
+                    onClick={() => setSelectedGroupId(null)}
+                    type="button"
+                  >
+                    All Groups
+                  </button>
+                  {currentStageGroups.map((group) => (
+                    <button
+                      className={cn(
+                        "border px-3 py-1.5 text-xs uppercase tracking-[0.12em] transition-colors",
+                        selectedGroupId === group.id
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-foreground/10 text-muted-foreground hover:text-foreground"
+                      )}
+                      key={group.id}
+                      onClick={() => setSelectedGroupId(group.id)}
+                      type="button"
+                    >
+                      {group.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {isLoadingStandings ? (
+                <p className="text-muted-foreground text-sm">
+                  Loading points table...
+                </p>
+              ) : (
+                <div className="overflow-x-auto border border-foreground/10">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-foreground/10 border-b bg-[color-mix(in_oklab,var(--color-card)_90%,var(--color-primary)_10%)]">
+                        <th className="px-3 py-2.5 text-left font-medium text-[0.68rem] text-muted-foreground uppercase tracking-[0.2em]">
+                          #
+                        </th>
+                        <th className="px-3 py-2.5 text-left font-medium text-[0.68rem] text-muted-foreground uppercase tracking-[0.2em]">
+                          Team
+                        </th>
+                        <th className="px-3 py-2.5 text-right font-medium text-[0.68rem] text-muted-foreground uppercase tracking-[0.2em]">
+                          P
+                        </th>
+                        <th className="px-3 py-2.5 text-right font-medium text-[0.68rem] text-muted-foreground uppercase tracking-[0.2em]">
+                          W
+                        </th>
+                        <th className="px-3 py-2.5 text-right font-medium text-[0.68rem] text-muted-foreground uppercase tracking-[0.2em]">
+                          L
+                        </th>
+                        <th className="px-3 py-2.5 text-right font-medium text-[0.68rem] text-muted-foreground uppercase tracking-[0.2em]">
+                          T
+                        </th>
+                        <th className="px-3 py-2.5 text-right font-medium text-[0.68rem] text-muted-foreground uppercase tracking-[0.2em]">
+                          D
+                        </th>
+                        <th className="px-3 py-2.5 text-right font-medium text-[0.68rem] text-muted-foreground uppercase tracking-[0.2em]">
+                          NR
+                        </th>
+                        <th className="px-3 py-2.5 text-right font-medium text-[0.68rem] text-muted-foreground uppercase tracking-[0.2em]">
+                          Pts
+                        </th>
+                        <th className="px-3 py-2.5 text-right font-medium text-[0.68rem] text-muted-foreground uppercase tracking-[0.2em]">
+                          NRR
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {standingsData?.rows.length ? (
+                        standingsData.rows.map((row) => (
+                          <tr
+                            className="border-foreground/5 border-b transition-colors hover:bg-foreground/2"
+                            key={row.teamId}
+                          >
+                            <td className="px-3 py-2.5 font-semibold text-muted-foreground">
+                              {row.rank}
+                            </td>
+                            <td className="px-3 py-2.5 font-semibold">
+                              {row.teamName}
+                            </td>
+                            <td className="px-3 py-2.5 text-right">
+                              {row.played}
+                            </td>
+                            <td className="px-3 py-2.5 text-right font-semibold text-primary">
+                              {row.won}
+                            </td>
+                            <td className="px-3 py-2.5 text-right">
+                              {row.lost}
+                            </td>
+                            <td className="px-3 py-2.5 text-right">
+                              {row.tied}
+                            </td>
+                            <td className="px-3 py-2.5 text-right">
+                              {row.drawn}
+                            </td>
+                            <td className="px-3 py-2.5 text-right">
+                              {row.abandoned}
+                            </td>
+                            <td className="px-3 py-2.5 text-right font-bold">
+                              {row.points}
+                            </td>
+                            <td className="px-3 py-2.5 text-right font-mono text-xs">
+                              {row.netRunRate.toFixed(2)}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td
+                            className="px-3 py-6 text-muted-foreground"
+                            colSpan={10}
+                          >
+                            No standings yet.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="border border-foreground/15 border-dashed bg-background/70 px-5 py-6 text-muted-foreground text-sm">
+              Points table isn't available for this stage type.
+            </div>
+          )}
+        </section>
+      )}
+    </PageShell>
   );
 }
 
@@ -914,10 +974,13 @@ function SourceField(props: {
   );
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: The fixture card intentionally keeps its status, scoring, and admin actions together.
 function FixtureCard(props: {
+  enableScheduleActions?: boolean;
   enableScoringActions?: boolean;
-  match: Awaited<ReturnType<typeof client.tournamentFixtures>>[number];
+  match: TournamentFixtureMatch;
   onDelete?: () => void;
+  onScheduleUpdated?: () => Promise<void> | void;
   onStartScoring?: (matchId: number) => void;
   onToggleSelect?: () => void;
   selected?: boolean;
@@ -928,8 +991,10 @@ function FixtureCard(props: {
   const team2Label = match.team2?.shortName ?? "TBD";
   const matchStartAt = match.scheduledStartAt ?? match.matchDate;
   const canCurrentUserScore = match.canCurrentUserScore ?? false;
-  const canShowTemporalStatusBadge =
-    match.temporalStatus !== "live" || Boolean(match.isLive);
+  const canShowScheduleEdit =
+    props.enableScheduleActions &&
+    match.fixtureStatus === "published" &&
+    !match.isCompleted;
   const canShowStartScoring =
     props.enableScoringActions &&
     match.fixtureStatus === "published" &&
@@ -943,48 +1008,55 @@ function FixtureCard(props: {
     canCurrentUserScore;
 
   return (
-    <div className="space-y-2 border p-3">
+    <div
+      className={cn(
+        "group border border-foreground/10 bg-background/55 p-4 transition-colors hover:border-foreground/20",
+        props.showDraftControls &&
+          props.selected &&
+          "border-primary/40 bg-primary/4"
+      )}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="font-semibold text-sm">
-          {team1Label} vs {team2Label}
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge
-            variant={
-              match.fixtureStatus === "published" ? "default" : "secondary"
-            }
-          >
-            {match.fixtureStatus}
-          </Badge>
-          {canShowTemporalStatusBadge ? (
-            <Badge variant="outline">{match.temporalStatus}</Badge>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2 text-muted-foreground text-xs">
-        <Calendar className="size-3.5" />
-        <span>
-          {match.scheduledStartAt
-            ? formatWeekdayMonthDayYear(match.scheduledStartAt)
-            : formatWeekdayMonthDayYear(match.matchDate)}
-        </span>
-      </div>
-
-      <div className="text-muted-foreground text-xs">
-        Stage: {match.stage?.name ?? "N/A"} • Group:{" "}
-        {match.stageGroup?.name ?? "N/A"}
-      </div>
-
-      {props.showDraftControls && (
-        <div className="flex flex-wrap gap-2 pt-1">
-          <div className="flex items-center gap-2 border px-2 py-1 text-xs">
+        <div className="flex items-center gap-3">
+          {props.showDraftControls ? (
             <Checkbox
               checked={props.selected ?? false}
               onCheckedChange={() => props.onToggleSelect?.()}
             />
-            {props.selected ? "Selected" : "Select"}
-          </div>
+          ) : null}
+          <span className="font-semibold text-sm">
+            {team1Label} <span className="mx-1 text-muted-foreground">vs</span>{" "}
+            {team2Label}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          {match.fixtureStatus === "draft" ? (
+            <span className="border border-foreground/15 px-2 py-0.5 text-[0.66rem] text-muted-foreground uppercase tracking-[0.16em]">
+              draft
+            </span>
+          ) : null}
+          {match.isLive ? (
+            <span className="flex items-center gap-1.5 font-semibold text-[0.66rem] text-primary uppercase tracking-[0.16em]">
+              <span className="size-1.5 animate-pulse rounded-full bg-primary" />
+              Live
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="mt-2 flex items-center gap-3 text-[0.75rem] text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          <Calendar className="size-3" />
+          {formatMonthDay(match.scheduledStartAt ?? match.matchDate)}
+        </span>
+        <span>
+          {match.stage?.name ?? "\u2014"}
+          {match.stageGroup ? ` \u00b7 ${match.stageGroup.name}` : ""}
+        </span>
+      </div>
+
+      {props.showDraftControls && (
+        <div className="mt-3 flex flex-wrap gap-2">
           <Button onClick={props.onDelete} size="sm" variant="destructive">
             Delete
           </Button>
@@ -992,7 +1064,7 @@ function FixtureCard(props: {
       )}
 
       {match.fixtureStatus === "published" ? (
-        <div className="flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           {canShowStartScoring ? (
             <Button onClick={() => props.onStartScoring?.(match.id)} size="sm">
               <Play className="mr-1 size-4" />
@@ -1012,6 +1084,13 @@ function FixtureCard(props: {
             </Link>
           ) : null}
 
+          {canShowScheduleEdit ? (
+            <PublishedFixtureScheduleControl
+              match={match}
+              onScheduleUpdated={props.onScheduleUpdated}
+            />
+          ) : null}
+
           <Link
             params={{ matchId: String(match.id) }}
             to="/matches/$matchId/scorecard"
@@ -1025,6 +1104,191 @@ function FixtureCard(props: {
       ) : null}
     </div>
   );
+}
+
+function PublishedFixtureScheduleControl(props: {
+  match: TournamentFixtureMatch;
+  onScheduleUpdated?: () => Promise<void> | void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [scheduledStartValue, setScheduledStartValue] = useState("");
+  const [scheduledEndValue, setScheduledEndValue] = useState("");
+
+  const updateScheduleMutation = useMutation({
+    mutationFn: () => {
+      const scheduledStartAt = parseDateTimeLocalInput(scheduledStartValue);
+      if (!scheduledStartAt) {
+        throw new Error("Select a valid scheduled start time");
+      }
+
+      const scheduledEndAt = parseDateTimeLocalInput(scheduledEndValue);
+
+      return client.updateMatchSchedule({
+        matchId: props.match.id,
+        scheduledEndAt: scheduledEndAt ?? undefined,
+        scheduledStartAt,
+      });
+    },
+    onSuccess: async () => {
+      toast.success("Match schedule updated");
+      setIsOpen(false);
+      await props.onScheduleUpdated?.();
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to update match schedule");
+    },
+  });
+
+  const openScheduleDialog = () => {
+    setScheduledStartValue(
+      formatDateTimeLocalInput(
+        props.match.scheduledStartAt ?? props.match.matchDate
+      )
+    );
+    setScheduledEndValue(formatDateTimeLocalInput(props.match.scheduledEndAt));
+    setIsOpen(true);
+  };
+
+  const handleScheduledStartChange = (nextStartValue: string) => {
+    setScheduledStartValue(nextStartValue);
+    setScheduledEndValue((currentEndValue) =>
+      getShiftedEndDateTimeLocalValue({
+        currentEndValue,
+        nextStartValue,
+        previousStartValue: scheduledStartValue,
+      })
+    );
+  };
+
+  return (
+    <>
+      <Button
+        onClick={openScheduleDialog}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        <Calendar className="size-4" />
+        Reschedule
+      </Button>
+
+      <Dialog
+        onOpenChange={(open) => {
+          if (!(open || updateScheduleMutation.isPending)) {
+            setIsOpen(false);
+          }
+        }}
+        open={isOpen}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reschedule match</DialogTitle>
+            <DialogDescription>
+              Set a new start time. End time is optional.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-3">
+            <label
+              className="space-y-1"
+              htmlFor={`scheduled-start-${String(props.match.id)}`}
+            >
+              <span className="text-sm">Start time</span>
+              <Input
+                id={`scheduled-start-${String(props.match.id)}`}
+                onChange={(event) =>
+                  handleScheduledStartChange(event.target.value)
+                }
+                required
+                type="datetime-local"
+                value={scheduledStartValue}
+              />
+            </label>
+
+            <label
+              className="space-y-1"
+              htmlFor={`scheduled-end-${String(props.match.id)}`}
+            >
+              <span className="text-sm">End time</span>
+              <Input
+                id={`scheduled-end-${String(props.match.id)}`}
+                onChange={(event) => setScheduledEndValue(event.target.value)}
+                type="datetime-local"
+                value={scheduledEndValue}
+              />
+            </label>
+          </div>
+
+          <DialogFooter>
+            <Button
+              disabled={updateScheduleMutation.isPending}
+              onClick={() => setIsOpen(false)}
+              type="button"
+              variant="outline"
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={updateScheduleMutation.isPending}
+              onClick={() => updateScheduleMutation.mutate()}
+              type="button"
+            >
+              {updateScheduleMutation.isPending ? "Saving..." : "Save schedule"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+function formatDateTimeLocalInput(date: Date | null | undefined) {
+  if (!date) {
+    return "";
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+
+  return `${String(year)}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function parseDateTimeLocalInput(value: string) {
+  const trimmedValue = value.trim();
+  if (!trimmedValue) {
+    return null;
+  }
+
+  const parsedDate = new Date(trimmedValue);
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+}
+
+function getShiftedEndDateTimeLocalValue(params: {
+  currentEndValue: string;
+  nextStartValue: string;
+  previousStartValue: string;
+}) {
+  if (!params.currentEndValue) {
+    return params.currentEndValue;
+  }
+
+  const previousStartAt = parseDateTimeLocalInput(params.previousStartValue);
+  const nextStartAt = parseDateTimeLocalInput(params.nextStartValue);
+  const currentEndAt = parseDateTimeLocalInput(params.currentEndValue);
+
+  if (!(previousStartAt && nextStartAt && currentEndAt)) {
+    return params.currentEndValue;
+  }
+
+  const durationMs = currentEndAt.getTime() - previousStartAt.getTime();
+  if (durationMs <= 0) {
+    return params.currentEndValue;
+  }
+
+  return formatDateTimeLocalInput(new Date(nextStartAt.getTime() + durationMs));
 }
 
 function isDateInLocalToday(date: Date) {

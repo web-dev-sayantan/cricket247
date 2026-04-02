@@ -1,7 +1,9 @@
+import type { AppRouterClient } from "@cricket247/server/contract";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowLeftIcon,
+  CheckIcon,
   ChevronDownIcon,
   ChevronUpIcon,
   TargetIcon,
@@ -31,6 +33,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import type { RouterAppContext } from "@/routes/__root";
 import type { InningsSetupPhaseCardProps } from "@/routes/matches/$matchId/-components/innings-setup-phase-card";
 import type { LineupPhaseCardProps } from "@/routes/matches/$matchId/-components/lineup-phase-card";
 import { PreMatchSetupSkeleton } from "@/routes/matches/$matchId/-components/pre-match-setup-skeleton";
@@ -46,6 +49,7 @@ import type {
   RosterPlayer,
   TeamSelection,
 } from "@/routes/matches/$matchId/-pre-match-types";
+import { buildDeliveryMutationPayload } from "@/routes/matches/$matchId/-score-delivery-payload";
 import {
   applyScoringSessionMutationResult,
   buildBackgroundScoreRefreshQueries,
@@ -54,7 +58,6 @@ import {
   resolveBattingAndBowlingTeamIds,
   resolveInningsSetupSelection,
 } from "@/routes/matches/$matchId/-scoring-flow";
-import { client, orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/matches/$matchId/score")({
   component: RouteComponent,
@@ -65,6 +68,22 @@ const PreMatchSetupFlow = lazy(() =>
     (module) => ({ default: module.PreMatchSetupFlow })
   )
 );
+
+type ScorePageClient = Pick<
+  AppRouterClient,
+  | "closeCurrentScoringInnings"
+  | "deleteScoringDelivery"
+  | "recordScoringDelivery"
+  | "saveMatchLineup"
+  | "startScoringInnings"
+  | "updateScoringDelivery"
+>;
+
+export interface ScorePageProps {
+  client: ScorePageClient;
+  matchId: string;
+  orpc: RouterAppContext["orpc"];
+}
 
 interface SessionLineupPlayer {
   battingOrder: null | number;
@@ -133,13 +152,21 @@ interface PendingCloseDialogState {
 }
 
 type ScoringSessionMutationResult = Awaited<
-  ReturnType<typeof client.recordScoringDelivery>
+  ReturnType<ScorePageClient["recordScoringDelivery"]>
 >;
 type ScoringSetupResult = Awaited<
-  ReturnType<typeof client.startScoringInnings>
+  ReturnType<ScorePageClient["startScoringInnings"]>
 >;
 
 type ScoringPhase = PreMatchPhase | "completed" | "scoring";
+
+const SCORING_STEPS: { key: ScoringPhase; label: string }[] = [
+  { key: "lineup", label: "Lineup" },
+  { key: "toss", label: "Toss" },
+  { key: "inningsSetup", label: "Start Innings" },
+  { key: "scoring", label: "Score" },
+  { key: "completed", label: "Result" },
+];
 
 interface PreMatchSetupViewModel {
   inningsSetup: InningsSetupPhaseCardProps;
@@ -164,27 +191,24 @@ function MatchScoringLoadingSkeleton() {
       <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:py-10">
         <section
           aria-busy="true"
-          className="space-y-4 rounded-[2rem] border border-border/70 bg-card/90 p-5 shadow-sm backdrop-blur"
+          className="space-y-4 border border-border/50 bg-card/90 p-5 backdrop-blur"
         >
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-2">
-              <Skeleton className="h-3 w-32 rounded-full" />
-              <Skeleton className="h-10 w-56 rounded-2xl sm:w-72" />
-              <Skeleton className="h-4 w-full max-w-2xl rounded-full" />
-              <Skeleton className="h-4 w-4/5 max-w-xl rounded-full" />
+              <Skeleton className="h-3 w-32" />
+              <Skeleton className="h-10 w-56 sm:w-72" />
+              <Skeleton className="h-4 w-full max-w-2xl" />
+              <Skeleton className="h-4 w-4/5 max-w-xl" />
             </div>
             <div className="flex flex-wrap gap-2">
-              <Skeleton className="h-9 w-28 rounded-full" />
-              <Skeleton className="h-9 w-20 rounded-full" />
+              <Skeleton className="h-9 w-28" />
+              <Skeleton className="h-9 w-20" />
             </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
             {loadingStepKeys.map((stepKey) => (
-              <Skeleton
-                className="h-8 w-24 rounded-full sm:w-28"
-                key={stepKey}
-              />
+              <Skeleton className="h-8 w-24 sm:w-28" key={stepKey} />
             ))}
           </div>
         </section>
@@ -192,51 +216,48 @@ function MatchScoringLoadingSkeleton() {
         <section className="grid gap-5 lg:grid-cols-[minmax(0,0.82fr)_minmax(420px,1.18fr)]">
           {/* Left column: innings info + timeline */}
           <div className="space-y-5">
-            <div className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
+            <div className="border border-border/50 bg-card p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="space-y-2">
-                  <Skeleton className="h-3 w-32 rounded-full" />
-                  <Skeleton className="h-8 w-40 rounded-2xl" />
+                  <Skeleton className="h-3 w-32" />
+                  <Skeleton className="h-8 w-40" />
                 </div>
               </div>
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
-                <div className="space-y-3 rounded-[1.5rem] border p-4">
-                  <Skeleton className="h-3 w-16 rounded-full" />
-                  <Skeleton className="h-7 w-20 rounded-2xl" />
+              <div className="mt-4 flex items-baseline gap-6">
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-7 w-20" />
                 </div>
-                <div className="space-y-3 rounded-[1.5rem] border p-4">
-                  <Skeleton className="h-3 w-24 rounded-full" />
-                  <Skeleton className="h-7 w-36 rounded-2xl" />
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-7 w-36" />
                 </div>
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
+            <div className="border border-border/50 bg-card p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <Skeleton className="h-3 w-40 rounded-full" />
+                <Skeleton className="h-3 w-40" />
                 <div className="flex flex-wrap gap-2">
-                  <Skeleton className="h-8 w-32 rounded-xl" />
-                  <Skeleton className="h-8 w-28 rounded-xl" />
-                  <Skeleton className="h-8 w-32 rounded-xl" />
+                  <Skeleton className="h-8 w-32" />
+                  <Skeleton className="h-8 w-28" />
+                  <Skeleton className="h-8 w-32" />
                 </div>
               </div>
               <div className="mt-4 space-y-3">
                 {loadingOverKeys.map((overKey) => (
                   <div
-                    className="rounded-[1.4rem] border border-border/60 bg-muted/10 px-4 py-3"
+                    className="border border-border/40 bg-[color-mix(in_oklab,var(--color-card)_95%,var(--color-primary)_5%)] px-4 py-3"
                     key={overKey}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="space-y-1">
-                        <Skeleton className="h-4 w-14 rounded-full" />
-                        <Skeleton className="h-3 w-10 rounded-full" />
+                        <Skeleton className="h-4 w-14" />
+                        <Skeleton className="h-3 w-10" />
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {loadingDeliveryChipKeys.map((chipKey) => (
-                          <Skeleton
-                            className="size-11 rounded-full"
-                            key={chipKey}
-                          />
+                          <Skeleton className="size-10" key={chipKey} />
                         ))}
                       </div>
                     </div>
@@ -248,56 +269,53 @@ function MatchScoringLoadingSkeleton() {
 
           {/* Right column: ScoreABall */}
           <div className="lg:sticky lg:top-4 lg:self-start">
-            <div className="space-y-5 rounded-[1.75rem] border border-border/70 bg-card px-4 py-5 shadow-sm sm:px-5">
+            <div className="space-y-5 border border-border/50 bg-card px-4 py-5 sm:px-5">
               <div className="flex flex-wrap items-start justify-between gap-3 sm:flex-nowrap">
                 <div className="space-y-2">
-                  <Skeleton className="h-3 w-24 rounded-full" />
-                  <Skeleton className="h-7 w-48 rounded-2xl" />
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-7 w-48" />
                 </div>
-                <Skeleton className="h-8 w-20 shrink-0 rounded-full" />
+                <Skeleton className="h-8 w-20 shrink-0" />
               </div>
 
               <div className="space-y-6">
                 <div className="space-y-3">
-                  <Skeleton className="h-4 w-44 rounded-full" />
+                  <Skeleton className="h-4 w-44" />
                   <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-                    <Skeleton className="h-10 w-full rounded-xl" />
-                    <Skeleton className="h-10 w-full rounded-xl" />
-                    <Skeleton className="h-10 w-full rounded-xl" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <Skeleton className="h-4 w-20 rounded-full" />
+                  <Skeleton className="h-4 w-20" />
                   <div className="grid grid-cols-6 gap-2 sm:gap-3">
                     {loadingBatRunKeys.map((i) => (
-                      <Skeleton
-                        className="aspect-square w-full rounded-2xl"
-                        key={i}
-                      />
+                      <Skeleton className="h-11 w-full" key={i} />
                     ))}
                   </div>
-                  <Skeleton className="h-10 w-full rounded-xl" />
+                  <Skeleton className="h-10 w-full" />
                 </div>
 
-                <Skeleton className="h-12 w-full rounded-2xl" />
+                <Skeleton className="angled-cut h-14 w-full" />
 
-                <div className="space-y-4 rounded-[1.5rem] border border-border/60 bg-muted/15 p-4 sm:p-5">
+                <div className="space-y-4 border border-border/40 bg-muted/15 p-4 sm:p-5">
                   <div className="space-y-2">
-                    <Skeleton className="h-4 w-24 rounded-full" />
-                    <Skeleton className="h-3 w-full max-w-xs rounded-full" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-3 w-full max-w-xs" />
                   </div>
                   <div className="grid gap-2 sm:grid-cols-3">
-                    <Skeleton className="h-10 w-full rounded-xl" />
-                    <Skeleton className="h-10 w-full rounded-xl" />
-                    <Skeleton className="h-10 w-full rounded-xl" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
                   </div>
                 </div>
               </div>
 
               <div className="flex flex-wrap justify-end gap-2 pt-1">
-                <Skeleton className="h-11 w-24 rounded-full" />
-                <Skeleton className="h-11 w-36 rounded-full" />
+                <Skeleton className="h-10 w-24" />
+                <Skeleton className="angled-cut h-11 w-36" />
               </div>
             </div>
           </div>
@@ -428,30 +446,6 @@ function buildDraftFromDelivery(delivery: SessionDelivery): DeliveryDraft {
     wicketType: (delivery.wicketType as DeliveryDraft["wicketType"]) ?? "",
     dismissedPlayerId: delivery.dismissedPlayerId,
     assistedById: delivery.assistedBy?.id ?? delivery.assistedById ?? null,
-  };
-}
-
-function buildDeliveryMutationPayload(payload: DeliveryDraft) {
-  const wicketType = payload.wicketType || undefined;
-
-  return {
-    inningsId: payload.inningsId,
-    strikerId: payload.strikerId as number,
-    nonStrikerId: payload.nonStrikerId as number,
-    bowlerId: payload.bowlerId as number,
-    batterRuns: payload.batterRuns,
-    wideRuns: payload.wideRuns,
-    noBallRuns: payload.noBallRuns,
-    byeRuns: payload.byeRuns,
-    legByeRuns: payload.legByeRuns,
-    penaltyRuns: payload.penaltyRuns,
-    wicketType,
-    ...(wicketType
-      ? {
-          dismissedPlayerId: payload.dismissedPlayerId,
-          assistedById: payload.assistedById,
-        }
-      : {}),
   };
 }
 
@@ -628,7 +622,7 @@ function getDeliveryChipClasses({
   }
 
   return cn(
-    "relative flex size-11 items-center justify-center rounded-full border text-center font-semibold text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+    "relative flex size-10 items-center justify-center rounded-full border text-center font-semibold text-xs tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
     toneClasses,
     selectedClasses
   );
@@ -836,7 +830,7 @@ export function DeliveryTimelineCard({
 
   if (!isExpanded) {
     timelineContent = (
-      <div className="mt-4 rounded-[1.35rem] border border-border/60 border-dashed bg-muted/10 px-4 py-3 text-muted-foreground text-sm">
+      <div className="mt-4 border border-border/40 border-dashed bg-muted/10 px-4 py-3 text-muted-foreground text-sm">
         {isDesktop
           ? "Timeline hidden. Expand it when you need to review or edit a delivery."
           : "Timeline collapsed so the live scoring card stays in reach."}
@@ -861,7 +855,7 @@ export function DeliveryTimelineCard({
           );
           return (
             <div
-              className="rounded-[1.4rem] border border-border/60 bg-muted/10 px-4 py-3"
+              className="border border-border/40 bg-[color-mix(in_oklab,var(--color-card)_95%,var(--color-primary)_5%)] px-4 py-3"
               key={overGroup.overNumber}
             >
               <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
@@ -870,7 +864,7 @@ export function DeliveryTimelineCard({
                     Over {overGroup.overNumber}
                   </p>
                   {bowlerName && (
-                    <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 font-medium text-muted-foreground text-xs ring-1 ring-border/50 ring-inset">
+                    <span className="inline-flex items-center bg-muted px-2.5 py-0.5 font-medium text-muted-foreground text-xs ring-1 ring-border/50 ring-inset">
                       {bowlerName}
                     </span>
                   )}
@@ -895,10 +889,10 @@ export function DeliveryTimelineCard({
   }
 
   return (
-    <section className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
+    <section className="border border-border/50 bg-card p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
-          <p className="text-muted-foreground text-xs uppercase tracking-[0.22em]">
+          <p className="text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em]">
             Over by Over Timeline
           </p>
         </div>
@@ -907,7 +901,6 @@ export function DeliveryTimelineCard({
           {actions}
           <Button
             aria-expanded={isExpanded}
-            className="rounded-xl"
             onClick={onToggleExpanded}
             size="sm"
             type="button"
@@ -927,9 +920,15 @@ export function DeliveryTimelineCard({
   );
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: The scoring route coordinates multiple setup and scoring phases in one screen.
 function RouteComponent() {
   const { matchId } = Route.useParams();
+  const { client, orpc } = Route.useRouteContext();
+
+  return <ScorePage client={client} matchId={matchId} orpc={orpc} />;
+}
+
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: The scoring route coordinates multiple setup and scoring phases in one screen.
+export function ScorePage({ client, matchId, orpc }: ScorePageProps) {
   const numericMatchId = Number(matchId);
   const queryClient = useQueryClient();
 
@@ -1013,9 +1012,10 @@ function RouteComponent() {
     () =>
       buildBackgroundScoreRefreshQueries({
         matchId: numericMatchId,
+        orpc,
         tournamentId,
       }),
-    [numericMatchId, tournamentId]
+    [numericMatchId, orpc, tournamentId]
   );
 
   const queueBackgroundRefresh = (refreshTasks: Promise<unknown>[]) => {
@@ -1431,12 +1431,12 @@ function RouteComponent() {
   const activeBattingTeamId =
     currentInnings?.battingTeamId ??
     battingTeamId ??
-    scoringSetup?.entryContext.battingTeamId ??
+    scoringSetup?.entryContext?.battingTeamId ??
     null;
   const activeBowlingTeamId =
     currentInnings?.bowlingTeamId ??
     bowlingTeamId ??
-    scoringSetup?.entryContext.bowlingTeamId ??
+    scoringSetup?.entryContext?.bowlingTeamId ??
     null;
   const fallbackDraft = scoringSetup?.entryContext
     ? buildDraftFromEntryContext(
@@ -1481,10 +1481,6 @@ function RouteComponent() {
     })
   );
 
-  const currentBallLabel = scoringSetup?.entryContext
-    ? `Over ${scoringSetup.entryContext.overNumber - 1}.${scoringSetup.entryContext.ballInOver}`
-    : "No active innings";
-
   const isLineupValid =
     team1Selection.playerIds.length === playersPerSide &&
     team2Selection.playerIds.length === playersPerSide;
@@ -1510,7 +1506,7 @@ function RouteComponent() {
       : (scoringSetup?.phase ?? "lineup");
 
   const selectedInningsSummary =
-    currentInnings ?? scoringSetup?.innings.at(-1) ?? null;
+    currentInnings ?? scoringSetup?.innings?.at(-1) ?? null;
   let matchStatusLabel = "Awaiting setup";
   if (match?.isCompleted) {
     matchStatusLabel = match.result ?? "Completed";
@@ -1762,8 +1758,10 @@ function RouteComponent() {
   if (!(scoringSetup && match)) {
     return (
       <main className="mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-xl items-center px-4 py-8">
-        <section className="w-full space-y-4 rounded-xl border bg-card p-6 text-center shadow-sm">
-          <h1 className="font-semibold text-2xl">Match not found</h1>
+        <section className="w-full space-y-4 border border-border/50 bg-card p-6 text-center">
+          <h1 className="font-serif text-2xl tracking-tight">
+            Match not found
+          </h1>
           <p className="text-muted-foreground">
             This match could not be loaded. It may have been removed or you may
             not have access.
@@ -1785,8 +1783,8 @@ function RouteComponent() {
   if (!canCurrentUserScore) {
     return (
       <main className="mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-xl items-center px-4 py-8">
-        <section className="w-full space-y-4 rounded-xl border bg-card p-6 text-center shadow-sm">
-          <h1 className="font-semibold text-2xl">
+        <section className="w-full space-y-4 border border-border/50 bg-card p-6 text-center">
+          <h1 className="font-serif text-2xl tracking-tight">
             You can&apos;t score this match
           </h1>
           <p className="text-muted-foreground">
@@ -1817,19 +1815,17 @@ function RouteComponent() {
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(216,180,80,0.14),transparent_30%),linear-gradient(180deg,rgba(255,248,233,0.55),transparent_28%),var(--background)] pb-24">
       <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:py-10">
-        <header className="space-y-4 rounded-[2rem] border border-border/70 bg-card/90 p-5 shadow-sm backdrop-blur">
+        <header className="space-y-4 border-border/60 border-b pb-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-2">
-              <p className="text-muted-foreground text-xs uppercase tracking-[0.28em]">
+            <div className="space-y-1">
+              <p className="text-[0.65rem] text-muted-foreground uppercase tracking-[0.28em]">
                 Live Match Scoring
               </p>
-              <h1 className="font-semibold text-3xl tracking-tight sm:text-4xl">
-                {team1ShortName} vs {team2ShortName}
+              <h1 className="flex items-baseline gap-2 text-3xl sm:text-4xl">
+                <span className="font-serif">{team1ShortName}</span>
+                <span className="text-muted-foreground text-xl">vs</span>
+                <span className="font-serif">{team2ShortName}</span>
               </h1>
-              <p className="max-w-3xl text-muted-foreground text-sm sm:text-base">
-                Score every delivery here. Updates are shared live so both teams
-                stay in sync.
-              </p>
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -1850,71 +1846,57 @@ function RouteComponent() {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
-            <StepPill active={scoringPhase === "lineup"} label="1. Lineup" />
-            <StepPill active={scoringPhase === "toss"} label="2. Toss" />
-            <StepPill
-              active={scoringPhase === "inningsSetup"}
-              label="3. Start Innings"
-            />
-            <StepPill active={scoringPhase === "scoring"} label="4. Score" />
-            <StepPill active={scoringPhase === "completed"} label="5. Result" />
-          </div>
+          <ProgressStepper currentPhase={scoringPhase} />
         </header>
 
         {scoringPhase === "scoring" ? null : (
-          <section className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]">
-            <div className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
-              <div className="grid gap-4 md:grid-cols-3">
-                <ScoreboardCard label="Match Status" value={matchStatusLabel} />
-                <ScoreboardCard
-                  label="Current Score"
-                  value={
-                    selectedInningsSummary ? (
-                      <ScoreWithWickets
-                        score={selectedInningsSummary.totalScore}
-                        wickets={selectedInningsSummary.wickets}
-                      />
-                    ) : (
-                      "0/0"
-                    )
-                  }
-                />
-                <ScoreboardCard
-                  label="Overs"
-                  value={
-                    selectedInningsSummary
-                      ? formatOvers(
-                          selectedInningsSummary.ballsBowled ?? 0,
-                          scoringSetup.matchRules?.ballsPerOver ?? 6
-                        )
-                      : "0.0"
-                  }
-                />
-              </div>
+          <section className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_auto]">
+            <div className="flex flex-wrap items-baseline gap-x-8 gap-y-3">
+              <ScoreboardCard label="Status" value={matchStatusLabel} />
+              <ScoreboardCard
+                label="Score"
+                value={
+                  selectedInningsSummary ? (
+                    <ScoreWithWickets
+                      score={selectedInningsSummary.totalScore}
+                      wickets={selectedInningsSummary.wickets}
+                    />
+                  ) : (
+                    "0/0"
+                  )
+                }
+              />
+              <ScoreboardCard
+                label="Overs"
+                value={
+                  selectedInningsSummary
+                    ? formatOvers(
+                        selectedInningsSummary.ballsBowled ?? 0,
+                        scoringSetup.matchRules?.ballsPerOver ?? 6
+                      )
+                    : "0.0"
+                }
+              />
             </div>
 
-            <aside className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
-              <h2 className="font-medium text-lg">Match details</h2>
-              <div className="mt-4 space-y-3 text-sm">
-                <MatchFrameRow label="Format" value={match.format} />
-                <MatchFrameRow
-                  label="Match rules"
-                  value={`${match.oversPerSide} overs per innings • ${match.inningsPerSide} innings`}
-                />
-                <MatchFrameRow
-                  label="Toss"
-                  value={
-                    typeof match.tossWinnerId === "number"
-                      ? `${
-                          match.tossWinnerId === match.team1Id
-                            ? team1ShortName
-                            : team2ShortName
-                        } chose ${match.tossDecision ?? "to play"}`
-                      : "Pending"
-                  }
-                />
-              </div>
+            <aside className="space-y-2 text-sm">
+              <MatchFrameRow label="Format" value={match.format} />
+              <MatchFrameRow
+                label="Rules"
+                value={`${match.oversPerSide} overs • ${match.inningsPerSide} inn.`}
+              />
+              <MatchFrameRow
+                label="Toss"
+                value={
+                  typeof match.tossWinnerId === "number"
+                    ? `${
+                        match.tossWinnerId === match.team1Id
+                          ? team1ShortName
+                          : team2ShortName
+                      } chose ${match.tossDecision ?? "to play"}`
+                    : "Pending"
+                }
+              />
             </aside>
           </section>
         )}
@@ -1933,13 +1915,13 @@ function RouteComponent() {
         {scoringPhase === "scoring" && currentInnings ? (
           <section className="grid gap-5 lg:grid-cols-[minmax(0,0.82fr)_minmax(420px,1.18fr)]">
             <div className="space-y-5">
-              <section className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
+              <section className="border border-border/50 bg-card p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-muted-foreground text-xs uppercase tracking-[0.22em]">
+                    <p className="text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em]">
                       Current innings
                     </p>
-                    <h2 className="font-semibold text-2xl">
+                    <h2 className="font-serif text-3xl tracking-tight">
                       {currentInnings.battingTeam?.shortName ?? "BAT"}{" "}
                       <ScoreWithWickets
                         score={currentInnings.totalScore}
@@ -1948,13 +1930,13 @@ function RouteComponent() {
                     </h2>
                   </div>
                   {typeof currentInnings.targetRuns === "number" ? (
-                    <div className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-emerald-700 text-sm">
+                    <span className="border border-primary/30 bg-[color-mix(in_oklab,var(--color-card)_90%,var(--color-primary)_10%)] px-3 py-1 text-sm tabular-nums">
                       Target {currentInnings.targetRuns}
-                    </div>
+                    </span>
                   ) : null}
                 </div>
 
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <div className="mt-4 flex items-baseline gap-6">
                   <ScoreboardCard
                     label="Overs"
                     value={formatOvers(
@@ -1973,7 +1955,6 @@ function RouteComponent() {
                 actions={
                   <>
                     <Button
-                      className="rounded-xl"
                       disabled={hasPendingInningsClosure}
                       onClick={handleRecordDeliveryView}
                       size="sm"
@@ -1985,7 +1966,6 @@ function RouteComponent() {
                       Record delivery
                     </Button>
                     <Button
-                      className="rounded-xl"
                       disabled={closeInningsMutation.isPending}
                       onClick={() => handleCloseInnings(currentInnings.id)}
                       size="sm"
@@ -2007,21 +1987,23 @@ function RouteComponent() {
               />
 
               {hasPendingInningsClosure ? (
-                <p className="rounded-[1.2rem] border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-800 text-sm">
+                <p className="border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-800 text-sm">
                   Review the last ball or confirm the innings end before
                   recording another delivery.
                 </p>
               ) : null}
 
-              <section className="rounded-[2rem] border border-border/60 bg-muted/5 p-4 shadow-none">
+              <section className="border border-border/50 bg-muted/5 p-4">
                 <div className="flex items-center gap-2">
                   <TargetIcon className="size-4 text-muted-foreground" />
-                  <h2 className="font-medium text-lg">Innings summary</h2>
+                  <h2 className="font-serif text-lg tracking-tight">
+                    Innings summary
+                  </h2>
                 </div>
                 <div className="mt-4 grid gap-3">
                   {scoringSetup.innings.map((innings) => (
                     <div
-                      className="rounded-[1.2rem] border border-border/60 bg-muted/10 px-3 py-3"
+                      className="border border-border/40 bg-muted/10 px-3 py-3"
                       key={innings.id}
                     >
                       <div className="flex items-center justify-between gap-3">
@@ -2055,7 +2037,6 @@ function RouteComponent() {
                 <ScoreABall
                   battingPlayers={battingPlayers}
                   bowlingPlayers={bowlingPlayers}
-                  currentBallLabel={currentBallLabel}
                   draft={activeDraft as DeliveryDraft}
                   fieldingOptions={bowlingPlayers}
                   isEditing={editingDelivery !== null}
@@ -2094,9 +2075,9 @@ function RouteComponent() {
         ) : null}
 
         {scoringPhase === "completed" ? (
-          <section className="space-y-4 rounded-[2rem] border border-border/70 bg-card p-5 shadow-sm">
+          <section className="space-y-4 border border-border/50 bg-card p-5">
             <div className="space-y-1">
-              <h2 className="font-medium text-2xl">
+              <h2 className="font-serif text-2xl tracking-tight">
                 {match.result ?? "Match complete"}
               </h2>
               <p className="text-muted-foreground text-sm">
@@ -2107,7 +2088,7 @@ function RouteComponent() {
             <div className="grid gap-3 md:grid-cols-2">
               {scoringSetup.innings.map((innings) => (
                 <div
-                  className="rounded-[1.2rem] border border-border/60 bg-muted/10 px-3 py-3"
+                  className="border border-border/40 bg-muted/10 px-3 py-3"
                   key={innings.id}
                 >
                   <p className="font-medium text-sm">
@@ -2197,35 +2178,76 @@ function ScoreWithWickets({
 
 function ScoreboardCard({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="rounded-[1.35rem] border border-border/60 bg-muted/10 px-4 py-3">
-      <p className="text-muted-foreground text-xs uppercase tracking-[0.22em]">
+    <div>
+      <p className="text-[0.65rem] text-muted-foreground uppercase tracking-[0.22em]">
         {label}
       </p>
-      <p className="mt-1 font-medium text-lg leading-tight">{value}</p>
+      <p className="mt-0.5 font-semibold text-xl leading-tight">{value}</p>
     </div>
   );
 }
 
 function MatchFrameRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-4">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="text-right font-medium">{value}</span>
+    <div className="flex items-baseline justify-between gap-6">
+      <span className="text-muted-foreground text-xs">{label}</span>
+      <span className="text-right text-sm">{value}</span>
     </div>
   );
 }
 
-function StepPill({ active, label }: { active: boolean; label: string }) {
+function ProgressStepper({ currentPhase }: { currentPhase: ScoringPhase }) {
+  const currentIndex = SCORING_STEPS.findIndex((s) => s.key === currentPhase);
+  const NOTCH = 10;
+  const CUT = 8;
+
   return (
-    <span
-      className={cn(
-        "rounded-full border px-3 py-1 font-medium",
-        active
-          ? "border-primary bg-primary/10 text-primary"
-          : "text-muted-foreground"
-      )}
-    >
-      {label}
-    </span>
+    <nav aria-label="Scoring progress">
+      <ol className="flex">
+        {SCORING_STEPS.map((step, i) => {
+          const isCompleted = i < currentIndex;
+          const isActive = i === currentIndex;
+          const isFirst = i === 0;
+          const isLast = i === SCORING_STEPS.length - 1;
+
+          let clipPath: string;
+          if (isFirst) {
+            clipPath = `polygon(${CUT}px 0, calc(100% - ${NOTCH}px) 0, 100% 50%, calc(100% - ${NOTCH}px) 100%, 0 100%, 0 ${CUT}px)`;
+          } else if (isLast) {
+            clipPath = `polygon(0 0, 100% 0, 100% calc(100% - ${CUT}px), calc(100% - ${CUT}px) 100%, 0 100%, ${NOTCH}px 50%)`;
+          } else {
+            clipPath = `polygon(0 0, calc(100% - ${NOTCH}px) 0, 100% 50%, calc(100% - ${NOTCH}px) 100%, 0 100%, ${NOTCH}px 50%)`;
+          }
+
+          return (
+            <li
+              aria-current={isActive ? "step" : undefined}
+              className={cn(
+                "inline-flex items-center justify-center py-2 font-medium text-xs transition-colors duration-300",
+                isCompleted || isActive
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted/50 text-muted-foreground"
+              )}
+              key={step.key}
+              style={{
+                clipPath,
+                marginLeft: i > 0 ? `-${NOTCH}px` : undefined,
+                paddingLeft: isFirst
+                  ? `calc(0.625rem + ${CUT}px)`
+                  : `calc(0.625rem + ${NOTCH}px)`,
+                paddingRight: isLast
+                  ? `calc(0.625rem + ${CUT}px)`
+                  : `calc(0.625rem + ${NOTCH}px)`,
+              }}
+            >
+              {isCompleted ? (
+                <CheckIcon className="mr-1 size-3 opacity-70" />
+              ) : null}
+              {step.label}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
   );
 }

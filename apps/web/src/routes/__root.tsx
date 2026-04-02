@@ -1,3 +1,4 @@
+import type { AppRouterClient } from "@cricket247/server/contract";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import { FormDevtoolsPanel } from "@tanstack/react-form-devtools";
 import type { QueryClient } from "@tanstack/react-query";
@@ -19,6 +20,7 @@ import type { orpc } from "@/utils/orpc";
 import "../index.css";
 
 export interface RouterAppContext {
+  client: AppRouterClient;
   orpc: typeof orpc;
   queryClient: QueryClient;
 }

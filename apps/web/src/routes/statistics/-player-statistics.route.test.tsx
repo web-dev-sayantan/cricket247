@@ -160,40 +160,46 @@ const playersWithCurrentTeamsState = {
   }>,
 };
 
-mock.module("@/utils/orpc", () => ({
-  client: {},
-  orpc: {
-    statisticsLanding: {
-      queryOptions: () => ({
-        queryFn: async () => statisticsLandingState.data,
-        queryKey: ["statisticsLanding"],
-      }),
+function registerOrpcMock() {
+  mock.module("@/utils/orpc", () => ({
+    client: {},
+    orpc: {
+      statisticsLanding: {
+        queryOptions: () => ({
+          queryFn: async () => statisticsLandingState.data,
+          queryKey: ["statisticsLanding"],
+        }),
+      },
+      playerStatistics: {
+        queryOptions: ({ input }: { input: number }) => ({
+          queryFn: async () => playerStatisticsById.get(input) ?? null,
+          queryKey: ["playerStatistics", input],
+        }),
+      },
+      playersWithCurrentTeams: {
+        queryOptions: () => ({
+          queryFn: async () => playersWithCurrentTeamsState.rows,
+          queryKey: ["playersWithCurrentTeams"],
+        }),
+      },
     },
-    playerStatistics: {
-      queryOptions: ({ input }: { input: number }) => ({
-        queryFn: async () => playerStatisticsById.get(input) ?? null,
-        queryKey: ["playerStatistics", input],
-      }),
-    },
-    playersWithCurrentTeams: {
-      queryOptions: () => ({
-        queryFn: async () => playersWithCurrentTeamsState.rows,
-        queryKey: ["playersWithCurrentTeams"],
-      }),
-    },
-  },
-  queryClient: new QueryClient(),
-}));
+    queryClient: new QueryClient(),
+  }));
+}
 
-const routeTreeModulePromise = import("@/routeTree.gen");
-const orpcModulePromise = import("@/utils/orpc");
+registerOrpcMock();
+
+let statisticsRouteImportNonce = 0;
 
 async function renderRoute(
   initialEntry: string
 ): Promise<RenderResult & { router: ReturnType<typeof createRouter> }> {
-  const [{ routeTree }, { orpc }] = await Promise.all([
-    routeTreeModulePromise,
-    orpcModulePromise,
+  registerOrpcMock();
+  statisticsRouteImportNonce += 1;
+
+  const [{ routeTree }, { client, orpc }] = await Promise.all([
+    import(`@/routeTree.gen?statisticsRouteTest=${statisticsRouteImportNonce}`),
+    import(`@/utils/orpc?statisticsRouteTest=${statisticsRouteImportNonce}`),
   ]);
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -206,7 +212,7 @@ async function renderRoute(
     history: createMemoryHistory({
       initialEntries: [initialEntry],
     }),
-    context: { orpc, queryClient },
+    context: { client, orpc, queryClient },
     Wrap({ children }: { children: ReactNode }) {
       return (
         <QueryClientProvider client={queryClient}>
@@ -462,9 +468,7 @@ describe("player statistics route", () => {
     const { findAllByRole, findByRole, findByText, queryByText } =
       await renderRoute("/statistics/7");
 
-    expect(
-      await findByRole("heading", { name: "Player Statistics" })
-    ).toBeTruthy();
+    expect(await findByRole("heading", { name: "Aarav Rao" })).toBeTruthy();
     const tabs = await findAllByRole("tab");
     expect(tabs.map((tab: HTMLElement) => tab.textContent)).toEqual([
       "T20",
@@ -513,7 +517,7 @@ describe("players route statistics entrypoint", () => {
       },
     };
 
-    const { findByRole, findByText, router } = await renderRoute("/players");
+    const { findByRole, router } = await renderRoute("/players");
 
     fireEvent.click(
       await findByRole("button", { name: PLAYER_ROW_NAME_PATTERN })
@@ -525,9 +529,7 @@ describe("players route statistics entrypoint", () => {
       await findByRole("button", { name: "View statistics for Aarav Rao" })
     );
 
-    expect(
-      await findByText("Format-by-format performance across completed matches.")
-    ).toBeTruthy();
+    expect(await findByRole("heading", { name: "Aarav Rao" })).toBeTruthy();
     expect(router.state.location.pathname).toBe("/statistics/7");
   });
 });

@@ -4,10 +4,12 @@ import { z } from "zod";
 import { db } from "@/db";
 import { tournamentTeams } from "@/db/schema";
 import { publicProcedure, sensitiveProcedure } from "@/lib/orpc";
+import { requireAdminByEmail } from "@/routers/helpers/admin";
 import {
   canCurrentUserScoreFixtureMatch,
   getTournamentScoringPermissionContext,
 } from "@/routers/helpers/scoring-access";
+import { matchCrudService } from "@/services/crud.service";
 import {
   createMatchAction,
   getCompletedMatches,
@@ -47,6 +49,12 @@ const CreateMatchInputSchema = z.object({
   stageRound: z.number().int().positive().optional(),
   stageSequence: z.number().int().positive().optional(),
   knockoutLeg: z.number().int().positive().optional(),
+});
+
+const UpdateMatchScheduleInputSchema = z.object({
+  matchId: z.number().int().positive(),
+  scheduledStartAt: z.coerce.date(),
+  scheduledEndAt: z.coerce.date().optional(),
 });
 
 export const matchRouter = {
@@ -101,6 +109,49 @@ export const matchRouter = {
       }
 
       return createMatchAction(input);
+    }),
+  updateMatchSchedule: sensitiveProcedure
+    .input(UpdateMatchScheduleInputSchema)
+    .handler(async ({ context, input }) => {
+      await requireAdminByEmail(context.session.user.email);
+
+      const existingMatch = await matchCrudService.getById(input.matchId);
+      if (!existingMatch) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      if (existingMatch.fixtureStatus !== "published") {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "Only published matches can be rescheduled",
+        });
+      }
+
+      if (existingMatch.isCompleted) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "Completed matches cannot be rescheduled",
+        });
+      }
+
+      if (
+        input.scheduledEndAt &&
+        input.scheduledEndAt <= input.scheduledStartAt
+      ) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "Schedule end must be after the start time",
+        });
+      }
+
+      const updatedMatch = await matchCrudService.update(input.matchId, {
+        matchDate: input.scheduledStartAt,
+        scheduledEndAt: input.scheduledEndAt,
+        scheduledStartAt: input.scheduledStartAt,
+      });
+
+      if (!updatedMatch) {
+        throw new ORPCError("NOT_FOUND");
+      }
+
+      return updatedMatch;
     }),
   getMatchById: publicProcedure
     .input(z.number())

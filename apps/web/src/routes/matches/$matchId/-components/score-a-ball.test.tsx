@@ -74,7 +74,6 @@ function renderScoreABall(
       <ScoreABall
         battingPlayers={battingPlayers}
         bowlingPlayers={bowlingPlayers}
-        currentBallLabel="Over 4.2"
         draft={overrides?.draft ?? baseDraft}
         fieldingOptions={bowlingPlayers}
         isEditing={overrides?.isEditing ?? false}
@@ -147,7 +146,6 @@ describe("ScoreABall", () => {
       <ScoreABall
         battingPlayers={battingPlayers}
         bowlingPlayers={bowlingPlayers}
-        currentBallLabel="Over 4.2"
         draft={baseDraft}
         fieldingOptions={bowlingPlayers}
         isEditing={false}
@@ -245,7 +243,6 @@ describe("ScoreABall", () => {
         <ScoreABall
           battingPlayers={battingPlayers}
           bowlingPlayers={bowlingPlayers}
-          currentBallLabel="Over 4.2"
           draft={draft}
           fieldingOptions={bowlingPlayers}
           isEditing={false}
@@ -348,7 +345,6 @@ describe("ScoreABall", () => {
         <ScoreABall
           battingPlayers={battingPlayers}
           bowlingPlayers={bowlingPlayers}
-          currentBallLabel="Over 4.2"
           draft={draft}
           fieldingOptions={bowlingPlayers}
           isEditing={false}
@@ -391,7 +387,6 @@ describe("ScoreABall", () => {
         <ScoreABall
           battingPlayers={battingPlayers}
           bowlingPlayers={bowlingPlayers}
-          currentBallLabel="Over 4.2"
           draft={draft}
           fieldingOptions={bowlingPlayers}
           isEditing={false}
@@ -437,7 +432,6 @@ describe("ScoreABall", () => {
         <ScoreABall
           battingPlayers={battingPlayers}
           bowlingPlayers={bowlingPlayers}
-          currentBallLabel="Over 4.2"
           draft={draft}
           fieldingOptions={bowlingPlayers}
           isEditing={false}

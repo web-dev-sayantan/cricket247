@@ -1,4 +1,6 @@
+import { and, eq, isNotNull, or, sql } from "drizzle-orm";
 import { db } from "@/db";
+import { matches, playerInningsStats } from "@/db/schema";
 import type { Player } from "@/db/types";
 
 export interface PlayerStatisticsSummary {
@@ -242,32 +244,6 @@ function calculateEconomy(
   }
 
   return roundToTwo((runsConceded * ballsPerOver) / ballsBowled);
-}
-
-function calculateOverallEconomy(
-  segments: Array<{
-    ballsBowled: number;
-    ballsPerOver: number;
-    runsConceded: number;
-  }>
-) {
-  let oversBowled = 0;
-  let runsConceded = 0;
-
-  for (const segment of segments) {
-    if (segment.ballsBowled <= 0 || segment.ballsPerOver <= 0) {
-      continue;
-    }
-
-    oversBowled += segment.ballsBowled / segment.ballsPerOver;
-    runsConceded += segment.runsConceded;
-  }
-
-  if (oversBowled <= 0) {
-    return null;
-  }
-
-  return roundToTwo(runsConceded / oversBowled);
 }
 
 function calculateBowlingAverage(runsConceded: number, wicketsTaken: number) {
@@ -711,59 +687,6 @@ function buildPlayerStatisticsView(params: {
   };
 }
 
-function createAggregateMetrics(
-  playerStatistics: PlayerStatisticsView
-): PlayerAggregateMetrics {
-  let ballsBowled = 0;
-  let inningsBatted = 0;
-  let notOuts = 0;
-  let runsConceded = 0;
-  let runsScored = 0;
-  let wicketsTaken = 0;
-  const economySegments: Array<{
-    ballsBowled: number;
-    ballsPerOver: number;
-    runsConceded: number;
-  }> = [];
-
-  for (const format of playerStatistics.formats) {
-    runsScored += format.overview.runsScored;
-    wicketsTaken += format.overview.wicketsTaken;
-
-    if (format.batting) {
-      inningsBatted += format.batting.inningsBatted;
-      notOuts += format.batting.notOuts;
-    }
-
-    if (format.bowling) {
-      ballsBowled += format.bowling.ballsBowled;
-      runsConceded += format.bowling.runsConceded;
-      economySegments.push({
-        ballsBowled: format.bowling.ballsBowled,
-        ballsPerOver: format.bowling.ballsPerOver,
-        runsConceded: format.bowling.runsConceded,
-      });
-    }
-  }
-
-  const dismissals = inningsBatted - notOuts;
-
-  return {
-    player: playerStatistics.player,
-    matchesPlayed: playerStatistics.formats.reduce(
-      (total, format) => total + format.overview.matchesPlayed,
-      0
-    ),
-    runsConceded,
-    runsScored,
-    wicketsTaken,
-    inningsBatted,
-    ballsBowled,
-    battingAverage: calculateBattingAverage(runsScored, dismissals),
-    economy: calculateOverallEconomy(economySegments),
-  };
-}
-
 function isBetterHighMetricCandidate(params: {
   current: PlayerAggregateMetrics;
   next: PlayerAggregateMetrics;
@@ -924,52 +847,65 @@ export async function getPlayerStatisticsById(
 }
 
 export async function getStatisticsLandingView(): Promise<StatisticsLandingView> {
-  const [players, lineupRows, statsRows] = await Promise.all([
+  const matchFinalizedCondition = or(
+    eq(matches.isCompleted, true),
+    eq(matches.isAbandoned, true),
+    eq(matches.isTied, true),
+    isNotNull(matches.winnerId),
+    and(isNotNull(matches.result), sql`TRIM(${matches.result}) != ''`)
+  );
+
+  const [allPlayers, statsAggregates] = await Promise.all([
     db.query.players.findMany({
       orderBy: (table, { asc }) => [asc(table.name)],
     }),
-    db.query.matchLineup.findMany({
-      with: {
-        match: {
-          with: {
-            tournament: {
-              with: {
-                defaultMatchFormat: true,
-              },
-            },
-          },
-        },
-      },
-    }),
-    db.query.playerInningsStats.findMany(),
+    db
+      .select({
+        playerId: playerInningsStats.playerId,
+        matchesPlayed: sql<number>`COUNT(DISTINCT ${playerInningsStats.matchId})`,
+        totalRunsScored: sql<number>`COALESCE(SUM(${playerInningsStats.runsScored}), 0)`,
+        totalWicketsTaken: sql<number>`COALESCE(SUM(${playerInningsStats.wicketsTaken}), 0)`,
+        totalBallsBowled: sql<number>`COALESCE(SUM(${playerInningsStats.ballsBowled}), 0)`,
+        totalRunsConceded: sql<number>`COALESCE(SUM(${playerInningsStats.runsConceded}), 0)`,
+        inningsBatted: sql<number>`SUM(CASE WHEN ${playerInningsStats.runsScored} > 0 OR ${playerInningsStats.ballsFaced} > 0 OR ${playerInningsStats.isDismissed} = 1 THEN 1 ELSE 0 END)`,
+        notOuts: sql<number>`SUM(CASE WHEN (${playerInningsStats.runsScored} > 0 OR ${playerInningsStats.ballsFaced} > 0 OR ${playerInningsStats.isDismissed} = 1) AND ${playerInningsStats.isDismissed} = 0 THEN 1 ELSE 0 END)`,
+        oversBowled: sql<number>`SUM(CASE WHEN ${playerInningsStats.ballsBowled} > 0 THEN CAST(${playerInningsStats.ballsBowled} AS REAL) / CASE WHEN ${matches.ballsPerOverSnapshot} > 0 THEN ${matches.ballsPerOverSnapshot} ELSE 6 END ELSE 0 END)`,
+      })
+      .from(playerInningsStats)
+      .innerJoin(matches, eq(playerInningsStats.matchId, matches.id))
+      .where(matchFinalizedCondition)
+      .groupBy(playerInningsStats.playerId),
   ]);
 
-  const lineupRowsByPlayerId = new Map<number, PlayerStatisticsLineupRow[]>();
-  for (const lineupRow of lineupRows as PlayerStatisticsLineupRow[]) {
-    const playerLineups = lineupRowsByPlayerId.get(lineupRow.playerId) ?? [];
-    playerLineups.push(lineupRow);
-    lineupRowsByPlayerId.set(lineupRow.playerId, playerLineups);
-  }
+  const playerById = new Map(allPlayers.map((p) => [p.id, p]));
 
-  const statsRowsByPlayerId = new Map<number, PlayerStatisticsStatsRow[]>();
-  for (const statsRow of statsRows as PlayerStatisticsStatsRow[]) {
-    const playerStats = statsRowsByPlayerId.get(statsRow.playerId) ?? [];
-    playerStats.push(statsRow);
-    statsRowsByPlayerId.set(statsRow.playerId, playerStats);
-  }
+  const aggregates: PlayerAggregateMetrics[] = [];
+  for (const row of statsAggregates) {
+    const player = playerById.get(row.playerId);
+    if (!player) {
+      continue;
+    }
 
-  const aggregates = players.map((player) =>
-    createAggregateMetrics(
-      buildPlayerStatisticsView({
-        player,
-        lineupRows: lineupRowsByPlayerId.get(player.id) ?? [],
-        statsRows: statsRowsByPlayerId.get(player.id) ?? [],
-      })
-    )
-  );
+    const dismissals = row.inningsBatted - row.notOuts;
+
+    aggregates.push({
+      player: createPlayerSummary(player),
+      matchesPlayed: row.matchesPlayed,
+      runsScored: row.totalRunsScored,
+      wicketsTaken: row.totalWicketsTaken,
+      inningsBatted: row.inningsBatted,
+      ballsBowled: row.totalBallsBowled,
+      runsConceded: row.totalRunsConceded,
+      battingAverage: calculateBattingAverage(row.totalRunsScored, dismissals),
+      economy:
+        row.oversBowled > 0
+          ? roundToTwo(row.totalRunsConceded / row.oversBowled)
+          : null,
+    });
+  }
 
   return {
-    players: players.map(createPlayerSummary),
+    players: allPlayers.map(createPlayerSummary),
     leaders: {
       highestRunGetter: selectHighMetricLeader({
         entries: aggregates,

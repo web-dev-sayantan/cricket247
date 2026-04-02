@@ -30,6 +30,9 @@ interface InningsRow {
   isCompleted: boolean;
   legByes: number;
   noBalls: number;
+  openingBowlerId: number | null;
+  openingNonStrikerId: number | null;
+  openingStrikerId: number | null;
   others: number;
   penaltyRuns: number;
   status: string;
@@ -104,6 +107,11 @@ interface ScorecardServiceTestState {
   }>;
   detailedDeliveriesByInningsId: Record<number, DetailedDeliveryRow[]>;
   innings: InningsRow[];
+  latestDeliveryParticipantsByInningsId: Record<
+    number,
+    { bowlerId: number; nonStrikerId: number; strikerId: number } | null
+  >;
+  latestDeliveryParticipantsCalls: number[];
   lineups: MatchLineupRow[];
   match: MatchRow | null;
   statsByInningsId: Record<number, PlayerInningsStatsRow[]>;
@@ -115,6 +123,8 @@ const state: ScorecardServiceTestState = {
   detailedDeliveriesByInningsId: {},
   innings: [],
   lineups: [],
+  latestDeliveryParticipantsByInningsId: {},
+  latestDeliveryParticipantsCalls: [],
   match: null,
   statsByInningsId: {},
   summaryDeliveriesByInningsId: {},
@@ -123,6 +133,13 @@ const state: ScorecardServiceTestState = {
 const dbMock = {
   query: {
     deliveries: {
+      findFirst: ({ where }: { where: { inningsId: number } }) => {
+        state.latestDeliveryParticipantsCalls.push(where.inningsId);
+
+        return Promise.resolve(
+          state.latestDeliveryParticipantsByInningsId[where.inningsId] ?? null
+        );
+      },
       findMany: ({
         where,
         with: withValue,
@@ -170,7 +187,12 @@ mock.module("@/services/match-format.service", () => ({
   getMatchFormatRulesByMatchId,
 }));
 
-const serviceModulePromise = import("./scorecard.service");
+let serviceImportCounter = 0;
+
+function loadServiceModule() {
+  serviceImportCounter += 1;
+  return import(`./scorecard.service?test=${serviceImportCounter}`);
+}
 
 function createBaseState() {
   const match: MatchRow = {
@@ -203,6 +225,9 @@ function createBaseState() {
       isCompleted: false,
       legByes: 0,
       noBalls: 0,
+      openingBowlerId: 21,
+      openingNonStrikerId: 12,
+      openingStrikerId: 11,
       others: 0,
       penaltyRuns: 0,
       status: "in_progress",
@@ -314,11 +339,19 @@ function createBaseState() {
       },
     ],
   };
+  const latestDeliveryParticipantsByInningsId = {
+    101: {
+      bowlerId: 21,
+      nonStrikerId: 12,
+      strikerId: 11,
+    },
+  };
 
   return {
     detailedDeliveriesByInningsId,
     innings,
     lineups,
+    latestDeliveryParticipantsByInningsId,
     match,
     statsByInningsId,
     summaryDeliveriesByInningsId,
@@ -331,6 +364,8 @@ describe("scorecard.service", () => {
     state.detailedDeliveriesByInningsId = {};
     state.innings = [];
     state.lineups = [];
+    state.latestDeliveryParticipantsByInningsId = {};
+    state.latestDeliveryParticipantsCalls = [];
     state.match = null;
     state.statsByInningsId = {};
     state.summaryDeliveriesByInningsId = {};
@@ -340,7 +375,7 @@ describe("scorecard.service", () => {
   it("uses the lean delivery query when ball-by-ball data is excluded", async () => {
     Object.assign(state, createBaseState());
 
-    const { getMatchScorecard } = await serviceModulePromise;
+    const { getMatchScorecard } = await loadServiceModule();
     const result = await getMatchScorecard(42, {
       includeBallByBall: false,
     });
@@ -353,7 +388,13 @@ describe("scorecard.service", () => {
         },
       },
     ]);
+    expect(state.latestDeliveryParticipantsCalls).toEqual([101]);
     expect(result?.innings[0]?.deliveries).toBeUndefined();
+    expect(result?.innings[0]?.currentParticipants).toEqual({
+      bowlerId: 21,
+      nonStrikerId: 12,
+      strikerId: 11,
+    });
     expect(result?.innings[0]?.fallOfWickets).toEqual([
       {
         batter: { id: 11, name: "A One" },
@@ -368,7 +409,7 @@ describe("scorecard.service", () => {
   it("loads the detailed delivery relations only when ball-by-ball data is requested", async () => {
     Object.assign(state, createBaseState());
 
-    const { getMatchScorecard } = await serviceModulePromise;
+    const { getMatchScorecard } = await loadServiceModule();
     const result = await getMatchScorecard(42, {
       includeBallByBall: true,
     });
@@ -386,10 +427,49 @@ describe("scorecard.service", () => {
         },
       },
     ]);
+    expect(state.latestDeliveryParticipantsCalls).toEqual([101]);
     expect(result?.innings[0]?.deliveries?.[0]).toMatchObject({
       bowler: { id: 21, name: "B One" },
       striker: { id: 11, name: "A One" },
       totalRuns: 1,
+    });
+  });
+
+  it("falls back to the opening players when a live innings has no deliveries yet", async () => {
+    Object.assign(state, createBaseState());
+    state.summaryDeliveriesByInningsId[101] = [];
+    state.latestDeliveryParticipantsByInningsId[101] = null;
+
+    const { getMatchScorecard } = await loadServiceModule();
+    const result = await getMatchScorecard(42, {
+      includeBallByBall: false,
+    });
+
+    expect(result?.innings[0]?.currentParticipants).toEqual({
+      bowlerId: 21,
+      nonStrikerId: 12,
+      strikerId: 11,
+    });
+  });
+
+  it("omits current participant highlights for completed innings", async () => {
+    Object.assign(state, createBaseState());
+    state.innings[0] = {
+      ...state.innings[0],
+      isCompleted: true,
+      status: "completed",
+    };
+
+    const { getMatchScorecard } = await loadServiceModule();
+    const result = await getMatchScorecard(42, {
+      includeBallByBall: false,
+    });
+
+    expect(state.latestDeliveryParticipantsCalls).toEqual([]);
+    expect(result?.innings[0]?.currentParticipants).toEqual({
+      bowlerId: null,
+      nonStrikerId: null,
+      strikerId: null,
     });
   });
 });

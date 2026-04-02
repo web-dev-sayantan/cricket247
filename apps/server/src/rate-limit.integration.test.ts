@@ -136,7 +136,7 @@ describe("ORPC rate limiting", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(namespace.keys).toEqual(["rpc:public:ip:203.0.113.10"]);
+    expect(namespace.keys).toEqual(["public:rpc:public:ip:203.0.113.10"]);
   });
 
   it("applies the protected bucket to protected procedures", async () => {
@@ -152,7 +152,7 @@ describe("ORPC rate limiting", () => {
     });
 
     expect(response.status).toBe(401);
-    expect(namespace.keys).toEqual(["rpc:protected:ip:203.0.113.11"]);
+    expect(namespace.keys).toEqual(["protected:rpc:protected:ip:203.0.113.11"]);
     expect(response.headers.get("RateLimit-Limit")).toBe("10");
   });
 
@@ -171,7 +171,7 @@ describe("ORPC rate limiting", () => {
     });
 
     expect(response.status).toBe(401);
-    expect(namespace.keys).toEqual(["rpc:sensitive:ip:203.0.113.12"]);
+    expect(namespace.keys).toEqual(["sensitive:rpc:sensitive:ip:203.0.113.12"]);
   });
 
   it("applies the scoring bucket to high-frequency scoring procedures", async () => {
@@ -189,7 +189,7 @@ describe("ORPC rate limiting", () => {
     });
 
     expect(response.status).toBe(401);
-    expect(namespace.keys).toEqual(["rpc:scoring:ip:203.0.113.13"]);
+    expect(namespace.keys).toEqual(["scoring:rpc:scoring:ip:203.0.113.13"]);
   });
 
   it("exempts the health check procedure", async () => {
@@ -232,8 +232,8 @@ describe("ORPC rate limiting", () => {
     expect(rpcResponse.status).toBe(401);
     expect(apiResponse.status).toBe(429);
     expect(namespace.keys).toEqual([
-      "rpc:protected:ip:203.0.113.14",
-      "rpc:protected:ip:203.0.113.14",
+      "protected:rpc:protected:ip:203.0.113.14",
+      "protected:rpc:protected:ip:203.0.113.14",
     ]);
   });
 
@@ -265,8 +265,8 @@ describe("ORPC rate limiting", () => {
     expect(firstResponse.status).toBe(200);
     expect(secondResponse.status).toBe(200);
     expect(namespace.keys).toEqual([
-      "rpc:protected:user:user_123:ip:203.0.113.15",
-      "rpc:protected:user:user_123:ip:203.0.113.16",
+      "protected:rpc:protected:user:user_123:ip:203.0.113.15",
+      "protected:rpc:protected:user:user_123:ip:203.0.113.16",
     ]);
   });
 

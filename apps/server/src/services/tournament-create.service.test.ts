@@ -65,7 +65,7 @@ const state = {
   tournamentRows: [
     {
       id: 401,
-      startDate: new Date("2026-04-01T00:00:00.000Z"),
+      startDate: new Date("2030-04-01T00:00:00.000Z"),
       type: "league",
     },
   ] as Array<{
@@ -295,7 +295,7 @@ describe("tournament create/update from scratch service", () => {
     state.tournamentRows = [
       {
         id: 401,
-        startDate: new Date("2026-04-01T00:00:00.000Z"),
+        startDate: new Date("2030-04-01T00:00:00.000Z"),
         type: "league",
       },
     ];
@@ -345,8 +345,8 @@ describe("tournament create/update from scratch service", () => {
       category: "competitive",
       genderAllowed: "open",
       ageLimit: 100,
-      startDate: new Date("2026-04-01T00:00:00.000Z"),
-      endDate: new Date("2026-04-30T00:00:00.000Z"),
+      startDate: new Date("2030-04-01T00:00:00.000Z"),
+      endDate: new Date("2030-04-30T00:00:00.000Z"),
       timeZone: "Asia/Kolkata",
       championTeamId: null,
       organization: {
@@ -424,8 +424,8 @@ describe("tournament create/update from scratch service", () => {
       category: "competitive",
       genderAllowed: "open",
       ageLimit: 100,
-      startDate: new Date("2026-04-01T00:00:00.000Z"),
-      endDate: new Date("2026-04-30T00:00:00.000Z"),
+      startDate: new Date("2030-04-01T00:00:00.000Z"),
+      endDate: new Date("2030-04-30T00:00:00.000Z"),
       timeZone: "Asia/Kolkata",
       championTeamId: null,
       organization: {
@@ -479,8 +479,8 @@ describe("tournament create/update from scratch service", () => {
       category: "competitive",
       genderAllowed: "open",
       ageLimit: 99,
-      startDate: new Date("2026-04-01T00:00:00.000Z"),
-      endDate: new Date("2026-05-15T00:00:00.000Z"),
+      startDate: new Date("2030-04-01T00:00:00.000Z"),
+      endDate: new Date("2030-05-15T00:00:00.000Z"),
       timeZone: "Asia/Kolkata",
       championTeamId: 21,
       playerOfTheTournamentId: 31,
@@ -530,8 +530,8 @@ describe("tournament create/update from scratch service", () => {
       category: "competitive",
       genderAllowed: "open",
       ageLimit: 100,
-      startDate: new Date("2026-04-01T00:00:00.000Z"),
-      endDate: new Date("2026-05-15T00:00:00.000Z"),
+      startDate: new Date("2030-04-01T00:00:00.000Z"),
+      endDate: new Date("2030-05-15T00:00:00.000Z"),
       timeZone: "UTC",
       championTeamId: null,
       organization: {
@@ -597,8 +597,8 @@ describe("tournament create/update from scratch service", () => {
         category: "competitive",
         genderAllowed: "open",
         ageLimit: 100,
-        startDate: new Date("2026-04-01T00:00:00.000Z"),
-        endDate: new Date("2026-05-15T00:00:00.000Z"),
+        startDate: new Date("2030-04-01T00:00:00.000Z"),
+        endDate: new Date("2030-05-15T00:00:00.000Z"),
         timeZone: "UTC",
         championTeamId: null,
         organization: {
@@ -648,7 +648,7 @@ describe("tournament create/update from scratch service", () => {
         genderAllowed: "open",
         ageLimit: 100,
         startDate: new Date("2020-04-01T00:00:00.000Z"),
-        endDate: new Date("2027-05-15T00:00:00.000Z"),
+        endDate: new Date("2031-05-15T00:00:00.000Z"),
         timeZone: "UTC",
         championTeamId: null,
         organization: {
@@ -696,8 +696,8 @@ describe("tournament create/update from scratch service", () => {
         category: "competitive",
         genderAllowed: "open",
         ageLimit: 100,
-        startDate: new Date("2026-04-01T00:00:00.000Z"),
-        endDate: new Date("2027-05-15T00:00:00.000Z"),
+        startDate: new Date("2030-04-01T00:00:00.000Z"),
+        endDate: new Date("2031-05-15T00:00:00.000Z"),
         timeZone: "UTC",
         championTeamId: null,
         organization: {
@@ -745,8 +745,8 @@ describe("tournament create/update from scratch service", () => {
         category: "competitive",
         genderAllowed: "open",
         ageLimit: 100,
-        startDate: new Date("2026-04-01T00:00:00.000Z"),
-        endDate: new Date("2027-05-15T00:00:00.000Z"),
+        startDate: new Date("2030-04-01T00:00:00.000Z"),
+        endDate: new Date("2031-05-15T00:00:00.000Z"),
         timeZone: "UTC",
         championTeamId: null,
         organization: {
@@ -791,8 +791,8 @@ describe("tournament create/update from scratch service", () => {
       category: "competitive",
       genderAllowed: "open",
       ageLimit: 100,
-      startDate: new Date("2026-04-01T00:00:00.000Z"),
-      endDate: new Date("2027-05-15T00:00:00.000Z"),
+      startDate: new Date("2030-04-01T00:00:00.000Z"),
+      endDate: new Date("2031-05-15T00:00:00.000Z"),
       timeZone: "UTC",
       championTeamId: null,
       organization: {
@@ -834,8 +834,8 @@ describe("tournament create/update from scratch service", () => {
         category: "competitive",
         genderAllowed: "open",
         ageLimit: 99,
-        startDate: new Date("2026-04-01T00:00:00.000Z"),
-        endDate: new Date("2026-05-15T00:00:00.000Z"),
+        startDate: new Date("2030-04-01T00:00:00.000Z"),
+        endDate: new Date("2030-05-15T00:00:00.000Z"),
         timeZone: "Asia/Kolkata",
         championTeamId: 21,
         playerOfTheTournamentId: 88,
