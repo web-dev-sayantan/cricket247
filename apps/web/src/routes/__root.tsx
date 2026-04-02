@@ -30,17 +30,80 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
   head: () => ({
     meta: [
       {
-        title: "cricket247",
+        title: "Cricket247 | Live Cricket Scores, Fixtures, and Match Updates",
       },
       {
         name: "description",
-        content: "cricket247 is a web application",
+        content:
+          "Follow live cricket scores, fixtures, teams, players, and match insights with Cricket247.",
+      },
+      {
+        name: "keywords",
+        content:
+          "cricket, live cricket scores, cricket fixtures, cricket matches, cricket teams, cricket players",
+      },
+      {
+        name: "robots",
+        content: "index, follow, max-image-preview:large",
+      },
+      {
+        name: "theme-color",
+        content: "#bf272c",
+      },
+      {
+        property: "og:type",
+        content: "website",
+      },
+      {
+        property: "og:title",
+        content:
+          "Cricket247 | Live Cricket Scores, Fixtures, and Match Updates",
+      },
+      {
+        property: "og:description",
+        content:
+          "Follow live cricket scores, fixtures, teams, players, and match insights with Cricket247.",
+      },
+      {
+        property: "og:url",
+        content: "https://cricket247-web.workers.dev/",
+      },
+      {
+        property: "og:site_name",
+        content: "Cricket247",
+      },
+      {
+        property: "og:image",
+        content: "/cricket-ball.svg",
+      },
+      {
+        name: "twitter:card",
+        content: "summary_large_image",
+      },
+      {
+        name: "twitter:title",
+        content:
+          "Cricket247 | Live Cricket Scores, Fixtures, and Match Updates",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "Follow live cricket scores, fixtures, teams, players, and match insights with Cricket247.",
+      },
+      {
+        name: "twitter:image",
+        content: "/cricket-ball.svg",
       },
     ],
     links: [
       {
+        rel: "canonical",
+        href: "https://cricket247-web.workers.dev/",
+      },
+      {
         rel: "icon",
-        href: "/favicon.ico",
+        href: "/favicon.svg",
+        type: "image/svg+xml",
       },
     ],
   }),

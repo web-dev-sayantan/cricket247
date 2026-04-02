@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Host: cricket247-web.workers.dev
+
+Sitemap: https://cricket247-web.workers.dev/sitemap.xml

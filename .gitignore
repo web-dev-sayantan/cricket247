@@ -1,10 +1,30 @@
-node_modules
-data
-package-lock.json
-.agents
-.vscode
-.turbo
-.alchemy
+# Dependencies
+node_modules/
+
+# Build and cache artifacts
+.turbo/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Environment and local config
 .env
 .env.*
+.agents/
+.alchemy/
+.vscode/
+
+# Package manager lockfiles not used in this Bun workspace
+package-lock.json
+
+# Local data and DB files
+data/
 local-test.db
+*.sqlite
+*.sqlite3
+
+# Logs and OS noise
+*.log
+.DS_Store
+*.db

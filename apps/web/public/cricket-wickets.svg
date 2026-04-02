@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Three Stumps (Wooden Color) -->
+  <rect x="26" y="25" width="10" height="60" rx="3" fill="#d4a373" />
+  <rect x="45" y="25" width="10" height="60" rx="3" fill="#d4a373" />
+  <rect x="64" y="25" width="10" height="60" rx="3" fill="#d4a373" />
+  
+  <!-- Two Bails (Red) -->
+  <rect x="29" y="19" width="20" height="6" rx="3" fill="#ef4444" />
+  <rect x="51" y="19" width="20" height="6" rx="3" fill="#ef4444" />
+</svg>
