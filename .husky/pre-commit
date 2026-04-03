@@ -36,3 +36,9 @@ elif [ "$run_web_typecheck" = true ]; then
   echo "Running web typecheck"
 	bun run --cwd apps/web check-types
 fi
+
+echo "Running test suite"
+if ! bun run test; then
+	echo "Tests failed. Commit aborted."
+	exit 1
+fi

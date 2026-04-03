@@ -108,6 +108,7 @@ const EXPECTED_PROCEDURE_NAMES = [
   "statisticsLanding",
   "getBallsOfSameOver",
   "updateMatchSchedule",
+  "uploadProfileImageFallback",
 ] as const;
 
 describe("appRouter", () => {
