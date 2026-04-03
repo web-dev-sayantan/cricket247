@@ -1,4 +1,5 @@
 import type { Context as HonoContext } from "hono";
+import type { ProfileImagesBucket } from "@/services/profile-image-upload.service";
 import { auth } from "./auth";
 import { getClientIp, type RateLimiterNamespaceLike } from "./rate-limit";
 
@@ -14,6 +15,7 @@ export async function createContext({ context }: CreateContextOptions) {
   const runtimeContext = context as HonoContext & {
     env?: {
       RATE_LIMITER?: RateLimiterNamespaceLike;
+      PROFILE_IMAGES?: ProfileImagesBucket;
     };
   };
 
@@ -21,6 +23,7 @@ export async function createContext({ context }: CreateContextOptions) {
     clientIp: getClientIp(headers),
     headers,
     rateLimiter: runtimeContext.env?.RATE_LIMITER,
+    profileImagesBucket: runtimeContext.env?.PROFILE_IMAGES,
     resHeaders: undefined as Headers | undefined,
     session,
   };

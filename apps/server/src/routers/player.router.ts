@@ -15,6 +15,7 @@ import {
   createOwnPlayerBodySchema,
   createPlayerBodySchema,
   listClaimablePlayersQuerySchema,
+  uploadProfileImageFallbackBodySchema,
 } from "@/schemas/crud.schemas";
 import { playerCrudService } from "@/services/crud.service";
 import {
@@ -31,6 +32,10 @@ import {
   getPlayerStatisticsById,
   getStatisticsLandingView,
 } from "@/services/player-stats.service";
+import {
+  ProfileImageUploadError,
+  uploadProfileImageForUser,
+} from "@/services/profile-image-upload.service";
 import { calculateAgeFromDob } from "@/utils";
 
 const UpdatePlayerInputSchema = z
@@ -46,6 +51,18 @@ const UpdatePlayerInputSchema = z
 function getPlayerDuplicateKey(params: { dob: Date; name: string }) {
   const normalizedName = params.name.trim().toLowerCase();
   return `${normalizedName}|${params.dob.toISOString()}`;
+}
+
+function decodeBase64Image(base64Payload: string) {
+  try {
+    const decoded = atob(base64Payload);
+    return Uint8Array.from(decoded, (char) => char.charCodeAt(0)).buffer;
+  } catch {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Invalid image payload",
+      status: 400,
+    });
+  }
 }
 
 export const playerRouter = {
@@ -75,6 +92,38 @@ export const playerRouter = {
     .handler(({ context, input }) =>
       createOwnPlayerProfileByEmail(context.session.user.email, input)
     ),
+  uploadProfileImageFallback: protectedProcedure
+    .input(uploadProfileImageFallbackBodySchema)
+    .handler(async ({ context, input }) => {
+      const imageBuffer = decodeBase64Image(input.fileBase64);
+      if (imageBuffer.byteLength !== input.fileSizeBytes) {
+        throw new ORPCError("BAD_REQUEST", {
+          message: "Invalid image size",
+          status: 400,
+        });
+      }
+
+      try {
+        return await uploadProfileImageForUser({
+          bucket: context.profileImagesBucket,
+          contentType: input.contentType,
+          fileSizeBytes: input.fileSizeBytes,
+          userId: context.session.user.id,
+          body: imageBuffer,
+        });
+      } catch (error) {
+        if (error instanceof ProfileImageUploadError) {
+          const code =
+            error.status === 400 ? "BAD_REQUEST" : "INTERNAL_SERVER_ERROR";
+          throw new ORPCError(code, {
+            message: error.message,
+            status: error.status,
+          });
+        }
+
+        throw error;
+      }
+    }),
   claimablePlayers: protectedProcedure
     .input(listClaimablePlayersQuerySchema.optional())
     .handler(({ input }) => listClaimablePlayers(input?.query)),

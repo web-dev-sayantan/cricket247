@@ -782,7 +782,8 @@
                     "enum": [
                       "concrete",
                       "source"
-                    ]
+                    ],
+                    "type": "string"
                   },
                   "participantSources": {
                     "items": {
@@ -822,7 +823,8 @@
                             "team",
                             "match",
                             "position"
-                          ]
+                          ],
+                          "type": "string"
                         },
                         "teamSlot": {
                           "anyOf": [
@@ -2622,7 +2624,8 @@
                       "practice",
                       "recreational",
                       "one_off"
-                    ]
+                    ],
+                    "type": "string"
                   },
                   "championTeamId": {
                     "anyOf": [
@@ -2833,7 +2836,8 @@
                       "practice",
                       "recreational",
                       "one_off"
-                    ]
+                    ],
+                    "type": "string"
                   },
                   "championTeamId": {
                     "anyOf": [
@@ -2971,7 +2975,8 @@
                       "male",
                       "female",
                       "open"
-                    ]
+                    ],
+                    "type": "string"
                   },
                   "name": {
                     "maxLength": 200,
@@ -3206,7 +3211,8 @@
                           "straight_league",
                           "grouped_league_with_playoffs",
                           "straight_knockout"
-                        ]
+                        ],
+                        "type": "string"
                       }
                     },
                     "type": "object"
@@ -6514,7 +6520,8 @@
                     "enum": [
                       "bat",
                       "bowl"
-                    ]
+                    ],
+                    "type": "string"
                   },
                   "tossWinnerId": {
                     "exclusiveMinimum": 0,
@@ -8999,7 +9006,8 @@
                       "straight_league",
                       "grouped_league_with_playoffs",
                       "straight_knockout"
-                    ]
+                    ],
+                    "type": "string"
                   },
                   "tournamentId": {
                     "exclusiveMinimum": 0,
@@ -9240,7 +9248,8 @@
                             "wins",
                             "head_to_head",
                             "seed"
-                          ]
+                          ],
+                          "type": "string"
                         },
                         "minItems": 1,
                         "type": "array"
@@ -9632,7 +9641,8 @@
                     "enum": [
                       "bat",
                       "bowl"
-                    ]
+                    ],
+                    "type": "string"
                   },
                   "tossWinnerId": {
                     "exclusiveMinimum": 0,
@@ -10052,7 +10062,8 @@
                       "live",
                       "upcoming",
                       "past"
-                    ]
+                    ],
+                    "type": "string"
                   },
                   "tournamentId": {
                     "exclusiveMinimum": 0,
@@ -11793,7 +11804,8 @@
                     "enum": [
                       "concrete",
                       "source"
-                    ]
+                    ],
+                    "type": "string"
                   },
                   "participantSources": {
                     "items": {
@@ -11833,7 +11845,8 @@
                             "team",
                             "match",
                             "position"
-                          ]
+                          ],
+                          "type": "string"
                         },
                         "teamSlot": {
                           "anyOf": [
@@ -12715,7 +12728,8 @@
                           "practice",
                           "recreational",
                           "one_off"
-                        ]
+                        ],
+                        "type": "string"
                       },
                       "championTeamId": {
                         "anyOf": [
@@ -12933,7 +12947,8 @@
                       "practice",
                       "recreational",
                       "one_off"
-                    ]
+                    ],
+                    "type": "string"
                   },
                   "championTeamId": {
                     "anyOf": [
@@ -13071,7 +13086,8 @@
                       "male",
                       "female",
                       "open"
-                    ]
+                    ],
+                    "type": "string"
                   },
                   "name": {
                     "maxLength": 200,
@@ -13306,7 +13322,8 @@
                           "straight_league",
                           "grouped_league_with_playoffs",
                           "straight_knockout"
-                        ]
+                        ],
+                        "type": "string"
                       }
                     },
                     "type": "object"
@@ -14408,6 +14425,126 @@
                 "required": [
                   "id",
                   "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {},
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "enum": [
+                        "TOO_MANY_REQUESTS"
+                      ],
+                      "type": "string"
+                    },
+                    "data": {
+                      "properties": {
+                        "retryAfter": {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "retryAfter"
+                      ],
+                      "type": "object"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        429
+                      ],
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "data",
+                    "message",
+                    "status"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Too Many Requests",
+            "headers": {
+              "RateLimit-Limit": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "RateLimit-Remaining": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "RateLimit-Reset": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/uploadProfileImageFallback": {
+      "post": {
+        "operationId": "uploadProfileImageFallback",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "contentType": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "fileBase64": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "fileSizeBytes": {
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "contentType",
+                  "fileSizeBytes",
+                  "fileBase64"
                 ],
                 "type": "object"
               }

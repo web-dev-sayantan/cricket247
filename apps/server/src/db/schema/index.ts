@@ -44,7 +44,7 @@ export const session = sqliteTable(
     id: integer().primaryKey().notNull(),
     userId: integer()
       .notNull()
-      .references(() => user.id),
+      .references(() => user.id, { onDelete: "cascade" }),
     token: text().notNull(),
     expiresAt: timestampMs().notNull(),
     ipAddress: text(),
@@ -63,7 +63,7 @@ export const account = sqliteTable("account", {
   id: integer().primaryKey().notNull(),
   userId: integer()
     .notNull()
-    .references(() => user.id),
+    .references(() => user.id, { onDelete: "cascade" }),
   accountId: text().notNull(),
   providerId: text().notNull(),
   accessToken: text(),
@@ -92,7 +92,7 @@ export const passkey = sqliteTable(
     publicKey: text().notNull(),
     userId: integer()
       .notNull()
-      .references(() => user.id),
+      .references(() => user.id, { onDelete: "cascade" }),
     credentialID: text().notNull(),
     counter: integer().notNull().default(0),
     deviceType: text().notNull(),
@@ -109,7 +109,7 @@ export const passkey = sqliteTable(
 
 export const players = sqliteTable("players", {
   id: integer().primaryKey().notNull(),
-  userId: integer().references(() => user.id),
+  userId: integer().references(() => user.id, { onDelete: "set null" }),
   name: text().notNull(),
   age: integer().notNull().default(0),
   dob: integer({ mode: "timestamp" }).default(sql`(unixepoch())`).notNull(),

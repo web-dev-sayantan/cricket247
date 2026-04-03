@@ -3,7 +3,6 @@ import { type ChangeEvent, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { buildPlayerImportPreview } from "@/lib/entity-import-configs";
 import { client } from "@/utils/orpc";
@@ -72,14 +71,27 @@ export function AdminPlayerBulkImportCard() {
   };
 
   return (
-    <Card className="rounded-xl" id="bulk-player-import">
-      <CardHeader className="border-b pb-4">
-        <h2 className="font-medium text-lg">Bulk Player Import</h2>
-        <p className="text-muted-foreground text-sm">
+    <section
+      aria-labelledby="bulk-import-heading"
+      className="overflow-hidden border border-foreground/10 bg-[color-mix(in_oklab,var(--color-card)_90%,var(--color-accent)_10%)]"
+      id="bulk-player-import"
+    >
+      <div className="border-foreground/10 border-b px-6 py-4">
+        <p className="text-[0.66rem] text-muted-foreground uppercase tracking-[0.24em]">
+          Admin
+        </p>
+        <h2
+          className="mt-0.5 font-sans font-semibold text-lg tracking-tight"
+          id="bulk-import-heading"
+        >
+          Bulk Player Import
+        </h2>
+        <p className="mt-1 max-w-prose font-sans text-muted-foreground text-sm leading-6">
           Upload CSV or JSON. Import starts only after all rows pass validation.
         </p>
-      </CardHeader>
-      <CardContent className="space-y-4 pt-5">
+      </div>
+
+      <div className="space-y-4 px-6 py-6">
         <Input
           accept=".csv,.json"
           onChange={handleImportFileSelection}
@@ -97,7 +109,7 @@ export function AdminPlayerBulkImportCard() {
         ) : null}
 
         {preview ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary">Rows: {preview.totalRows}</Badge>
               <Badge variant="secondary">
@@ -114,12 +126,15 @@ export function AdminPlayerBulkImportCard() {
 
             {preview.rowErrors.length > 0 ? (
               <div className="space-y-2">
-                <p className="font-medium text-sm">Validation errors</p>
-                <ul className="list-inside list-disc space-y-1 text-sm">
+                <p className="text-[0.64rem] text-muted-foreground uppercase tracking-[0.22em]">
+                  Validation Errors
+                </p>
+                <ul className="space-y-1.5 border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm">
                   {preview.rowErrors
                     .slice(0, MAX_VISIBLE_IMPORT_ERRORS)
                     .map((rowError) => (
                       <li
+                        className="text-destructive"
                         key={`${rowError.rowNumber}-${rowError.field}-${rowError.message}`}
                       >
                         Row {rowError.rowNumber}
@@ -136,7 +151,7 @@ export function AdminPlayerBulkImportCard() {
               </div>
             ) : null}
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3 border-foreground/10 border-t pt-4">
               <Button
                 disabled={
                   preview.rowErrors.length > 0 ||
@@ -157,7 +172,7 @@ export function AdminPlayerBulkImportCard() {
             </div>
           </div>
         ) : null}
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }

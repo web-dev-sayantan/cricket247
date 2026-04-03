@@ -21,7 +21,7 @@ export function ModeToggle() {
     >
       <Sun
         className={cn(
-          "h-5 w-5 text-brand-800",
+          "size-5 text-brand-800",
           theme === "light" && "text-brand-50"
         )}
       />
@@ -38,7 +38,7 @@ export function ModeToggle() {
     >
       <Moon
         className={cn(
-          "h-5 w-5 text-brand-800",
+          "size-5 text-brand-800",
           theme === "dark" && "text-brand-50"
         )}
       />
@@ -55,7 +55,7 @@ export function ModeToggle() {
     >
       <LaptopMinimal
         className={cn(
-          "h-5 w-5 text-brand-800",
+          "size-5 text-brand-800",
           theme === "system" && "text-brand-50"
         )}
       />

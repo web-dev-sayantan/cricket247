@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowLeftIcon,
-  CheckIcon,
   ChevronDownIcon,
   ChevronUpIcon,
   TargetIcon,
@@ -26,7 +25,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
   TooltipContent,
@@ -36,7 +34,9 @@ import { cn } from "@/lib/utils";
 import type { RouterAppContext } from "@/routes/__root";
 import type { InningsSetupPhaseCardProps } from "@/routes/matches/$matchId/-components/innings-setup-phase-card";
 import type { LineupPhaseCardProps } from "@/routes/matches/$matchId/-components/lineup-phase-card";
+import MatchScoringLoadingSkeleton from "@/routes/matches/$matchId/-components/match-scoring-skeleton";
 import { PreMatchSetupSkeleton } from "@/routes/matches/$matchId/-components/pre-match-setup-skeleton";
+import ProgressStepper from "@/routes/matches/$matchId/-components/progress-stepper";
 import ScoreABall, {
   type DeliveryDraft,
   type MatchFlags,
@@ -133,6 +133,7 @@ interface SessionDelivery {
 }
 
 export type DeliveryChipTone = "default" | "scoring" | "wicket";
+export type ScoringPhase = PreMatchPhase | "completed" | "scoring";
 
 interface DeliveryChipDisplay {
   detailText: string;
@@ -158,171 +159,10 @@ type ScoringSetupResult = Awaited<
   ReturnType<ScorePageClient["startScoringInnings"]>
 >;
 
-type ScoringPhase = PreMatchPhase | "completed" | "scoring";
-
-const SCORING_STEPS: { key: ScoringPhase; label: string }[] = [
-  { key: "lineup", label: "Lineup" },
-  { key: "toss", label: "Toss" },
-  { key: "inningsSetup", label: "Start Innings" },
-  { key: "scoring", label: "Score" },
-  { key: "completed", label: "Result" },
-];
-
 interface PreMatchSetupViewModel {
   inningsSetup: InningsSetupPhaseCardProps;
   lineup: LineupPhaseCardProps;
   toss: TossPhaseCardProps;
-}
-
-function MatchScoringLoadingSkeleton() {
-  const loadingStepKeys = [
-    "lineup",
-    "toss",
-    "innings",
-    "score",
-    "result",
-  ] as const;
-  const loadingOverKeys = ["over1", "over2", "over3"] as const;
-  const loadingDeliveryChipKeys = ["d1", "d2", "d3", "d4", "d5", "d6"] as const;
-  const loadingBatRunKeys = [0, 1, 2, 3, 4, 5] as const;
-
-  return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(216,180,80,0.14),transparent_30%),linear-gradient(180deg,rgba(255,248,233,0.55),transparent_28%),var(--background)] pb-24">
-      <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:py-10">
-        <section
-          aria-busy="true"
-          className="space-y-4 border border-border/50 bg-card/90 p-5 backdrop-blur"
-        >
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-2">
-              <Skeleton className="h-3 w-32" />
-              <Skeleton className="h-10 w-56 sm:w-72" />
-              <Skeleton className="h-4 w-full max-w-2xl" />
-              <Skeleton className="h-4 w-4/5 max-w-xl" />
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Skeleton className="h-9 w-28" />
-              <Skeleton className="h-9 w-20" />
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {loadingStepKeys.map((stepKey) => (
-              <Skeleton className="h-8 w-24 sm:w-28" key={stepKey} />
-            ))}
-          </div>
-        </section>
-
-        <section className="grid gap-5 lg:grid-cols-[minmax(0,0.82fr)_minmax(420px,1.18fr)]">
-          {/* Left column: innings info + timeline */}
-          <div className="space-y-5">
-            <div className="border border-border/50 bg-card p-5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="space-y-2">
-                  <Skeleton className="h-3 w-32" />
-                  <Skeleton className="h-8 w-40" />
-                </div>
-              </div>
-              <div className="mt-4 flex items-baseline gap-6">
-                <div className="space-y-2">
-                  <Skeleton className="h-3 w-16" />
-                  <Skeleton className="h-7 w-20" />
-                </div>
-                <div className="space-y-2">
-                  <Skeleton className="h-3 w-24" />
-                  <Skeleton className="h-7 w-36" />
-                </div>
-              </div>
-            </div>
-
-            <div className="border border-border/50 bg-card p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <Skeleton className="h-3 w-40" />
-                <div className="flex flex-wrap gap-2">
-                  <Skeleton className="h-8 w-32" />
-                  <Skeleton className="h-8 w-28" />
-                  <Skeleton className="h-8 w-32" />
-                </div>
-              </div>
-              <div className="mt-4 space-y-3">
-                {loadingOverKeys.map((overKey) => (
-                  <div
-                    className="border border-border/40 bg-[color-mix(in_oklab,var(--color-card)_95%,var(--color-primary)_5%)] px-4 py-3"
-                    key={overKey}
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="space-y-1">
-                        <Skeleton className="h-4 w-14" />
-                        <Skeleton className="h-3 w-10" />
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {loadingDeliveryChipKeys.map((chipKey) => (
-                          <Skeleton className="size-10" key={chipKey} />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Right column: ScoreABall */}
-          <div className="lg:sticky lg:top-4 lg:self-start">
-            <div className="space-y-5 border border-border/50 bg-card px-4 py-5 sm:px-5">
-              <div className="flex flex-wrap items-start justify-between gap-3 sm:flex-nowrap">
-                <div className="space-y-2">
-                  <Skeleton className="h-3 w-24" />
-                  <Skeleton className="h-7 w-48" />
-                </div>
-                <Skeleton className="h-8 w-20 shrink-0" />
-              </div>
-
-              <div className="space-y-6">
-                <div className="space-y-3">
-                  <Skeleton className="h-4 w-44" />
-                  <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <Skeleton className="h-4 w-20" />
-                  <div className="grid grid-cols-6 gap-2 sm:gap-3">
-                    {loadingBatRunKeys.map((i) => (
-                      <Skeleton className="h-11 w-full" key={i} />
-                    ))}
-                  </div>
-                  <Skeleton className="h-10 w-full" />
-                </div>
-
-                <Skeleton className="angled-cut h-14 w-full" />
-
-                <div className="space-y-4 border border-border/40 bg-muted/15 p-4 sm:p-5">
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-3 w-full max-w-xs" />
-                  </div>
-                  <div className="grid gap-2 sm:grid-cols-3">
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap justify-end gap-2 pt-1">
-                <Skeleton className="h-10 w-24" />
-                <Skeleton className="angled-cut h-11 w-36" />
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-    </main>
-  );
 }
 
 function normalizeSelection(
@@ -829,11 +669,9 @@ export function DeliveryTimelineCard({
   let timelineContent: ReactNode;
 
   if (!isExpanded) {
-    timelineContent = (
+    timelineContent = isDesktop && (
       <div className="mt-4 border border-border/40 border-dashed bg-muted/10 px-4 py-3 text-muted-foreground text-sm">
-        {isDesktop
-          ? "Timeline hidden. Expand it when you need to review or edit a delivery."
-          : "Timeline collapsed so the live scoring card stays in reach."}
+        "Timeline hidden. Expand it when you need to review or edit a delivery."
       </div>
     );
   } else if (deliveries.length === 0) {
@@ -889,7 +727,7 @@ export function DeliveryTimelineCard({
   }
 
   return (
-    <section className="border border-border/50 bg-card p-5">
+    <section className="border border-border/50 bg-card px-3 py-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em]">
@@ -1814,34 +1652,43 @@ export function ScorePage({ client, matchId, orpc }: ScorePageProps) {
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(216,180,80,0.14),transparent_30%),linear-gradient(180deg,rgba(255,248,233,0.55),transparent_28%),var(--background)] pb-24">
-      <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:py-10">
+      <div className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6">
         <header className="space-y-4 border-border/60 border-b pb-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-1">
-              <p className="text-[0.65rem] text-muted-foreground uppercase tracking-[0.28em]">
-                Live Match Scoring
-              </p>
-              <h1 className="flex items-baseline gap-2 text-3xl sm:text-4xl">
-                <span className="font-serif">{team1ShortName}</span>
-                <span className="text-muted-foreground text-xl">vs</span>
-                <span className="font-serif">{team2ShortName}</span>
-              </h1>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
+            <h1 className="flex items-baseline justify-center gap-2 text-xs uppercase tracking-widest">
+              <span className="">{team1Name}</span>
+              <span className="text-muted-foreground">vs</span>
+              <span className="">{team2Name}</span>
+            </h1>
+            <div className="flex flex-wrap gap-3">
               <Link
-                className={buttonVariants({ variant: "outline", size: "sm" })}
+                className={cn(
+                  buttonVariants({ variant: "destructiveOutline", size: "sm" }),
+                  "flex-1"
+                )}
+                to="/matches"
+              >
+                Exit
+              </Link>
+              <Link
+                className={cn(
+                  buttonVariants({ variant: "primaryOutline", size: "sm" }),
+                  "flex-2"
+                )}
                 params={{ matchId }}
                 to="/matches/$matchId/scorecard"
               >
-                View Scorecard
+                Scorecard
               </Link>
               <Link
-                className={buttonVariants({ variant: "ghost", size: "sm" })}
-                to="/matches"
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "flex-1"
+                )}
+                params={{ matchId }}
+                to="/matches/$matchId/scorecard"
               >
-                <ArrowLeftIcon />
-                Back
+                Match Info
               </Link>
             </div>
           </div>
@@ -1921,13 +1768,11 @@ export function ScorePage({ client, matchId, orpc }: ScorePageProps) {
                     <p className="text-[0.65rem] text-muted-foreground uppercase tracking-[0.18em]">
                       Current innings
                     </p>
-                    <h2 className="font-serif text-3xl tracking-tight">
-                      {currentInnings.battingTeam?.shortName ?? "BAT"}{" "}
-                      <ScoreWithWickets
-                        score={currentInnings.totalScore}
-                        wickets={currentInnings.wickets}
-                      />
-                    </h2>
+                    <ScoreWithWickets
+                      classname="text-3xl font-serif tracking-normal"
+                      score={currentInnings.totalScore}
+                      wickets={currentInnings.wickets}
+                    />
                   </div>
                   {typeof currentInnings.targetRuns === "number" ? (
                     <span className="border border-primary/30 bg-[color-mix(in_oklab,var(--color-card)_90%,var(--color-primary)_10%)] px-3 py-1 text-sm tabular-nums">
@@ -1970,7 +1815,7 @@ export function ScorePage({ client, matchId, orpc }: ScorePageProps) {
                       onClick={() => handleCloseInnings(currentInnings.id)}
                       size="sm"
                       type="button"
-                      variant="outline"
+                      variant="destructiveOutline"
                     >
                       End innings
                     </Button>
@@ -2127,7 +1972,7 @@ export function ScorePage({ client, matchId, orpc }: ScorePageProps) {
               <DialogDescription>
                 {pendingCloseDialog?.mode === "auto"
                   ? "This delivery has reached an innings-ending condition. Choose Yes to end the innings now, or No to return to the last ball for review."
-                  : "This will end the current innings before the next one starts. You can still review the scorecard after this step."}
+                  : "Caution: This will end the current innings. You can still review the scorecard."}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -2145,6 +1990,7 @@ export function ScorePage({ client, matchId, orpc }: ScorePageProps) {
                 disabled={closeInningsMutation.isPending}
                 onClick={handleConfirmCloseInnings}
                 type="button"
+                variant="destructive"
               >
                 {closeInningsMutation.isPending
                   ? "Ending..."
@@ -2161,12 +2007,14 @@ export function ScorePage({ client, matchId, orpc }: ScorePageProps) {
 function ScoreWithWickets({
   score,
   wickets,
+  classname,
 }: {
   score: number;
   wickets: number;
+  classname?: string;
 }) {
   return (
-    <span>
+    <span className={classname}>
       <span>{score}</span>
       <span className="text-muted-foreground">/</span>
       <span className={wickets > 0 ? "text-destructive" : undefined}>
@@ -2193,61 +2041,5 @@ function MatchFrameRow({ label, value }: { label: string; value: string }) {
       <span className="text-muted-foreground text-xs">{label}</span>
       <span className="text-right text-sm">{value}</span>
     </div>
-  );
-}
-
-function ProgressStepper({ currentPhase }: { currentPhase: ScoringPhase }) {
-  const currentIndex = SCORING_STEPS.findIndex((s) => s.key === currentPhase);
-  const NOTCH = 10;
-  const CUT = 8;
-
-  return (
-    <nav aria-label="Scoring progress">
-      <ol className="flex">
-        {SCORING_STEPS.map((step, i) => {
-          const isCompleted = i < currentIndex;
-          const isActive = i === currentIndex;
-          const isFirst = i === 0;
-          const isLast = i === SCORING_STEPS.length - 1;
-
-          let clipPath: string;
-          if (isFirst) {
-            clipPath = `polygon(${CUT}px 0, calc(100% - ${NOTCH}px) 0, 100% 50%, calc(100% - ${NOTCH}px) 100%, 0 100%, 0 ${CUT}px)`;
-          } else if (isLast) {
-            clipPath = `polygon(0 0, 100% 0, 100% calc(100% - ${CUT}px), calc(100% - ${CUT}px) 100%, 0 100%, ${NOTCH}px 50%)`;
-          } else {
-            clipPath = `polygon(0 0, calc(100% - ${NOTCH}px) 0, 100% 50%, calc(100% - ${NOTCH}px) 100%, 0 100%, ${NOTCH}px 50%)`;
-          }
-
-          return (
-            <li
-              aria-current={isActive ? "step" : undefined}
-              className={cn(
-                "inline-flex items-center justify-center py-2 font-medium text-xs transition-colors duration-300",
-                isCompleted || isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted/50 text-muted-foreground"
-              )}
-              key={step.key}
-              style={{
-                clipPath,
-                marginLeft: i > 0 ? `-${NOTCH}px` : undefined,
-                paddingLeft: isFirst
-                  ? `calc(0.625rem + ${CUT}px)`
-                  : `calc(0.625rem + ${NOTCH}px)`,
-                paddingRight: isLast
-                  ? `calc(0.625rem + ${CUT}px)`
-                  : `calc(0.625rem + ${NOTCH}px)`,
-              }}
-            >
-              {isCompleted ? (
-                <CheckIcon className="mr-1 size-3 opacity-70" />
-              ) : null}
-              {step.label}
-            </li>
-          );
-        })}
-      </ol>
-    </nav>
   );
 }

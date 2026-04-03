@@ -1,9 +1,10 @@
 import path from "node:path";
 import { cloudflare } from "@cloudflare/vite-plugin";
+import babelPlugin from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import { devtools } from "@tanstack/devtools-vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
-import react from "@vitejs/plugin-react";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 export default defineConfig(({ command }) => {
@@ -30,11 +31,8 @@ export default defineConfig(({ command }) => {
         autoCodeSplitting: true,
         routeFileIgnorePattern: "\\.test\\.ts$",
       }),
-      react({
-        babel: {
-          plugins: ["babel-plugin-react-compiler"],
-        },
-      }),
+      babelPlugin({ presets: [reactCompilerPreset()], sourceMap: isServe }),
+      react(),
       ...(isServe ? [] : [cloudflare()]),
     ],
     resolve: {

@@ -51,6 +51,8 @@ Run `bun run test` at the root. For web tests, run `bun run test` or `bun run te
 - Use `as const` for literal types
 - `import type` for type-only imports
 - `export type` for type exports
+- Prefer prototypal inheritance over syntactic sugar classes
+- Embrace functional programming patterns where possible
 
 ### Imports & Modules
 

@@ -9,25 +9,16 @@ import {
   createProfileImagePresignedPutUrl,
   validateProfileImageFile,
 } from "@/services/profile-image.service";
+import {
+  type ProfileImagesBucket,
+  ProfileImageUploadError,
+  uploadProfileImageForUser,
+} from "@/services/profile-image-upload.service";
 
 const createPresignUploadSchema = z.object({
   contentType: z.string().trim().min(1),
   fileSizeBytes: z.number().int().positive(),
 });
-
-interface R2PutOptions {
-  httpMetadata?: {
-    contentType?: string;
-  };
-}
-
-interface ProfileImagesBucket {
-  put: (
-    key: string,
-    value: ArrayBuffer,
-    options?: R2PutOptions
-  ) => Promise<object>;
-}
 
 interface UploadRouteBindings {
   PROFILE_IMAGES?: ProfileImagesBucket;
@@ -120,10 +111,6 @@ uploadRoutes.post("/profile-image", requireAuth, async (c) => {
     return errorResponse(c, "Unauthorized", 401);
   }
 
-  if (!env.PROFILE_IMAGES_PUBLIC_BASE_URL) {
-    return errorResponse(c, "Profile image upload is not configured", 500);
-  }
-
   const formData = await c.req.formData();
   const image = formData.get("image");
 
@@ -131,73 +118,23 @@ uploadRoutes.post("/profile-image", requireAuth, async (c) => {
     return errorResponse(c, "Image file is required", 400);
   }
 
-  const validationError = validateProfileImageFile({
-    contentType: image.type,
-    fileSizeBytes: image.size,
-    maxSizeBytes: env.PROFILE_IMAGE_MAX_SIZE_BYTES,
-  });
-
-  if (validationError) {
-    return errorResponse(c, validationError, 400);
-  }
-
-  const key = createProfileImageObjectKey(session.user.id, image.type);
-  const body = await image.arrayBuffer();
-
-  const bucket = c.env.PROFILE_IMAGES;
-  if (bucket) {
-    await bucket.put(key, body, {
-      httpMetadata: {
-        contentType: image.type,
-      },
-    });
-  } else {
-    if (
-      !(
-        env.PROFILE_IMAGES_BUCKET_NAME &&
-        env.R2_ACCOUNT_ID &&
-        env.R2_ACCESS_KEY_ID &&
-        env.R2_SECRET_ACCESS_KEY
-      )
-    ) {
-      return errorResponse(
-        c,
-        "Profile image upload is not configured for local fallback",
-        500
-      );
-    }
-
-    const { uploadUrl } = await createProfileImagePresignedPutUrl({
-      accountId: env.R2_ACCOUNT_ID,
-      accessKeyId: env.R2_ACCESS_KEY_ID,
-      secretAccessKey: env.R2_SECRET_ACCESS_KEY,
-      bucketName: env.PROFILE_IMAGES_BUCKET_NAME,
-      objectKey: key,
+  try {
+    const result = await uploadProfileImageForUser({
+      bucket: c.env.PROFILE_IMAGES,
       contentType: image.type,
+      fileSizeBytes: image.size,
+      userId: session.user.id,
+      body: await image.arrayBuffer(),
     });
 
-    const uploadResponse = await fetch(uploadUrl, {
-      method: "PUT",
-      headers: {
-        "Content-Type": image.type,
-      },
-      body,
-    });
-
-    if (!uploadResponse.ok) {
-      return errorResponse(c, "Failed to upload image to object storage", 500);
+    return successResponse(c, result, "Profile image uploaded", 201);
+  } catch (error) {
+    if (error instanceof ProfileImageUploadError) {
+      return errorResponse(c, error.message, error.status);
     }
-  }
 
-  return successResponse(
-    c,
-    {
-      key,
-      url: buildProfileImagePublicUrl(env.PROFILE_IMAGES_PUBLIC_BASE_URL, key),
-    },
-    "Profile image uploaded",
-    201
-  );
+    throw error;
+  }
 });
 
 export default uploadRoutes;

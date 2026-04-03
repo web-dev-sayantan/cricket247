@@ -1,4 +1,5 @@
 import { getProfileImageUrl } from "@/lib/profile-image-url";
+import { client } from "@/utils/orpc";
 
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 const MAX_PROFILE_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -17,6 +18,20 @@ interface PresignUploadResponse {
   method: "PUT";
   uploadUrl: string;
 }
+
+const BASE64_CHUNK_SIZE = 0x80_00;
+
+const fileToBase64 = async (file: File) => {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let binary = "";
+
+  for (let index = 0; index < bytes.length; index += BASE64_CHUNK_SIZE) {
+    const chunk = bytes.subarray(index, index + BASE64_CHUNK_SIZE);
+    binary += String.fromCharCode(...chunk);
+  }
+
+  return btoa(binary);
+};
 
 const attemptDirectUpload = async (
   file: File
@@ -98,27 +113,14 @@ export const uploadProfileImage = async (
     return directUploadResult;
   }
 
-  const formData = new FormData();
-  formData.append("image", file);
-
-  const response = await fetch("/api/v1/uploads/profile-image", {
-    method: "POST",
-    credentials: "include",
-    body: formData,
+  const fallbackPayload = await client.uploadProfileImageFallback({
+    contentType: file.type,
+    fileSizeBytes: file.size,
+    fileBase64: await fileToBase64(file),
   });
 
-  const payload = (await response.json()) as {
-    success?: boolean;
-    error?: string;
-    data?: UploadProfileImageResult;
-  };
-
-  if (!(response.ok && payload.success && payload.data)) {
-    throw new Error(payload.error ?? "Failed to upload profile image");
-  }
-
   return {
-    key: payload.data.key,
-    url: getProfileImageUrl(payload.data.key) ?? "",
+    key: fallbackPayload.key,
+    url: getProfileImageUrl(fallbackPayload.key) ?? fallbackPayload.url ?? "",
   };
 };

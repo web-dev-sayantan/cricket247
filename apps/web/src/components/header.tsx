@@ -95,7 +95,7 @@ export default function Header() {
             )}
           </nav>
 
-          <div className="hidden items-center gap-2 md:flex">
+          <div className="hidden items-center gap-3 md:flex">
             <ModeToggle />
             <UserMenu />
           </div>
@@ -176,21 +176,20 @@ export default function Header() {
         </nav>
 
         <div className="mt-auto grid gap-3 border-t pt-4">
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground text-sm">Appearance</span>
+          <div className="flex items-center justify-between gap-3">
             <ModeToggle />
+            {session ? (
+              <UserMenu />
+            ) : (
+              <Link
+                className={buttonVariants({ className: "w-20", size: "sm" })}
+                onClick={() => setIsOpen(false)}
+                to="/login"
+              >
+                Sign In
+              </Link>
+            )}
           </div>
-          {session ? (
-            <UserMenu />
-          ) : (
-            <Link
-              className={buttonVariants({ className: "w-full", size: "sm" })}
-              onClick={() => setIsOpen(false)}
-              to="/login"
-            >
-              Sign In
-            </Link>
-          )}
         </div>
       </div>
     </>

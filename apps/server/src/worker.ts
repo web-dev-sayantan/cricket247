@@ -1,7 +1,16 @@
 import { RateLimitDurableObject as ImportedRateLimitDurableObject } from "./lib/rate-limit";
 
 interface App {
-  fetch: (request: Request) => Response | Promise<Response>;
+  fetch: (
+    request: Request,
+    env?: WorkerEnv,
+    executionCtx?: WorkerExecutionContext
+  ) => Response | Promise<Response>;
+}
+
+interface WorkerExecutionContext {
+  passThroughOnException: () => void;
+  waitUntil: (promise: Promise<unknown>) => void;
 }
 
 interface AppModule {
@@ -118,9 +127,13 @@ const loadApp = (env: WorkerEnv) => {
 };
 
 export default {
-  async fetch(request: Request, env: WorkerEnv) {
+  async fetch(
+    request: Request,
+    env: WorkerEnv,
+    executionCtx: WorkerExecutionContext
+  ) {
     const app = await loadApp(env);
-    return app.fetch(request);
+    return app.fetch(request, env, executionCtx);
   },
 };
 

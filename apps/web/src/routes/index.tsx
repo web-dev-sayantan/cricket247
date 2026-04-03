@@ -76,7 +76,7 @@ function HomeComponent() {
                 <span
                   className={cn(
                     buttonVariants({ size: "lg" }),
-                    "angled-cut h-14 border-transparent bg-primary px-8 text-base"
+                    "angled-cut h-14 w-full border-transparent bg-primary px-8 text-base md:w-auto"
                   )}
                 >
                   View Live Scores

@@ -79,6 +79,12 @@ export const claimPlayerVerifySchema = claimPlayerOtpRequestSchema.extend({
     .regex(/^\d{6}$/),
 });
 
+export const uploadProfileImageFallbackBodySchema = z.object({
+  contentType: z.string().trim().min(1),
+  fileSizeBytes: z.number().int().positive(),
+  fileBase64: z.string().trim().min(1),
+});
+
 export const createTeamBodySchema = insertTeamSchema.omit({ id: true });
 export const updateTeamBodySchema = createTeamBodySchema.partial();
 
