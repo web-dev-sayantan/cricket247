@@ -1,11 +1,14 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { ensureOpenApiScriptEnv } from "./openapi-script-env";
 import { toDeterministicJson, toDeterministicYaml } from "./openapi-spec-utils";
 
 if (!process.env.DATABASE_URL) {
   process.env.DATABASE_URL = "file:openapi-spec.db";
 }
+
+ensureOpenApiScriptEnv();
 
 const { generateOpenApiSpec, OPENAPI_FILE_SERVER_URL } = await import(
   "../src/openapi"
