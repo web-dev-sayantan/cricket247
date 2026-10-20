@@ -11,25 +11,13 @@ export default defineConfig(({ command }) => {
   const isServe = command === "serve";
 
   return {
-    server: {
-      proxy: {
-        "/api": {
-          target: "http://localhost:3000",
-          changeOrigin: true,
-        },
-        "/rpc": {
-          target: "http://localhost:3000",
-          changeOrigin: true,
-        },
-      },
-    },
     plugins: [
       devtools(),
       tailwindcss(),
       tanstackRouter({
-        target: "react",
         autoCodeSplitting: true,
         routeFileIgnorePattern: "\\.test\\.ts$",
+        target: "react",
       }),
       babelPlugin({ presets: [reactCompilerPreset()], sourceMap: isServe }),
       react(),
@@ -38,6 +26,20 @@ export default defineConfig(({ command }) => {
     resolve: {
       alias: {
         "@": path.resolve(import.meta.dirname, "./src"),
+      },
+    },
+    server: {
+      allowedHosts: ["macbook.grouse-ph.ts.net"],
+      host: true,
+      proxy: {
+        "/api": {
+          changeOrigin: true,
+          target: "http://localhost:3000",
+        },
+        "/rpc": {
+          changeOrigin: true,
+          target: "http://localhost:3000",
+        },
       },
     },
   };
