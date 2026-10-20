@@ -1,32 +1,28 @@
 {
   "name": "cricket247",
-  "devDependencies": {
-    "@biomejs/biome": "^2.4.12",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.4.0",
-    "turbo": "^2.9.6",
-    "ultracite": "^7.6.0"
-  },
-  "packageManager": "bun@1.3.11",
   "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
-    "prepare": "husky",
-    "dev": "turbo dev",
     "build": "turbo build",
-    "test": "turbo test",
     "check": "ultracite check",
-    "fix": "ultracite fix",
     "check-types": "turbo check-types",
-    "dev:native": "turbo -F native dev",
-    "dev:web": "turbo -F web dev",
-    "dev:server": "turbo -F server dev",
-    "deploy:api": "turbo -F @cricket247/server deploy",
-    "deploy:web": "turbo -F web deploy",
-    "deploy": "bun run deploy:api && bun run deploy:web",
-    "db:push": "turbo -F server db:push",
-    "db:studio": "turbo -F server db:studio",
     "db:generate": "turbo -F server db:generate",
     "db:migrate": "turbo -F server db:migrate",
+    "db:push": "turbo -F server db:push",
+    "db:studio": "turbo -F server db:studio",
+    "deploy": "bun run deploy:api && bun run deploy:web",
+    "deploy:api": "turbo -F @cricket247/server deploy",
+    "deploy:web": "turbo -F web deploy",
+    "dev": "turbo dev",
+    "dev:native": "turbo -F native dev",
+    "dev:server": "turbo -F server dev",
+    "dev:web": "turbo -F web dev",
+    "fix": "ultracite fix",
+    "prepare": "husky",
+    "test": "turbo test",
     "upgrade-deps": "bun update && cd apps/web && bun update && cd ../server && bun update"
   },
   "lint-staged": {
@@ -34,8 +30,12 @@
       "bun run fix"
     ]
   },
-  "type": "module",
-  "workspaces": [
-    "apps/*"
-  ]
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
+    "turbo": "^2.11.9",
+    "ultracite": "^7.12.4"
+  },
+  "packageManager": "bun@1.4.3"
 }
